@@ -5,3 +5,8 @@ assets = { directory = "./dist/" }
 
 [observability]
 enabled = true
+
+[[workflows]]
+name = "digest-workflow"
+binding = "DIGEST_WORKFLOW"
+class_name = "DigestWorkflow"

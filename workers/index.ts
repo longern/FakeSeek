@@ -1,9 +1,12 @@
 import { Hono } from "hono";
 
+export { DigestWorkflow } from "./workflow";
+
 const app = new Hono<{
   Bindings: {
     GOOGLE_API_KEY: string;
     GOOGLE_CSE_CX: string;
+    DIGEST_WORKFLOW: Workflow;
   };
 }>();
 
@@ -18,6 +21,19 @@ app.get("/api/search", (c) => {
     key: c.env.GOOGLE_API_KEY,
   });
   return fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
+});
+
+app.put("/api/tasks", async (c) => {
+  const task = await c.req.json();
+  if (!task)
+    return Response.json(
+      { error: "Missing task in request body" },
+      { status: 400 }
+    );
+
+  const workflow = await c.env.DIGEST_WORKFLOW.create(task);
+
+  return Response.json({ id: workflow.id });
 });
 
 export default app;
