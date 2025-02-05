@@ -1,0 +1,4 @@
+name = "ai-digest-workflow"
+compatibility_date = "2024-09-19"
+main = "workers/index.ts"
+assets = { directory = "./dist/" }
