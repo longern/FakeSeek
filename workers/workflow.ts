@@ -5,7 +5,7 @@ import {
   WorkflowStep,
 } from "cloudflare:workers";
 
-type Params = {
+export type DigestWorkflowParams = {
   firstTime: number;
   interval: number;
   instructions: string;
@@ -19,13 +19,14 @@ export class DigestWorkflow extends WorkflowEntrypoint<
     OPENAI_API_KEY: string;
     OPENAI_BASE_URL?: string;
   },
-  Params
+  DigestWorkflowParams
 > {
-  async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
+  async run(event: WorkflowEvent<DigestWorkflowParams>, step: WorkflowStep) {
     const { firstTime, interval, instructions, model, apiKey, baseURL } =
       event.payload;
 
     for (let i = 0; i <= 1000; i++) {
+      if (Date.now() > firstTime + i * interval) continue;
       await step.sleepUntil(`sleep ${i}`, new Date(firstTime + i * interval));
 
       const digest = await step.do(`digest ${i + 1}`, async () => {

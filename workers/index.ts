@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 
+import type { DigestWorkflowParams } from "./workflow";
+
 export { DigestWorkflow } from "./workflow";
 
 const app = new Hono<{
   Bindings: {
     GOOGLE_API_KEY: string;
     GOOGLE_CSE_CX: string;
-    DIGEST_WORKFLOW: Workflow;
+    DIGEST_WORKFLOW: Workflow<DigestWorkflowParams>;
   };
 }>();
 
@@ -31,7 +33,7 @@ app.put("/api/tasks", async (c) => {
       { status: 400 }
     );
 
-  const workflow = await c.env.DIGEST_WORKFLOW.create(task);
+  const workflow = await c.env.DIGEST_WORKFLOW.create({ params: task });
 
   return Response.json({ id: workflow.id });
 });
