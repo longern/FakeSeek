@@ -27,7 +27,7 @@ function Home({
       if (enableSearch) {
         onSearch(message);
       } else if (enableResearch) {
-        console.log("Research");
+        console.log("Researching...");
       } else {
         onChat(message);
       }
@@ -54,14 +54,22 @@ function Home({
       ></GlobalStyles>
       <Stack gap={1} width="100%" component="form" onSubmit={handleSend}>
         <InputBase
+          multiline
+          placeholder="Send message..."
+          value={message}
           sx={{
-            borderRadius: 9999,
+            minHeight: "48px",
+            borderRadius: "24px",
             backgroundColor: "whitesmoke",
             padding: "0.5rem 1rem",
           }}
-          placeholder="Send message..."
-          value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.form!.requestSubmit();
+            }
+          }}
         />
         <Stack direction="row" gap={1} alignItems="center">
           <Chip

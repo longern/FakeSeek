@@ -9,6 +9,8 @@ const app = new Hono<{
     GOOGLE_API_KEY: string;
     GOOGLE_CSE_CX: string;
     DIGEST_WORKFLOW: Workflow<DigestWorkflowParams>;
+    OPENAI_API_KEY?: string;
+    OPENAI_BASE_URL?: string;
   };
 }>();
 
@@ -23,6 +25,18 @@ app.get("/api/search", (c) => {
     key: c.env.GOOGLE_API_KEY,
   });
   return fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
+});
+
+app.post("/api/v1/chat/completions", async (c) => {
+  const baseURL = c.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  return fetch(baseURL + "/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${c.env.OPENAI_API_KEY}`,
+    },
+    body: c.req.raw.body,
+  });
 });
 
 app.put("/api/tasks", async (c) => {

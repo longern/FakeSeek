@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import {
   Box,
   Container,
+  IconButton,
   InputBase,
   Link,
   Stack,
   Typography,
 } from "@mui/material";
+import { ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 
 interface SearchResults {
   items: Array<{
@@ -19,7 +21,13 @@ interface SearchResults {
   }>;
 }
 
-function SearchResults({ query }: { query: string }) {
+function SearchResults({
+  query,
+  onBack,
+}: {
+  query: string;
+  onBack: () => void;
+}) {
   const [results, setResults] = useState<SearchResults["items"]>([]);
 
   useEffect(() => {
@@ -45,13 +53,19 @@ function SearchResults({ query }: { query: string }) {
           sx={{
             padding: 0,
             display: "flex",
-            flexDirection: "column",
+            flexDirection: "row",
             justifyContent: "center",
+            alignItems: "center",
             height: "100%",
           }}
         >
+          <IconButton aria-label="Back" size="large" onClick={onBack}>
+            <ArrowBackIcon />
+          </IconButton>
           <InputBase
             sx={{
+              marginLeft: "4px",
+              width: "100%",
               borderRadius: 9999,
               backgroundColor: "whitesmoke",
               padding: "0.5rem 1rem",
