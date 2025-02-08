@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 
 import SearchResults from "./SearchResults";
@@ -10,10 +10,25 @@ const theme = createTheme();
 
 function App() {
   const [query, setQuery] = useState("");
-  const [defaultMessage, setDefaultMessage] = useState("");
+  const [showChat, setShowChat] = useState(false);
+  const [stopController, setStopController] = useState<
+    AbortController | undefined
+  >(undefined);
+  const chatRef = useRef<{ sendMessage: (message: string) => void } | null>(
+    null
+  );
 
   const inputArea = (
-    <InputArea onSearch={setQuery} onChat={setDefaultMessage} />
+    <InputArea
+      stopController={stopController}
+      onSearch={setQuery}
+      onChat={(message) => {
+        setShowChat(true);
+        setTimeout(() => {
+          chatRef.current?.sendMessage(message);
+        }, 0);
+      }}
+    />
   );
 
   return (
@@ -21,10 +36,11 @@ function App() {
       <CssBaseline />
       {query ? (
         <SearchResults query={query} onBack={() => setQuery("")} />
-      ) : defaultMessage ? (
+      ) : showChat ? (
         <Chat
-          defaultMessage={defaultMessage}
-          onBack={() => setDefaultMessage("")}
+          ref={chatRef}
+          onBack={() => setShowChat(false)}
+          onControllerChange={(controller) => setStopController(controller)}
           inputArea={inputArea}
         />
       ) : (

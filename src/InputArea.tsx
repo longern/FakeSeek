@@ -7,15 +7,13 @@ import { Box, Chip, IconButton, InputBase, Stack } from "@mui/material";
 import { useCallback, useState } from "react";
 
 function InputArea({
-  generating,
+  stopController,
   onSearch,
   onChat,
-  onStop,
 }: {
-  generating?: boolean;
+  stopController?: AbortController;
   onSearch: (query: string) => void;
   onChat: (message: string) => void;
-  onStop?: () => void;
 }) {
   const [enableSearch, setEnableSearch] = useState(false);
   const [enableResearch, setEnableResearch] = useState(false);
@@ -24,6 +22,7 @@ function InputArea({
   const handleSend = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      setMessage("");
       if (enableSearch) {
         onSearch(message);
       } else if (enableResearch) {
@@ -79,8 +78,19 @@ function InputArea({
           }}
         />
         <Box sx={{ flexGrow: 1 }} />
-        {generating ? (
-          <IconButton aria-label="Stop" size="small" onClick={onStop}>
+        {stopController ? (
+          <IconButton
+            aria-label="Stop"
+            size="small"
+            sx={{
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
+              "&:hover": {
+                backgroundColor: "primary.dark",
+              },
+            }}
+            onClick={() => stopController.abort("User manually stopped")}
+          >
             <StopIcon />
           </IconButton>
         ) : (

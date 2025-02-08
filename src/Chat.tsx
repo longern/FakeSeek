@@ -1,5 +1,12 @@
 import { Box, Container, Menu, MenuItem, Stack } from "@mui/material";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import Markdown from "react-markdown";
 import OpenAI from "openai";
 
@@ -8,58 +15,91 @@ interface ChatMessage {
   content: string;
 }
 
+async function streamRequestAssistant(
+  messages: ChatMessage[],
+  options?: {
+    signal?: AbortSignal;
+    onPartialMessage?: (message: ChatMessage) => void;
+  }
+) {
+  const client = new OpenAI({
+    apiKey: "",
+    baseURL: new URL("/api/v1", window.location.origin).toString(),
+    dangerouslyAllowBrowser: true,
+  });
+  const response = await client.chat.completions.create(
+    {
+      model: "deepseek/deepseek-r1:free",
+      messages: messages as any,
+      stream: true,
+    },
+    { signal: options?.signal }
+  );
+  let buffer = "";
+  for await (const chunk of response) {
+    const chunkChoice = chunk.choices[0];
+    const { delta } = chunkChoice;
+    buffer += delta.content;
+    options?.onPartialMessage?.({ role: "assistant", content: buffer });
+  }
+
+  return response;
+}
+
 function Chat({
-  defaultMessage,
   inputArea,
+  onControllerChange,
+  ref,
 }: {
-  defaultMessage: string;
   inputArea: React.ReactNode;
   onBack: () => void;
+  onControllerChange?: (signal: AbortController | undefined) => void;
+  ref?: React.ForwardedRef<{
+    sendMessage: (message: string) => void;
+  }>;
 }) {
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
   } | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(
+    null
+  );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = useRef(true);
 
-  useEffect(() => {
-    const abortController = new AbortController();
-    setMessages([{ role: "user", content: defaultMessage }]);
-    const client = new OpenAI({
-      apiKey: "",
-      baseURL: new URL("/api/v1", window.location.origin).toString(),
-      dangerouslyAllowBrowser: true,
-    });
-    client.chat.completions
-      .create(
-        {
-          model: "deepseek/deepseek-r1:free",
-          messages: [{ role: "user", content: defaultMessage }],
-          stream: true,
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        sendMessage: (message: string) => {
+          const newMessage = { role: "user", content: message };
+          setMessages((messages) => [...messages, newMessage]);
+          requestAssistant([...messages, newMessage]);
         },
-        { signal: abortController.signal }
-      )
-      .then(async (response) => {
-        let partialMessage = { role: "assistant", content: "" };
-        setMessages((messages) => [...messages, partialMessage]);
-        for await (const chunk of response) {
-          const chunkChoice = chunk.choices[0];
-          const { delta } = chunkChoice;
-          const newMessage = {
-            role: "assistant",
-            content: partialMessage.content + delta.content,
-          };
+      };
+    },
+    [messages]
+  );
+
+  const requestAssistant = useCallback((messages: ChatMessage[]) => {
+    const abortController = new AbortController();
+    onControllerChange?.(abortController);
+    let partialMessage = { role: "assistant", content: "" };
+    setMessages((messages) => [...messages, partialMessage]);
+    streamRequestAssistant(messages, {
+      signal: abortController.signal,
+      onPartialMessage: (message) => {
+        setMessages((messages) => {
           const partialMessageCopy = partialMessage;
-          setMessages((messages) =>
-            messages.map((m) => (m === partialMessageCopy ? newMessage : m))
-          );
-          partialMessage = newMessage;
-        }
-      });
-    return () => abortController.abort();
-  }, [defaultMessage]);
+          partialMessage = message;
+          return messages.map((m) => (m === partialMessageCopy ? message : m));
+        });
+      },
+    });
+    onControllerChange?.(undefined);
+  }, []);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -81,9 +121,10 @@ function Chat({
         maxWidth="md"
         sx={{ paddingX: 2, paddingTop: 2, paddingBottom: "120px" }}
       >
-        <Stack gap={1} sx={{ userSelect: "none" }}>
-          {messages.map((message) => (
+        <Stack gap={1}>
+          {messages.map((message, index) => (
             <Box
+              key={index}
               sx={
                 message.role === "user"
                   ? {
@@ -97,13 +138,17 @@ function Chat({
                     }
                   : null
               }
-              onContextMenu={(e) => {
-                e.preventDefault();
+              onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
+                const { nativeEvent } = e;
+                if (nativeEvent.pointerType === "mouse") return;
+                nativeEvent.preventDefault();
+                nativeEvent.stopImmediatePropagation();
                 setContextMenu(
                   contextMenu === null
                     ? { mouseX: e.clientX, mouseY: e.clientY }
                     : null
                 );
+                setSelectedMessage(message);
               }}
             >
               {message.role === "user" ? (
@@ -126,7 +171,16 @@ function Chat({
         }
         MenuListProps={{ sx: { minWidth: "160px" } }}
       >
-        <MenuItem>Copy</MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (!selectedMessage) return;
+            navigator.clipboard.writeText(selectedMessage.content);
+            setContextMenu(null);
+            setSelectedMessage(null);
+          }}
+        >
+          Copy
+        </MenuItem>
         <MenuItem>Select Text</MenuItem>
         <MenuItem>Retry</MenuItem>
       </Menu>
