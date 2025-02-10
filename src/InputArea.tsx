@@ -6,12 +6,22 @@ import {
 import { Box, Chip, IconButton, InputBase, Stack } from "@mui/material";
 import { useCallback, useState } from "react";
 
+function urlBase64ToUint8Array(base64String: string) {
+  return new Uint8Array(
+    atob(base64String.replace(/-/g, "+").replace(/_/g, "/"))
+      .split("")
+      .map((c) => c.charCodeAt(0))
+  );
+}
+
 function InputArea({
   stopController,
+  onResearch,
   onSearch,
   onChat,
 }: {
   stopController?: AbortController;
+  onResearch: (task: string) => void;
   onSearch: (query: string) => void;
   onChat: (message: string) => void;
 }) {
@@ -26,7 +36,7 @@ function InputArea({
       if (enableSearch) {
         onSearch(message);
       } else if (enableResearch) {
-        console.log("Researching...");
+        onResearch(message);
       } else {
         onChat(message);
       }
@@ -64,6 +74,22 @@ function InputArea({
           label="Research"
           color={enableResearch ? "primary" : "default"}
           onClick={() => {
+            if (!enableResearch) Notification.requestPermission();
+            navigator.serviceWorker
+              .getRegistration()
+              .then(async (registration) => {
+                if (!registration) return;
+                const subscription =
+                  await registration.pushManager.getSubscription();
+                if (subscription) return;
+                const SERVER_PUBLIC_KEY =
+                  "BGQRGebCwAzQGNxKag65PqQdQSE4wOlPLN36wpyVIMFzXKg58AgsoSVFiBi9IJrRNqHBxsftMNvwAN5Ki5AOe8A";
+                await registration.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey:
+                    urlBase64ToUint8Array(SERVER_PUBLIC_KEY),
+                });
+              });
             setEnableResearch(!enableResearch);
             setEnableSearch(false);
           }}

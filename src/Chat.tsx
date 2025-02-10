@@ -123,6 +123,8 @@ function Chat({
           return messages.map((m) => (m === partialMessageCopy ? message : m));
         });
       },
+    }).catch((error) => {
+      window.alert(error.message);
     });
     onControllerChange?.(undefined);
   }, []);
@@ -163,7 +165,7 @@ function Chat({
                         maxWidth: "100%",
                         maxHeight: "60vh",
                       },
-                      "& > p": {
+                      "& > pre": {
                         overflowX: "auto",
                       },
                     }),
@@ -191,12 +193,7 @@ function Chat({
                       color="text.secondary"
                       sx={{ paddingLeft: 1 }}
                     >
-                      <Markdown
-                        remarkPlugins={[remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
-                      >
-                        {preprocessLaTeX(message.reasoning_content ?? "")}
-                      </Markdown>
+                      {message.reasoning_content}
                     </Typography>
                   )}
                   <Markdown

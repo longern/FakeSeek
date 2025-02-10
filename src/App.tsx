@@ -25,8 +25,17 @@ function App() {
       onChat={(message) => {
         setShowChat(true);
         setTimeout(() => {
-          chatRef.current?.sendMessage(message);
+          chatRef.current!.sendMessage(message);
         }, 0);
+      }}
+      onResearch={(task) => {
+        fetch("/api/tasks", {
+          method: "PUT",
+          body: JSON.stringify({
+            instructions: task,
+            model: "deepseek/deepseek-r1:free",
+          }),
+        });
       }}
     />
   );

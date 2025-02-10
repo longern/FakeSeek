@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import type { DigestWorkflowParams } from "./workflow";
+import { search } from "./search";
 
 export { DigestWorkflow } from "./workflow";
 
@@ -19,12 +20,7 @@ app.get("/api/search", (c) => {
   if (!query)
     return Response.json({ error: "Missing query parameter" }, { status: 400 });
 
-  const params = new URLSearchParams({
-    q: query,
-    cx: c.env.GOOGLE_CSE_CX,
-    key: c.env.GOOGLE_API_KEY,
-  });
-  return fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
+  return search(query, c.env);
 });
 
 app.post("/api/v1/chat/completions", async (c) => {
@@ -37,6 +33,19 @@ app.post("/api/v1/chat/completions", async (c) => {
     },
     body: c.req.raw.body,
   });
+});
+
+app.get("/api/tasks", async (c) => {
+  const workflowId = c.req.query("id");
+  if (!workflowId)
+    return Response.json(
+      { error: "Missing id query parameter" },
+      { status: 400 }
+    );
+
+  const workflow = await c.env.DIGEST_WORKFLOW.get(workflowId);
+  const status = await workflow.status();
+  return Response.json(status);
 });
 
 app.put("/api/tasks", async (c) => {
