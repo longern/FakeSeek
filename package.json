@@ -18,7 +18,9 @@
     "openai": "^4.82.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-markdown": "^9.0.3"
+    "react-markdown": "^9.0.3",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

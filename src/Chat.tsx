@@ -1,18 +1,31 @@
-import { Box, Container, Menu, MenuItem, Stack } from "@mui/material";
+import {
+  Box,
+  Container,
+  Menu,
+  MenuItem,
+  Stack,
+  Typography,
+} from "@mui/material";
+import OpenAI from "openai";
 import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import Markdown from "react-markdown";
-import OpenAI from "openai";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
+
+import "katex/dist/katex.min.css";
+
+import { preprocessLaTeX } from "./latex";
 
 interface ChatMessage {
   role: string;
   content: string;
+  reasoning_content?: string;
 }
 
 async function streamRequestAssistant(
@@ -28,19 +41,29 @@ async function streamRequestAssistant(
     dangerouslyAllowBrowser: true,
   });
   const response = await client.chat.completions.create(
+    { model: "", messages: [], stream: true },
     {
-      model: "deepseek/deepseek-r1:free",
-      messages: messages as any,
-      stream: true,
-    },
-    { signal: options?.signal }
+      signal: options?.signal,
+      body: {
+        model: "deepseek/deepseek-r1:free",
+        messages: messages as any,
+        stream: true,
+        include_reasoning: true,
+      },
+    }
   );
   let buffer = "";
+  let reasoningBuffer = "";
   for await (const chunk of response) {
     const chunkChoice = chunk.choices[0];
     const { delta } = chunkChoice;
-    buffer += delta.content;
-    options?.onPartialMessage?.({ role: "assistant", content: buffer });
+    buffer += delta.content ?? "";
+    reasoningBuffer += (delta as any).reasoning ?? "";
+    options?.onPartialMessage?.({
+      role: "assistant",
+      content: buffer,
+      reasoning_content: reasoningBuffer,
+    });
   }
 
   return response;
@@ -66,7 +89,6 @@ function Chat({
     null
   );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = useRef(true);
 
   useImperativeHandle(
@@ -91,6 +113,10 @@ function Chat({
     streamRequestAssistant(messages, {
       signal: abortController.signal,
       onPartialMessage: (message) => {
+        const { scrollTop, scrollHeight, clientHeight } =
+          document.documentElement;
+        isScrolledToBottom.current =
+          scrollTop + clientHeight >= scrollHeight - 1;
         setMessages((messages) => {
           const partialMessageCopy = partialMessage;
           partialMessage = message;
@@ -101,23 +127,16 @@ function Chat({
     onControllerChange?.(undefined);
   }, []);
 
-  useLayoutEffect(() => {
-    if (!containerRef.current) return;
-    isScrolledToBottom.current =
-      containerRef.current.scrollHeight - containerRef.current.scrollTop ===
-      containerRef.current.clientHeight;
-  }, [messages]);
-
   useEffect(() => {
-    if (isScrolledToBottom.current && containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    if (isScrolledToBottom.current) {
+      document.documentElement.scrollTop =
+        document.documentElement.scrollHeight;
     }
-  }, [messages]);
+  });
 
   return (
     <>
       <Container
-        ref={containerRef}
         maxWidth="md"
         sx={{ paddingX: 2, paddingTop: 2, paddingBottom: "120px" }}
       >
@@ -125,8 +144,10 @@ function Chat({
           {messages.map((message, index) => (
             <Box
               key={index}
-              sx={
-                message.role === "user"
+              sx={{
+                maxWidth: "100%",
+                overflowWrap: "break-word",
+                ...(message.role === "user"
                   ? {
                       minWidth: "48px",
                       padding: "8px 12px",
@@ -136,8 +157,17 @@ function Chat({
                       alignSelf: "flex-end",
                       whiteSpace: "pre-wrap",
                     }
-                  : null
-              }
+                  : {
+                      "& img": {
+                        display: "block",
+                        maxWidth: "100%",
+                        maxHeight: "60vh",
+                      },
+                      "& > p": {
+                        overflowX: "auto",
+                      },
+                    }),
+              }}
               onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
                 const { nativeEvent } = e;
                 if (nativeEvent.pointerType === "mouse") return;
@@ -154,7 +184,28 @@ function Chat({
               {message.role === "user" ? (
                 message.content
               ) : (
-                <Markdown>{message.content}</Markdown>
+                <>
+                  {message.reasoning_content && (
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ paddingLeft: 1 }}
+                    >
+                      <Markdown
+                        remarkPlugins={[remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                      >
+                        {preprocessLaTeX(message.reasoning_content ?? "")}
+                      </Markdown>
+                    </Typography>
+                  )}
+                  <Markdown
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {preprocessLaTeX(message.content)}
+                  </Markdown>
+                </>
               )}
             </Box>
           ))}
