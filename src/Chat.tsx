@@ -1,9 +1,14 @@
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
   Container,
+  Dialog,
+  IconButton,
+  InputBase,
   Menu,
   MenuItem,
   Stack,
+  Toolbar,
   Typography,
 } from "@mui/material";
 import OpenAI from "openai";
@@ -88,6 +93,7 @@ function Chat({
   const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(
     null
   );
+  const [showSelection, setShowSelection] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const isScrolledToBottom = useRef(true);
 
@@ -229,7 +235,14 @@ function Chat({
         >
           Copy
         </MenuItem>
-        <MenuItem>Select Text</MenuItem>
+        <MenuItem
+          onClick={() => {
+            setShowSelection(true);
+            setContextMenu(null);
+          }}
+        >
+          Select Text
+        </MenuItem>
         <MenuItem>Retry</MenuItem>
       </Menu>
       <Box
@@ -245,6 +258,38 @@ function Chat({
           {inputArea}
         </Container>
       </Box>
+      <Dialog
+        fullScreen
+        open={showSelection}
+        onClose={() => {
+          setShowSelection(false);
+          setSelectedMessage(null);
+        }}
+      >
+        <Toolbar disableGutters>
+          <IconButton
+            aria-label="Close"
+            size="large"
+            onClick={() => {
+              setShowSelection(false);
+              setSelectedMessage(null);
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
+            Select Text
+          </Typography>
+          <Box sx={{ width: "48px" }} />
+        </Toolbar>
+        <InputBase
+          multiline
+          fullWidth
+          value={selectedMessage?.content}
+          slotProps={{ input: { readOnly: true } }}
+          sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
+        />
+      </Dialog>
     </>
   );
 }
