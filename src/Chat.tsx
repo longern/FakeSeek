@@ -174,7 +174,7 @@ function Chat({
                 const { nativeEvent } = e;
                 if (nativeEvent.pointerType === "mouse") return;
                 nativeEvent.preventDefault();
-                nativeEvent.stopImmediatePropagation();
+                window.getSelection()?.removeAllRanges();
                 setContextMenu(
                   contextMenu === null
                     ? { mouseX: e.clientX, mouseY: e.clientY }
