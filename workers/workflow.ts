@@ -19,12 +19,14 @@ export type DigestWorkflowParams = {
 const DEVELOPER_PROMPT = `\
 You are a helpful assistant. If you are calling tools, use this format, replace \`tool_name\` and do not output anything else:
 \`\`\`tool-{tool_name}
-query
+{tool_input}
 \`\`\`
 
 Available tools:
-- search: Search the web for information
-- fetch: Fetch data from a URL
+- search: Google search
+  input: query
+- fetch: Fetch a URL
+  input: URL
 `;
 
 export class DigestWorkflow extends WorkflowEntrypoint<
@@ -78,10 +80,17 @@ export class DigestWorkflow extends WorkflowEntrypoint<
                 return {
                   role: "user",
                   content: data.items
-                    .map((item) => `${item.title}\n${item.snippet}`)
+                    .map(
+                      (item) => `${item.title}\n${item.link}\n${item.snippet}`
+                    )
                     .join("\n"),
                   refusal: null,
                 };
+              } else if (call[1] === "fetch") {
+                const url = call[2];
+                const response = await fetch(url);
+                const text = await response.text();
+                return { role: "user", content: text };
               }
             }
           }
