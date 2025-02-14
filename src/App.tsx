@@ -6,7 +6,17 @@ import Home from "./Home";
 import Chat from "./Chat";
 import InputArea from "./InputArea";
 
-const theme = createTheme();
+const theme = createTheme({
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+        },
+      },
+    },
+  },
+});
 
 function App() {
   const [query, setQuery] = useState("");
@@ -14,9 +24,10 @@ function App() {
   const [stopController, setStopController] = useState<
     AbortController | undefined
   >(undefined);
-  const chatRef = useRef<{ sendMessage: (message: string) => void } | null>(
-    null
-  );
+  const chatRef = useRef<{
+    sendMessage: (message: string) => void;
+    createResearch: (task: string) => void;
+  } | null>(null);
 
   const inputArea = (
     <InputArea
@@ -29,13 +40,10 @@ function App() {
         }, 0);
       }}
       onResearch={(task) => {
-        fetch("/api/tasks", {
-          method: "PUT",
-          body: JSON.stringify({
-            instructions: task,
-            model: "deepseek/deepseek-r1:free",
-          }),
-        });
+        setShowChat(true);
+        setTimeout(() => {
+          chatRef.current!.createResearch(task);
+        }, 0);
       }}
     />
   );

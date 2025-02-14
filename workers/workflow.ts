@@ -17,10 +17,14 @@ export type DigestWorkflowParams = {
 };
 
 const DEVELOPER_PROMPT = `\
-You are a helpful assistant. You can use search engines to find information. Use this format and do not output anything else:
-\`\`\`tool-search
+You are a helpful assistant. If you are calling tools, use this format, replace \`tool_name\` and do not output anything else:
+\`\`\`tool-{tool_name}
 query
 \`\`\`
+
+Available tools:
+- search: Search the web for information
+- fetch: Fetch data from a URL
 `;
 
 export class DigestWorkflow extends WorkflowEntrypoint<
@@ -97,6 +101,8 @@ export class DigestWorkflow extends WorkflowEntrypoint<
                   (res as any)?.error?.metadata?.raw ?? JSON.stringify(res);
                 throw new Error(error);
               }
+              if (!res.choices[0].message.content)
+                throw new Error("No content in response");
               return res;
             })
             .catch((err) => {

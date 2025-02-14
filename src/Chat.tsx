@@ -1,6 +1,7 @@
 import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
+  Button,
   Container,
   Dialog,
   IconButton,
@@ -84,6 +85,7 @@ function Chat({
   onControllerChange?: (signal: AbortController | undefined) => void;
   ref?: React.ForwardedRef<{
     sendMessage: (message: string) => void;
+    createResearch: (task: string) => void;
   }>;
 }) {
   const [contextMenu, setContextMenu] = useState<{
@@ -105,6 +107,13 @@ function Chat({
           const newMessage = { role: "user", content: message };
           setMessages((messages) => [...messages, newMessage]);
           requestAssistant([...messages, newMessage]);
+        },
+        createResearch: (task: string) => {
+          setMessages((messages) => [
+            ...messages,
+            { role: "user", content: task },
+          ]);
+          requestCreateResearch(task);
         },
       };
     },
@@ -133,6 +142,21 @@ function Chat({
       window.alert(error.message);
     });
     onControllerChange?.(undefined);
+  }, []);
+
+  const requestCreateResearch = useCallback(async (task: string) => {
+    const response = await fetch("/api/tasks", {
+      method: "PUT",
+      body: JSON.stringify({
+        instructions: task,
+        model: "deepseek/deepseek-r1:free",
+      }),
+    });
+    const { id } = await response.json();
+    setMessages((messages) => [
+      ...messages,
+      { role: "assistant", content: `research: ${id}` },
+    ]);
   }, []);
 
   useEffect(() => {
@@ -191,6 +215,28 @@ function Chat({
             >
               {message.role === "user" ? (
                 message.content
+              ) : message.content.startsWith("research: ") ? (
+                <Button
+                  onClick={async () => {
+                    const researchId = message.content.slice(10);
+                    const res = await fetch(`/api/tasks/${researchId}`);
+                    const data = await res.json();
+                    if (data.status === "complete") {
+                      setMessages(
+                        messages.map((m) =>
+                          m !== message
+                            ? m
+                            : {
+                                role: "assistant",
+                                content: data.output ?? data.error,
+                              }
+                        )
+                      );
+                    }
+                  }}
+                >
+                  Load Result
+                </Button>
               ) : (
                 <>
                   {message.reasoning_content && (

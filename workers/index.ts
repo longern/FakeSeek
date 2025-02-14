@@ -35,15 +35,11 @@ app.post("/api/v1/chat/completions", async (c) => {
   });
 });
 
-app.get("/api/tasks", async (c) => {
-  const workflowId = c.req.query("id");
-  if (!workflowId)
-    return Response.json(
-      { error: "Missing id query parameter" },
-      { status: 400 }
-    );
-
+app.get("/api/tasks/:id", async (c) => {
+  const workflowId = c.req.param("id");
   const workflow = await c.env.DIGEST_WORKFLOW.get(workflowId);
+  if (!workflow)
+    return Response.json({ error: "Workflow not found" }, { status: 404 });
   const status = await workflow.status();
   return Response.json(status);
 });
