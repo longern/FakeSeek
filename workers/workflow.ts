@@ -17,7 +17,9 @@ export type DigestWorkflowParams = {
 };
 
 const DEVELOPER_PROMPT = `\
-You are a helpful assistant. If you are calling tools, use this format, replace \`tool_name\` and do not output anything else:
+You are executing one step of a research task. You must choose between invoking exactly one tool and generating the final report.
+Today is {cur_date}. When generating the final report, unless the user requests otherwise, your response should be in the same language as the user's question.
+If you are calling tools, use this format, replace \`tool_name\` and \`tool_input\` and do not output anything else:
 \`\`\`tool-{tool_name}
 {tool_input}
 \`\`\`
@@ -47,7 +49,13 @@ export class DigestWorkflow extends WorkflowEntrypoint<
       event.payload;
 
     const taskHistory: ChatCompletionMessageParam[] = [
-      { role: "system", content: DEVELOPER_PROMPT },
+      {
+        role: "system",
+        content: DEVELOPER_PROMPT.replace(
+          "{cur_date}",
+          new Date().toUTCString()
+        ),
+      },
       {
         role: "user",
         content: instructions,
