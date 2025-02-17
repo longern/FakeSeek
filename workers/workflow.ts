@@ -97,7 +97,7 @@ export class DigestWorkflow extends WorkflowEntrypoint<
                 };
               } else if (call[1] === "fetch") {
                 const url = call[2];
-                const response = await fetch(url);
+                const response = await fetch("https://r.jina.ai/" + url);
                 const text = await response.text();
                 return { role: "user", content: text };
               }
