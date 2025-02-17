@@ -89,7 +89,8 @@ export class DigestWorkflow extends WorkflowEntrypoint<
                   role: "user",
                   content: data.items
                     .map(
-                      (item) => `${item.title}\n${item.link}\n${item.snippet}`
+                      (item, index) =>
+                        `${index}. ${item.title}\n${item.link}\n${item.snippet}`
                     )
                     .join("\n"),
                   refusal: null,

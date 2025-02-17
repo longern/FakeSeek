@@ -20,14 +20,8 @@ import {
   useRef,
   useState,
 } from "react";
-import Markdown from "react-markdown";
-import rehypeKatex from "rehype-katex";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
 
-import "katex/dist/katex.min.css";
-
-import { preprocessLaTeX } from "./latex";
+import Markdown from "./Markdown";
 
 interface ChatMessage {
   role: string;
@@ -249,12 +243,7 @@ function Chat({
                       {message.reasoning_content}
                     </Typography>
                   )}
-                  <Markdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                  >
-                    {preprocessLaTeX(message.content)}
-                  </Markdown>
+                  <Markdown>{message.content}</Markdown>
                 </>
               )}
             </Box>

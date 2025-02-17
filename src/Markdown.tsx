@@ -1,3 +1,13 @@
+import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { Link } from "@mui/material";
+
+import "katex/dist/katex.min.css";
+import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
+
 /**
  * Preprocesses LaTeX content by replacing delimiters and escaping certain characters.
  *
@@ -70,3 +80,39 @@ export function escapeBrackets(text: string): string {
 export function escapeMhchem(text: string) {
   return text.replaceAll("$\\ce{", "$\\\\ce{").replaceAll("$\\pu{", "$\\\\pu{");
 }
+
+function Markdown({ children }: { children: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[rehypeKatex]}
+      components={{
+        a: ({ node, ref, ...props }) => (
+          <Link {...props} target="_blank" rel="noopener noreferrer">
+            {props.children}
+          </Link>
+        ),
+        code: ({ node, className, children, ref, ...props }) => {
+          const match = /language-(\w+)/.exec(className || "");
+          return match ? (
+            <SyntaxHighlighter
+              {...props}
+              PreTag="div"
+              children={String(children).replace(/\n$/, "")}
+              language={match[1]}
+              style={dark}
+            />
+          ) : (
+            <code {...props} className={className}>
+              {children}
+            </code>
+          );
+        },
+      }}
+    >
+      {preprocessLaTeX(children)}
+    </ReactMarkdown>
+  );
+}
+
+export default Markdown;
