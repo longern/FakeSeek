@@ -1,7 +1,10 @@
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
   Button,
+  Collapse,
   Container,
   Dialog,
   IconButton,
@@ -68,6 +71,34 @@ async function streamRequestAssistant(
   }
 
   return response;
+}
+
+function ReasoningContent({
+  content,
+  reasoning,
+}: {
+  content: string;
+  reasoning: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setExpanded((expanded) => !expanded)}>
+        {reasoning ? "Reasoning" : "Reasoning Finished"}
+        {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      </Button>
+      <Collapse in={expanded}>
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ paddingLeft: 1, borderLeft: "4px solid #ccc" }}
+        >
+          {content}
+        </Typography>
+      </Collapse>
+    </>
+  );
 }
 
 function Chat({
@@ -235,13 +266,10 @@ function Chat({
               ) : (
                 <>
                   {message.reasoning_content && (
-                    <Typography
-                      variant="subtitle2"
-                      color="text.secondary"
-                      sx={{ paddingLeft: 1 }}
-                    >
-                      {message.reasoning_content}
-                    </Typography>
+                    <ReasoningContent
+                      content={message.reasoning_content}
+                      reasoning={!message.content}
+                    />
                   )}
                   <Markdown>{message.content}</Markdown>
                 </>
