@@ -313,7 +313,16 @@ function Chat({
           setSelectedMessage(null);
         }}
       >
-        <Toolbar disableGutters>
+        <Toolbar
+          disableGutters
+          sx={{
+            position: "sticky",
+            top: 0,
+            backgroundColor: "background.paper",
+            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+            zIndex: 1,
+          }}
+        >
           <IconButton
             aria-label="Close"
             size="large"
