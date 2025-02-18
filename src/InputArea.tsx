@@ -54,6 +54,7 @@ function InputArea({
       <InputBase
         multiline
         placeholder="Send message..."
+        required
         value={message}
         sx={{
           minHeight: "48px",
@@ -65,7 +66,8 @@ function InputArea({
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            e.currentTarget.form!.requestSubmit();
+            const form = e.currentTarget.form!;
+            if (form.checkValidity()) form.requestSubmit();
           }
         }}
       />
