@@ -6,6 +6,9 @@ import {
   Container,
   Drawer,
   IconButton,
+  List,
+  ListItem,
+  ListItemButton,
   Stack,
   Toolbar,
   useMediaQuery,
@@ -15,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
+import { useConversations } from "./conversations";
 
 interface ChatMessage {
   role: string;
@@ -64,6 +68,15 @@ async function streamRequestAssistant(
 }
 
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
+  const { conversations, addConversation, updateConversation } =
+    useConversations<{
+      id: string;
+      title: string;
+      messages: ChatMessage[];
+    }>("conversations.json");
+  const [selectedConversation, setSelectedConversation] = useState<
+    string | null
+  >(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [stopController, setStopController] = useState<
     AbortController | undefined
@@ -124,6 +137,24 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   }, []);
 
   useEffect(() => {
+    if (selectedConversation) {
+      updateConversation(selectedConversation, (prev) => ({
+        ...prev,
+        messages,
+      }));
+    } else {
+      if (messages.length === 0) return;
+      const newId = crypto.randomUUID();
+      addConversation({
+        id: newId,
+        title: messages[0].content.slice(0, 10),
+        messages,
+      });
+      setSelectedConversation(newId);
+    }
+  }, [messages, selectedConversation, updateConversation]);
+
+  useEffect(() => {
     if (isScrolledToBottom.current) {
       document.documentElement.scrollTop =
         document.documentElement.scrollHeight;
@@ -166,6 +197,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
               "&:hover": { backgroundColor: "#c6dcf8" },
             }}
             onClick={() => {
+              setSelectedConversation(null);
               setMessages([]);
               stopController?.abort();
               setStopController(undefined);
@@ -176,6 +208,24 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             New Chat
           </Button>
         </Box>
+        <List>
+          {Object.values(conversations).map((conversation) => (
+            <ListItem disablePadding key={conversation.id}>
+              <ListItemButton
+                selected={conversation.id === selectedConversation}
+                onClick={() => {
+                  setSelectedConversation(conversation.id);
+                  setMessages(conversation.messages);
+                  stopController?.abort();
+                  setStopController(undefined);
+                  setShowSidebar(false);
+                }}
+              >
+                {conversation.title}
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
       </Drawer>
       <Stack sx={{ width: "100%", overflowY: "auto" }}>
         {isMobile ? (
@@ -192,6 +242,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
               aria-label="New chat"
               size="large"
               onClick={() => {
+                setSelectedConversation(null);
                 setMessages([]);
                 stopController?.abort();
                 setStopController(undefined);
