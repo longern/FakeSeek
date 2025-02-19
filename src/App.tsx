@@ -32,6 +32,9 @@ function App() {
           "html, body, #root": {
             height: "100%",
           },
+          body: {
+            overflow: "hidden",
+          },
         }}
       ></GlobalStyles>
       {query ? (

@@ -1,5 +1,6 @@
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import MenuIcon from "@mui/icons-material/Menu";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
   Box,
   Button,
@@ -9,6 +10,8 @@ import {
   List,
   ListItem,
   ListItemButton,
+  Menu,
+  MenuItem,
   Stack,
   Toolbar,
   useMediaQuery,
@@ -67,13 +70,89 @@ async function streamRequestAssistant(
   return response;
 }
 
+interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+}
+
+function ConversationList({
+  conversations,
+  selectedConversation,
+  onSelect,
+  onDelete,
+}: {
+  conversations: Record<string, Conversation>;
+  selectedConversation: string | null;
+  onSelect: (conversation: Conversation) => void;
+  onDelete: (conversation: Conversation) => void;
+}) {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [menuConversation, setMenuConversation] = useState<Conversation | null>(
+    null
+  );
+
+  return (
+    <>
+      <List>
+        {Object.values(conversations).map((conversation) => (
+          <ListItem
+            disablePadding
+            key={conversation.id}
+            secondaryAction={
+              <IconButton
+                onClick={(e) => {
+                  setAnchorEl(e.currentTarget);
+                  setMenuConversation(conversation);
+                }}
+              >
+                <MoreHorizIcon />
+              </IconButton>
+            }
+          >
+            <ListItemButton
+              selected={conversation.id === selectedConversation}
+              sx={{ minHeight: "48px" }}
+              onClick={() => onSelect(conversation)}
+            >
+              {conversation.title}
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => {
+          setAnchorEl(null);
+          setMenuConversation(null);
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            setAnchorEl(null);
+            setMenuConversation(null);
+            onDelete(menuConversation!);
+          }}
+        >
+          Delete
+        </MenuItem>
+      </Menu>
+    </>
+  );
+}
+
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
-  const { conversations, addConversation, updateConversation } =
-    useConversations<{
-      id: string;
-      title: string;
-      messages: ChatMessage[];
-    }>("conversations.json");
+  const {
+    conversations,
+    addConversation,
+    updateConversation,
+    removeConversation,
+  } = useConversations<{
+    id: string;
+    title: string;
+    messages: ChatMessage[];
+  }>("conversations.json");
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
   >(null);
@@ -83,6 +162,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   >(undefined);
   const [showSidebar, setShowSidebar] = useState(false);
   const isScrolledToBottom = useRef(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const methods = {
@@ -105,8 +185,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     streamRequestAssistant(messages, {
       signal: abortController.signal,
       onPartialMessage: (message) => {
-        const { scrollTop, scrollHeight, clientHeight } =
-          document.documentElement;
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current!;
         isScrolledToBottom.current =
           scrollTop + clientHeight >= scrollHeight - 1;
         setMessages((messages) => {
@@ -155,9 +234,8 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   }, [messages, selectedConversation, updateConversation]);
 
   useEffect(() => {
-    if (isScrolledToBottom.current) {
-      document.documentElement.scrollTop =
-        document.documentElement.scrollHeight;
+    if (scrollRef.current && isScrolledToBottom.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   });
 
@@ -182,8 +260,10 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         anchor="left"
         sx={{
           [`& .MuiDrawer-paper`]: {
-            width: "300px",
+            width: "260px",
             position: isMobile ? "fixed" : "relative",
+            backgroundColor: "#f9fbff",
+            borderRight: "none",
           },
         }}
         onClose={() => setShowSidebar(false)}
@@ -193,6 +273,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             size="large"
             sx={{
               margin: 2,
+              borderRadius: "12px",
               backgroundColor: "#dbeafe",
               "&:hover": { backgroundColor: "#c6dcf8" },
             }}
@@ -203,31 +284,28 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
               setStopController(undefined);
               setShowSidebar(false);
             }}
-            startIcon={<AddCommentIcon />}
+            startIcon={<AddCommentIcon sx={{ transform: "scaleX(-1)" }} />}
           >
             New Chat
           </Button>
         </Box>
-        <List>
-          {Object.values(conversations).map((conversation) => (
-            <ListItem disablePadding key={conversation.id}>
-              <ListItemButton
-                selected={conversation.id === selectedConversation}
-                onClick={() => {
-                  setSelectedConversation(conversation.id);
-                  setMessages(conversation.messages);
-                  stopController?.abort();
-                  setStopController(undefined);
-                  setShowSidebar(false);
-                }}
-              >
-                {conversation.title}
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        <ConversationList
+          conversations={conversations}
+          selectedConversation={selectedConversation}
+          onSelect={(conversation) => {
+            setSelectedConversation(conversation.id);
+            setMessages(conversation.messages);
+            stopController?.abort();
+            setStopController(undefined);
+            setShowSidebar(false);
+          }}
+          onDelete={(conversation) => {
+            if (!window.confirm("Delete this chat?")) return;
+            removeConversation(conversation.id);
+          }}
+        />
       </Drawer>
-      <Stack sx={{ width: "100%", overflowY: "auto" }}>
+      <Stack sx={{ width: "100%" }}>
         {isMobile ? (
           <Toolbar disableGutters>
             <IconButton
@@ -248,7 +326,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 setStopController(undefined);
               }}
             >
-              <AddCommentIcon />
+              <AddCommentIcon sx={{ transform: "scaleX(-1)" }} />
             </IconButton>
           </Toolbar>
         ) : null}
@@ -265,7 +343,10 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             {inputArea}
           </Container>
         ) : (
-          <>
+          <Stack
+            ref={scrollRef}
+            sx={{ flexGrow: 1, minHeight: 0, overflowY: "auto" }}
+          >
             <Container maxWidth="md" sx={{ flexGrow: 1, padding: 2 }}>
               <Stack gap={1}>
                 <MessageList
@@ -287,7 +368,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 {inputArea}
               </Container>
             </Box>
-          </>
+          </Stack>
         )}
       </Stack>
     </Stack>

@@ -9,9 +9,14 @@ export function useConversations<T extends { id: string }>(fileKey: string) {
     async (data: Record<string, T>) => {
       try {
         const root = await navigator.storage.getDirectory();
+        const content = JSON.stringify(data);
+        if (content === "{}") {
+          await root.removeEntry(fileKey);
+          return;
+        }
         const fileHandle = await root.getFileHandle(fileKey, { create: true });
         const writable = await fileHandle.createWritable();
-        await writable.write(JSON.stringify(data));
+        await writable.write(content);
         await writable.close();
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Saving failed"));
