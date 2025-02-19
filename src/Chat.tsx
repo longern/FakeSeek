@@ -43,7 +43,7 @@ async function streamRequestAssistant(
     {
       signal: options?.signal,
       body: {
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek-r1",
         messages: messages as any,
         stream: true,
         include_reasoning: true,
@@ -56,7 +56,7 @@ async function streamRequestAssistant(
     const chunkChoice = chunk.choices[0];
     const { delta } = chunkChoice;
     buffer += delta.content ?? "";
-    reasoningBuffer += (delta as any).reasoning ?? "";
+    reasoningBuffer += (delta as any).reasoning_content ?? "";
     options?.onPartialMessage?.({
       role: "assistant",
       content: buffer,
@@ -126,7 +126,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       method: "PUT",
       body: JSON.stringify({
         instructions: task,
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek-r1",
       }),
     });
     const { id } = await response.json();
