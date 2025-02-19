@@ -1,4 +1,5 @@
 import AddCommentIcon from "@mui/icons-material/AddComment";
+import DeleteIcon from "@mui/icons-material/Delete";
 import MenuIcon from "@mui/icons-material/Menu";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
@@ -10,6 +11,8 @@ import {
   List,
   ListItem,
   ListItemButton,
+  ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
   Stack,
@@ -135,7 +138,13 @@ function ConversationList({
             onDelete(menuConversation!);
           }}
         >
-          Delete
+          <ListItemIcon>
+            <DeleteIcon color="error" />
+          </ListItemIcon>
+          <ListItemText
+            sx={{ color: "error.main" }}
+            primary="Delete"
+          ></ListItemText>
         </MenuItem>
       </Menu>
     </>
@@ -151,6 +160,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   } = useConversations<{
     id: string;
     title: string;
+    create_time: number;
     messages: ChatMessage[];
   }>("conversations.json");
   const [selectedConversation, setSelectedConversation] = useState<
@@ -227,6 +237,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       addConversation({
         id: newId,
         title: messages[0].content.slice(0, 10),
+        create_time: Date.now(),
         messages,
       });
       setSelectedConversation(newId);
