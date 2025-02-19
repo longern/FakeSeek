@@ -84,7 +84,7 @@ export class DigestWorkflow extends WorkflowEntrypoint<
                 const query = call[2];
                 const response = await search(query, this.env);
                 const data = await response.json<{ items: any[] }>();
-                if (!data.items) return data as any;
+                if (!data.items) throw new Error(JSON.stringify(data));
                 return {
                   role: "user",
                   content: data.items

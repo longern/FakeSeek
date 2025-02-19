@@ -116,14 +116,16 @@ function MessageList({
                 const researchId = message.content.slice(10);
                 const res = await fetch(`/api/tasks/${researchId}`);
                 const data = await res.json();
-                if (data.status === "complete") {
+                if (
+                  ["terminated", "errored", "complete"].includes(data.status)
+                ) {
                   onMessageChange(
                     messages.map((m) =>
                       m !== message
                         ? m
                         : {
                             role: "assistant",
-                            content: data.output ?? data.error,
+                            content: data.output ?? data.error ?? "Error",
                           }
                     )
                   );

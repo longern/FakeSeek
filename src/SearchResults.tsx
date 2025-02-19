@@ -37,7 +37,7 @@ function SearchResults({
   }, [query]);
 
   return (
-    <>
+    <Box sx={{ height: "100%", overflow: "auto" }}>
       <Box
         component="header"
         sx={{
@@ -113,7 +113,7 @@ function SearchResults({
           ))}
         </Stack>
       </Container>
-    </>
+    </Box>
   );
 }
 
