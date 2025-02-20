@@ -173,27 +173,29 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         }}
         onClose={() => setShowSidebar(false)}
       >
-        <Box>
-          <Button
-            size="large"
-            sx={{
-              margin: 2,
-              borderRadius: "12px",
-              backgroundColor: "#dbeafe",
-              "&:hover": { backgroundColor: "#c6dcf8" },
-            }}
-            onClick={() => {
-              setSelectedConversation(null);
-              setMessages([]);
-              stopController?.abort();
-              setStopController(undefined);
-              setShowSidebar(false);
-            }}
-            startIcon={<AddCommentIcon sx={{ transform: "scaleX(-1)" }} />}
-          >
-            New Chat
-          </Button>
-        </Box>
+        {!isMobile && (
+          <Box>
+            <Button
+              size="large"
+              sx={{
+                margin: 2,
+                borderRadius: "12px",
+                backgroundColor: "#dbeafe",
+                "&:hover": { backgroundColor: "#c6dcf8" },
+              }}
+              onClick={() => {
+                setSelectedConversation(null);
+                setMessages([]);
+                stopController?.abort();
+                setStopController(undefined);
+                setShowSidebar(false);
+              }}
+              startIcon={<AddCommentIcon sx={{ transform: "scaleX(-1)" }} />}
+            >
+              New Chat
+            </Button>
+          </Box>
+        )}
         <ConversationList
           conversations={conversations}
           selectedConversation={selectedConversation}
