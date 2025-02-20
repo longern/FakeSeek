@@ -46,7 +46,6 @@ function InputArea({
 
   return (
     <Stack
-      gap={1}
       component="form"
       onSubmit={handleSend}
       sx={{ width: "100%", padding: 1 }}
@@ -71,7 +70,7 @@ function InputArea({
           }
         }}
       />
-      <Stack direction="row" gap={1} alignItems="center">
+      <Stack direction="row" alignItems="center" gap={1} sx={{ paddingY: 1 }}>
         <Chip
           label="Research"
           color={enableResearch ? "primary" : "default"}
