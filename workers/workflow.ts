@@ -14,6 +14,7 @@ export type DigestWorkflowParams = {
   model?: string;
   apiKey?: string;
   baseURL?: string;
+  createTime: number;
 };
 
 const DEVELOPER_PROMPT = `\
@@ -45,8 +46,15 @@ export class DigestWorkflow extends WorkflowEntrypoint<
   DigestWorkflowParams
 > {
   async run(event: WorkflowEvent<DigestWorkflowParams>, step: WorkflowStep) {
-    const { firstTime, interval, instructions, model, apiKey, baseURL } =
-      event.payload;
+    const {
+      firstTime,
+      interval,
+      instructions,
+      model,
+      apiKey,
+      baseURL,
+      createTime,
+    } = event.payload;
 
     const taskHistory: ChatCompletionMessageParam[] = [
       {
@@ -151,7 +159,11 @@ export class DigestWorkflow extends WorkflowEntrypoint<
         taskResult.role === "assistant" &&
         !(taskResult.content as string).match(/```tool-(.*)\n([\s\S]+?)\n```/g)
       )
-        return taskResult.content;
+        return {
+          content: taskResult.content,
+          create_time: createTime,
+          finish_time: Date.now(),
+        };
 
       taskHistory.push(taskResult);
     }

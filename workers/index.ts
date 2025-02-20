@@ -52,6 +52,7 @@ app.put("/api/tasks", async (c) => {
       { status: 400 }
     );
 
+  task.createTime = Date.now();
   const workflow = await c.env.DIGEST_WORKFLOW.create({ params: task });
 
   return Response.json({ id: workflow.id });

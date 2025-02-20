@@ -119,15 +119,22 @@ function MessageList({
                 if (
                   ["terminated", "errored", "complete"].includes(data.status)
                 ) {
+                  const result = data.output
+                    ? {
+                        role: "assistant",
+                        content:
+                          `(Researched for ${
+                            (data.output.finish_time -
+                              data.output.create_time) /
+                            1000
+                          } seconds)\n\n` + data.output.content,
+                      }
+                    : {
+                        role: "assistant",
+                        content: data.error ?? "Error",
+                      };
                   onMessageChange(
-                    messages.map((m) =>
-                      m !== message
-                        ? m
-                        : {
-                            role: "assistant",
-                            content: data.output ?? data.error ?? "Error",
-                          }
-                    )
+                    messages.map((m) => (m !== message ? m : result))
                   );
                 }
               }}
