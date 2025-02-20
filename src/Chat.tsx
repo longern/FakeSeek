@@ -1,3 +1,4 @@
+import { css } from "@emotion/css";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
@@ -11,12 +12,13 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import OpenAI from "openai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import ScrollToBottom from "react-scroll-to-bottom";
 
+import ConversationList, { Conversation } from "./ConversationList";
 import InputArea from "./InputArea";
 import MessageList, { ChatMessage } from "./MessageList";
 import { useConversations } from "./conversations";
-import ConversationList, { Conversation } from "./ConversationList";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -74,8 +76,6 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     AbortController | undefined
   >(undefined);
   const [showSidebar, setShowSidebar] = useState(false);
-  const isScrolledToBottom = useRef(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const methods = {
@@ -98,9 +98,6 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     streamRequestAssistant(messages, {
       signal: abortController.signal,
       onPartialMessage: (message) => {
-        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current!;
-        isScrolledToBottom.current =
-          scrollTop + clientHeight >= scrollHeight - 1;
         setMessages((messages) => {
           const partialMessageCopy = partialMessage;
           partialMessage = message;
@@ -146,12 +143,6 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       setSelectedConversation(newId);
     }
   }, [messages, selectedConversation, updateConversation]);
-
-  useEffect(() => {
-    if (scrollRef.current && isScrolledToBottom.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  });
 
   const inputArea = (
     <InputArea
@@ -257,32 +248,39 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             {inputArea}
           </Container>
         ) : (
-          <Stack
-            ref={scrollRef}
-            sx={{ flexGrow: 1, minHeight: 0, overflowY: "auto" }}
+          <ScrollToBottom
+            className={css`
+              flex-grow: 1;
+              min-height: 0;
+            `}
           >
-            <Container maxWidth="md" sx={{ flexGrow: 1, padding: 2 }}>
-              <Stack gap={1}>
-                <MessageList
-                  messages={messages}
-                  onMessageChange={setMessages}
-                />
-              </Stack>
-            </Container>
-            <Box
-              sx={{
-                position: "sticky",
-                bottom: 0,
-                width: "100%",
-                backgroundColor: "background.paper",
-                zIndex: 1,
-              }}
-            >
-              <Container maxWidth="md" disableGutters>
-                {inputArea}
+            <Stack sx={{ minHeight: "100%" }}>
+              <Container
+                maxWidth="md"
+                sx={{ flexGrow: 1, padding: 2, overflowX: "hidden" }}
+              >
+                <Stack gap={1}>
+                  <MessageList
+                    messages={messages}
+                    onMessageChange={setMessages}
+                  />
+                </Stack>
               </Container>
-            </Box>
-          </Stack>
+              <Box
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  width: "100%",
+                  backgroundColor: "background.paper",
+                  zIndex: 1,
+                }}
+              >
+                <Container maxWidth="md" disableGutters>
+                  {inputArea}
+                </Container>
+              </Box>
+            </Stack>
+          </ScrollToBottom>
         )}
       </Stack>
     </Stack>

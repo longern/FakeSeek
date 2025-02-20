@@ -1,9 +1,10 @@
+import { css } from "@emotion/css";
+import { Link } from "@mui/material";
 import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { Link } from "@mui/material";
 
 import "katex/dist/katex.min.css";
 import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -86,6 +87,11 @@ function Markdown({ children }: { children: string }) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[rehypeKatex]}
+      className={css`
+        & .katex {
+          overflow-x: auto;
+        }
+      `}
       components={{
         a: ({ node, ref, ...props }) => (
           <Link {...props} target="_blank" rel="noopener noreferrer">
