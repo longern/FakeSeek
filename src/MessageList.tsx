@@ -16,7 +16,7 @@ import {
 import React, { useState } from "react";
 import Markdown from "./Markdown";
 
-interface ChatMessage {
+export interface ChatMessage {
   role: string;
   content: string;
   reasoning_content?: string;

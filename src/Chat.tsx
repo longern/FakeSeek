@@ -1,20 +1,11 @@
 import AddCommentIcon from "@mui/icons-material/AddComment";
-import DeleteIcon from "@mui/icons-material/Delete";
 import MenuIcon from "@mui/icons-material/Menu";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
   Box,
   Button,
   Container,
   Drawer,
   IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
   Stack,
   Toolbar,
   useMediaQuery,
@@ -23,14 +14,9 @@ import OpenAI from "openai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import InputArea from "./InputArea";
-import MessageList from "./MessageList";
+import MessageList, { ChatMessage } from "./MessageList";
 import { useConversations } from "./conversations";
-
-interface ChatMessage {
-  role: string;
-  content: string;
-  reasoning_content?: string;
-}
+import ConversationList, { Conversation } from "./ConversationList";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -73,96 +59,13 @@ async function streamRequestAssistant(
   return response;
 }
 
-interface Conversation {
-  id: string;
-  title: string;
-  messages: ChatMessage[];
-}
-
-function ConversationList({
-  conversations,
-  selectedConversation,
-  onSelect,
-  onDelete,
-}: {
-  conversations: Record<string, Conversation>;
-  selectedConversation: string | null;
-  onSelect: (conversation: Conversation) => void;
-  onDelete: (conversation: Conversation) => void;
-}) {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [menuConversation, setMenuConversation] = useState<Conversation | null>(
-    null
-  );
-
-  return (
-    <>
-      <List>
-        {Object.values(conversations).map((conversation) => (
-          <ListItem
-            disablePadding
-            key={conversation.id}
-            secondaryAction={
-              <IconButton
-                onClick={(e) => {
-                  setAnchorEl(e.currentTarget);
-                  setMenuConversation(conversation);
-                }}
-              >
-                <MoreHorizIcon />
-              </IconButton>
-            }
-          >
-            <ListItemButton
-              selected={conversation.id === selectedConversation}
-              sx={{ minHeight: "48px" }}
-              onClick={() => onSelect(conversation)}
-            >
-              {conversation.title}
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => {
-          setAnchorEl(null);
-          setMenuConversation(null);
-        }}
-      >
-        <MenuItem
-          onClick={() => {
-            setAnchorEl(null);
-            setMenuConversation(null);
-            onDelete(menuConversation!);
-          }}
-        >
-          <ListItemIcon>
-            <DeleteIcon color="error" />
-          </ListItemIcon>
-          <ListItemText
-            sx={{ color: "error.main" }}
-            primary="Delete"
-          ></ListItemText>
-        </MenuItem>
-      </Menu>
-    </>
-  );
-}
-
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const {
     conversations,
     addConversation,
     updateConversation,
     removeConversation,
-  } = useConversations<{
-    id: string;
-    title: string;
-    create_time: number;
-    messages: ChatMessage[];
-  }>("conversations.json");
+  } = useConversations<Conversation>("conversations.json");
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
   >(null);
