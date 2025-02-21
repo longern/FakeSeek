@@ -265,6 +265,12 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                   <MessageList
                     messages={messages}
                     onMessageChange={setMessages}
+                    onRetry={(message) => {
+                      const index = messages.indexOf(message);
+                      const priorMessages = messages.slice(0, index);
+                      setMessages(priorMessages);
+                      requestAssistant(priorMessages);
+                    }}
                   />
                 </Stack>
               </Container>

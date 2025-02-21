@@ -1,6 +1,9 @@
+import CloseIcon from "@mui/icons-material/Close";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CloseIcon from "@mui/icons-material/Close";
+import ReplayIcon from "@mui/icons-material/Replay";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
   Box,
   Button,
@@ -8,6 +11,7 @@ import {
   Dialog,
   IconButton,
   InputBase,
+  ListItemIcon,
   Menu,
   MenuItem,
   Toolbar,
@@ -53,9 +57,11 @@ function ReasoningContent({
 function MessageList({
   messages,
   onMessageChange,
+  onRetry,
 }: {
   messages: ChatMessage[];
   onMessageChange: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+  onRetry: (message: ChatMessage) => void;
 }) {
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
@@ -174,6 +180,9 @@ function MessageList({
             setSelectedMessage(null);
           }}
         >
+          <ListItemIcon>
+            <ContentCopyIcon />
+          </ListItemIcon>
           Copy
         </MenuItem>
         <MenuItem
@@ -182,9 +191,23 @@ function MessageList({
             setContextMenu(null);
           }}
         >
+          <ListItemIcon>
+            <SelectAllIcon />
+          </ListItemIcon>
           Select Text
         </MenuItem>
-        <MenuItem>Retry</MenuItem>
+        <MenuItem
+          onClick={() => {
+            onRetry(selectedMessage!);
+            setContextMenu(null);
+            setSelectedMessage(null);
+          }}
+        >
+          <ListItemIcon>
+            <ReplayIcon />
+          </ListItemIcon>
+          Retry
+        </MenuItem>
       </Menu>
       <Dialog
         fullScreen
