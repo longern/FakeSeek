@@ -46,15 +46,8 @@ export class DigestWorkflow extends WorkflowEntrypoint<
   DigestWorkflowParams
 > {
   async run(event: WorkflowEvent<DigestWorkflowParams>, step: WorkflowStep) {
-    const {
-      firstTime,
-      interval,
-      instructions,
-      model,
-      apiKey,
-      baseURL,
-      createTime,
-    } = event.payload;
+    const { firstTime, interval, instructions, model, apiKey, baseURL } =
+      event.payload;
 
     const taskHistory: ChatCompletionMessageParam[] = [
       {
@@ -161,7 +154,7 @@ export class DigestWorkflow extends WorkflowEntrypoint<
       )
         return {
           content: taskResult.content,
-          create_time: createTime,
+          create_time: event.timestamp.getTime(),
           finish_time: Date.now(),
         };
 
