@@ -148,17 +148,17 @@ export class DigestWorkflow extends WorkflowEntrypoint<
         }
       );
 
+      taskHistory.push(taskResult);
+
       if (
         taskResult.role === "assistant" &&
         !(taskResult.content as string).match(/```tool-(.*)\n([\s\S]+?)\n```/g)
       )
         return {
-          content: taskResult.content,
+          messages: taskHistory.filter((m) => m.role === "assistant"),
           create_time: event.timestamp.getTime(),
           finish_time: Date.now(),
         };
-
-      taskHistory.push(taskResult);
     }
   }
 }

@@ -125,23 +125,28 @@ function MessageList({
                 if (
                   ["terminated", "errored", "complete"].includes(data.status)
                 ) {
+                  const duration =
+                    (data.output.finish_time - data.output.create_time) / 1000;
                   const result = data.output
-                    ? {
-                        role: "assistant",
-                        content:
-                          `(Researched for ${
-                            (data.output.finish_time -
-                              data.output.create_time) /
-                            1000
-                          } seconds)\n\n` + data.output.content,
-                      }
-                    : {
-                        role: "assistant",
-                        content: data.error ?? "Error",
-                      };
-                  onMessageChange(
-                    messages.map((m) => (m !== message ? m : result))
-                  );
+                    ? [
+                        {
+                          role: "assistant",
+                          content: `(Researched for ${duration} seconds)`,
+                        },
+                        ...data.output.messages,
+                      ]
+                    : [
+                        {
+                          role: "assistant",
+                          content: data.error ?? "Error",
+                        },
+                      ];
+                  onMessageChange((messages) => {
+                    const newMessages = [...messages];
+                    const index = newMessages.findIndex((m) => m === message);
+                    newMessages.splice(index, 1, ...result);
+                    return newMessages;
+                  });
                 }
               }}
             >
