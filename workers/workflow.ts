@@ -18,7 +18,7 @@ export type DigestWorkflowParams = {
 };
 
 const DEVELOPER_PROMPT = `\
-You are executing one step of a research task. You must choose between invoking a tool and generating the final report.
+You are executing one step of a research task. Current step is number {cur_step}. You must choose between invoking a tool and generating the final report.
 Today is {cur_date}. When generating the final report, unless the user requests otherwise, your response should be in the same language as the user's question.
 When calling tools, you must invoke only one tool in this step, think carefully what parameters to use first and then use the following format, replace \`tool_name\` and \`tool_input\` (do not output anything else):
 \`\`\`tool-{tool_name}
@@ -75,7 +75,7 @@ export class DigestWorkflow extends WorkflowEntrypoint<
       },
     ];
 
-    for (let i = 0; i <= 1024; i++) {
+    for (let i = 1; i <= 1024; i++) {
       // Detect sleep tool
       const lastResult = taskHistory[taskHistory.length - 1];
       const toolCalls = extractTool(lastResult?.content as string);
@@ -85,7 +85,7 @@ export class DigestWorkflow extends WorkflowEntrypoint<
         toolCalls[0].name === "sleep"
       ) {
         const time = parseInt(toolCalls[0].input);
-        await step.sleep(`sleep ${i + 1}`, time * 1000);
+        await step.sleep(`sleep ${i}`, time * 1000);
         taskHistory.push({
           role: "system",
           content: `Slept for ${time} seconds`,
@@ -94,14 +94,14 @@ export class DigestWorkflow extends WorkflowEntrypoint<
       }
 
       const taskResult: ChatCompletionMessageParam = await step.do(
-        `step ${i + 1}`,
+        `step ${i}`,
         { retries: { limit: 2, delay: 60000 } },
         async () => {
           const lastResult = taskHistory[taskHistory.length - 1];
           const toolCalls = extractTool(lastResult?.content as string);
           if (lastResult?.role === "assistant" && toolCalls.length) {
             for (const call of toolCalls) {
-              if (call.name[1] === "search") {
+              if (call.name === "search") {
                 const response = await search(call.input, this.env);
                 const data = await response.json<{ items: any[] }>();
                 if (!data.items) throw new Error(JSON.stringify(data));
@@ -128,6 +128,10 @@ export class DigestWorkflow extends WorkflowEntrypoint<
             apiKey: apiKey ?? this.env.OPENAI_API_KEY,
             baseURL: baseURL ?? this.env.OPENAI_BASE_URL,
           });
+          taskHistory[0].content = DEVELOPER_PROMPT.replace(
+            "{cur_date}",
+            new Date().toUTCString()
+          ).replace("{cur_step}", i.toString());
           const completion = await client.chat.completions
             .create({
               model: model ?? this.env.OPENAI_MODEL ?? "o3-mini",
