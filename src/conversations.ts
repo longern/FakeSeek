@@ -58,7 +58,7 @@ export function useConversations<T extends { id: string }>(fileKey: string) {
   const addConversation = useCallback(
     (item: T) => {
       setConversations((prev) => {
-        const newMap = { ...prev, [item.id]: item };
+        const newMap = { [item.id]: item, ...prev };
         persistConversations(newMap);
         return newMap;
       });

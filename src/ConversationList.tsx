@@ -7,6 +7,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  ListSubheader,
   Menu,
   MenuItem,
 } from "@mui/material";
@@ -20,6 +21,32 @@ export interface Conversation {
   title: string;
   create_time: number;
   messages: ChatMessage[];
+}
+
+function groupedConversations(conversations: Conversation[]) {
+  const groups: Conversation[][] = [];
+  const breakpoints = [
+    new Date().setHours(0, 0, 0, 0),
+    new Date().setHours(0, 0, 0, 0) - 24 * 60 * 60 * 1000,
+    new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000,
+    new Date().setHours(0, 0, 0, 0) - 30 * 24 * 60 * 60 * 1000,
+  ];
+  let group: Conversation[] = [];
+  let currentGroup = 0;
+  for (const conversation of conversations) {
+    while (
+      currentGroup < breakpoints.length &&
+      conversation.create_time < breakpoints[currentGroup]
+    ) {
+      groups.push(group);
+      group = [];
+      currentGroup += 1;
+    }
+    group.push(conversation);
+  }
+  groups.push(group);
+
+  return groups;
 }
 
 function ConversationList({
@@ -43,30 +70,50 @@ function ConversationList({
   return (
     <>
       <List>
-        {Object.values(conversations).map((conversation) => (
-          <ListItem
-            disablePadding
-            key={conversation.id}
-            secondaryAction={
-              <IconButton
-                onClick={(e) => {
-                  setAnchorEl(e.currentTarget);
-                  setMenuConversation(conversation);
-                }}
-              >
-                <MoreHorizIcon />
-              </IconButton>
-            }
-          >
-            <ListItemButton
-              selected={conversation.id === selectedConversation}
-              sx={{ minHeight: "48px" }}
-              onClick={() => onSelect(conversation)}
-            >
-              {conversation.title}
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {groupedConversations(Object.values(conversations)).map(
+          (group, index) =>
+            group.length ? (
+              <>
+                <ListSubheader
+                  sx={{ background: "none", color: "text.secondary" }}
+                >
+                  {index === 0
+                    ? t("Today")
+                    : index === 1
+                    ? t("Yesterday")
+                    : index === 2
+                    ? t("In 7 days")
+                    : index === 3
+                    ? t("In 30 days")
+                    : t("Older")}
+                </ListSubheader>
+                {group.map((conversation) => (
+                  <ListItem
+                    disablePadding
+                    key={conversation.id}
+                    secondaryAction={
+                      <IconButton
+                        onClick={(e) => {
+                          setAnchorEl(e.currentTarget);
+                          setMenuConversation(conversation);
+                        }}
+                      >
+                        <MoreHorizIcon />
+                      </IconButton>
+                    }
+                  >
+                    <ListItemButton
+                      selected={conversation.id === selectedConversation}
+                      sx={{ minHeight: "48px" }}
+                      onClick={() => onSelect(conversation)}
+                    >
+                      {conversation.title}
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </>
+            ) : null
+        )}
       </List>
       <Menu
         anchorEl={anchorEl}
