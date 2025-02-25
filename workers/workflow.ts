@@ -30,7 +30,20 @@ Available tools:
   input: query
 - fetch: Fetch a URL
   input: URL
+- sleep: Sleep for a certain amount of time (System will invoke LLM API again after sleep)
+  input: time in seconds
 `;
+
+function extractTool(content?: string) {
+  const matches =
+    content !== undefined
+      ? content.matchAll(/```tool-(.*)\n([\s\S]+?)\n```/g)
+      : [];
+  return Array.from(matches).map((match) => ({
+    name: match[1],
+    input: match[2],
+  }));
+}
 
 export class DigestWorkflow extends WorkflowEntrypoint<
   {
@@ -46,8 +59,7 @@ export class DigestWorkflow extends WorkflowEntrypoint<
   DigestWorkflowParams
 > {
   async run(event: WorkflowEvent<DigestWorkflowParams>, step: WorkflowStep) {
-    const { firstTime, interval, instructions, model, apiKey, baseURL } =
-      event.payload;
+    const { instructions, model, apiKey, baseURL } = event.payload;
 
     const taskHistory: ChatCompletionMessageParam[] = [
       {
@@ -64,9 +76,21 @@ export class DigestWorkflow extends WorkflowEntrypoint<
     ];
 
     for (let i = 0; i <= 1024; i++) {
-      if (firstTime && interval) {
-        if (Date.now() > firstTime + i * interval) continue;
-        await step.sleepUntil(`sleep ${i}`, new Date(firstTime + i * interval));
+      // Detect sleep tool
+      const lastResult = taskHistory[taskHistory.length - 1];
+      const toolCalls = extractTool(lastResult?.content as string);
+      if (
+        lastResult?.role === "assistant" &&
+        toolCalls.length &&
+        toolCalls[0].name === "sleep"
+      ) {
+        const time = parseInt(toolCalls[0].input);
+        await step.sleep(`sleep ${i + 1}`, time * 1000);
+        taskHistory.push({
+          role: "system",
+          content: `Slept for ${time} seconds`,
+        });
+        continue;
       }
 
       const taskResult: ChatCompletionMessageParam = await step.do(
@@ -74,16 +98,11 @@ export class DigestWorkflow extends WorkflowEntrypoint<
         { retries: { limit: 2, delay: 60000 } },
         async () => {
           const lastResult = taskHistory[taskHistory.length - 1];
-          const queryMatch = Array.from(
-            (lastResult?.content as string).matchAll(
-              /```tool-(.*)\n([\s\S]+?)\n```/g
-            )
-          );
-          if (lastResult?.role === "assistant" && queryMatch.length) {
-            for (const call of queryMatch) {
-              if (call[1] === "search") {
-                const query = call[2];
-                const response = await search(query, this.env);
+          const toolCalls = extractTool(lastResult?.content as string);
+          if (lastResult?.role === "assistant" && toolCalls.length) {
+            for (const call of toolCalls) {
+              if (call.name[1] === "search") {
+                const response = await search(call.input, this.env);
                 const data = await response.json<{ items: any[] }>();
                 if (!data.items) throw new Error(JSON.stringify(data));
                 return {
@@ -96,8 +115,8 @@ export class DigestWorkflow extends WorkflowEntrypoint<
                     .join("\n"),
                   refusal: null,
                 };
-              } else if (call[1] === "fetch") {
-                const url = call[2];
+              } else if (call.name === "fetch") {
+                const url = call.input;
                 const response = await fetch("https://r.jina.ai/" + url);
                 const text = await response.text();
                 return { role: "user", content: text };

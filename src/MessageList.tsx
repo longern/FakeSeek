@@ -125,13 +125,15 @@ function MessageList({
                 if (
                   ["terminated", "errored", "complete"].includes(data.status)
                 ) {
-                  const duration =
-                    (data.output.finish_time - data.output.create_time) / 1000;
                   const result = data.output
                     ? [
                         {
                           role: "assistant",
-                          content: `(Researched for ${duration} seconds)`,
+                          content: `(Researched for ${
+                            (data.output.finish_time -
+                              data.output.create_time) /
+                            1000
+                          } seconds)`,
                         },
                         ...data.output.messages,
                       ]
