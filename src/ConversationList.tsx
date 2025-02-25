@@ -11,6 +11,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ChatMessage } from "./MessageList";
 
@@ -36,6 +37,8 @@ function ConversationList({
   const [menuConversation, setMenuConversation] = useState<Conversation | null>(
     null
   );
+
+  const { t } = useTranslation();
 
   return (
     <>
@@ -85,7 +88,7 @@ function ConversationList({
           </ListItemIcon>
           <ListItemText
             sx={{ color: "error.main" }}
-            primary="Delete"
+            primary={t("Delete")}
           ></ListItemText>
         </MenuItem>
       </Menu>

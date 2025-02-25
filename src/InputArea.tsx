@@ -5,6 +5,7 @@ import {
 } from "@mui/icons-material";
 import { Box, Chip, IconButton, InputBase, Stack } from "@mui/material";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 function urlBase64ToUint8Array(base64String: string) {
   return new Uint8Array(
@@ -29,6 +30,8 @@ function InputArea({
   const [enableResearch, setEnableResearch] = useState(false);
   const [message, setMessage] = useState("");
 
+  const { t } = useTranslation();
+
   const handleSend = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -52,7 +55,7 @@ function InputArea({
     >
       <InputBase
         multiline
-        placeholder="Send message..."
+        placeholder={t("Send message...")}
         required
         value={message}
         sx={{
@@ -72,7 +75,7 @@ function InputArea({
       />
       <Stack direction="row" alignItems="center" gap={1} sx={{ paddingY: 1 }}>
         <Chip
-          label="Research"
+          label={t("Research")}
           color={enableResearch ? "primary" : "default"}
           onClick={() => {
             if (!enableResearch) Notification.requestPermission();
@@ -96,7 +99,7 @@ function InputArea({
           }}
         />
         <Chip
-          label="Search"
+          label={t("Search")}
           color={enableSearch ? "primary" : "default"}
           icon={<SearchIcon />}
           onClick={() => {
@@ -107,7 +110,7 @@ function InputArea({
         <Box sx={{ flexGrow: 1 }} />
         {stopController ? (
           <IconButton
-            aria-label="Stop"
+            aria-label={t("Stop")}
             size="small"
             sx={{
               backgroundColor: "primary.main",
@@ -123,7 +126,7 @@ function InputArea({
         ) : (
           <IconButton
             type="submit"
-            aria-label="send"
+            aria-label={t("Send")}
             size="small"
             color="primary"
             disabled={!message}

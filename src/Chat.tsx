@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import AddCommentIcon from "@mui/icons-material/AddComment";
+import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
   Box,
@@ -19,6 +19,7 @@ import ConversationList, { Conversation } from "./ConversationList";
 import InputArea from "./InputArea";
 import MessageList, { ChatMessage } from "./MessageList";
 import { useConversations } from "./conversations";
+import { useTranslation } from "react-i18next";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -77,6 +78,8 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   >(undefined);
   const [showSidebar, setShowSidebar] = useState(false);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
+  const { t } = useTranslation();
 
   const methods = {
     sendMessage: (message: string) => {
@@ -190,9 +193,11 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 setStopController(undefined);
                 setShowSidebar(false);
               }}
-              startIcon={<AddCommentIcon sx={{ transform: "scaleX(-1)" }} />}
+              startIcon={
+                <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
+              }
             >
-              New Chat
+              {t("New Chat")}
             </Button>
           </Box>
         )}
@@ -224,7 +229,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             </IconButton>
             <Box sx={{ flexGrow: 1 }} />
             <IconButton
-              aria-label="New chat"
+              aria-label={t("New Chat")}
               size="large"
               onClick={() => {
                 setSelectedConversation(null);
@@ -233,7 +238,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 setStopController(undefined);
               }}
             >
-              <AddCommentIcon sx={{ transform: "scaleX(-1)" }} />
+              <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
             </IconButton>
           </Toolbar>
         ) : null}
