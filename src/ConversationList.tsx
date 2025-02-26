@@ -69,13 +69,20 @@ function ConversationList({
 
   return (
     <>
-      <List>
+      <List disablePadding sx={{ overflowY: "auto" }}>
         {groupedConversations(Object.values(conversations)).map(
           (group, index) =>
             group.length ? (
               <>
                 <ListSubheader
-                  sx={{ background: "none", color: "text.secondary" }}
+                  sx={{
+                    background: "#f9fbff",
+                    color: "text.secondary",
+                    lineHeight: "unset",
+                    fontWeight: "bold",
+                    marginTop: 2,
+                    marginBottom: 1,
+                  }}
                 >
                   {index === 0
                     ? t("Today")
