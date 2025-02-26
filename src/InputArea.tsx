@@ -96,6 +96,7 @@ function InputArea({
               });
             setEnableResearch(!enableResearch);
             setEnableSearch(false);
+            navigator.vibrate?.(1);
           }}
         />
         <Chip
@@ -105,6 +106,7 @@ function InputArea({
           onClick={() => {
             setEnableSearch(!enableSearch);
             setEnableResearch(false);
+            navigator.vibrate?.(1);
           }}
         />
         <Box sx={{ flexGrow: 1 }} />
