@@ -1,13 +1,15 @@
 import { css } from "@emotion/css";
-import { Link } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { Box, IconButton, Link } from "@mui/material";
+import "katex/dist/katex.min.css";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-
-import "katex/dist/katex.min.css";
-import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 /**
  * Preprocesses LaTeX content by replacing delimiters and escaping certain characters.
@@ -82,6 +84,30 @@ export function escapeMhchem(text: string) {
   return text.replaceAll("$\\ce{", "$\\\\ce{").replaceAll("$\\pu{", "$\\\\pu{");
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copiedTimeout, setCopiedTimeout] = useState<
+    ReturnType<typeof setTimeout> | undefined
+  >(undefined);
+
+  return (
+    <IconButton
+      aria-label="Copy"
+      size="small"
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        clearTimeout(copiedTimeout);
+        setCopiedTimeout(setTimeout(() => setCopiedTimeout(undefined), 2000));
+      }}
+    >
+      {copiedTimeout ? (
+        <CheckIcon color="success" fontSize="small" />
+      ) : (
+        <ContentCopyIcon fontSize="small" />
+      )}
+    </IconButton>
+  );
+}
+
 function Markdown({ children }: { children: string }) {
   return (
     <ReactMarkdown
@@ -98,20 +124,41 @@ function Markdown({ children }: { children: string }) {
             {props.children}
           </Link>
         ),
-        code: ({ node, className, children, ref, ...props }) => {
-          const match = /language-(\w+)/.exec(className || "");
-          return match ? (
-            <SyntaxHighlighter
-              {...props}
-              PreTag="div"
-              children={String(children).replace(/\n$/, "")}
-              language={match[1]}
-              style={dark}
-            />
-          ) : (
-            <code {...props} className={className}>
-              {children}
-            </code>
+        pre: ({ node, children, ref, ...props }) => {
+          const fallback = <pre {...props}>{children}</pre>;
+          const isObject = typeof children === "object" && children !== null;
+          if (!isObject || !("type" in children) || children.type !== "code")
+            return fallback;
+          const match = /language-([\w-]+)/.exec(children.props.className);
+          const language = match ? match[1] : "";
+          const code = (children.props.children ?? "").replace(/\n$/, "");
+          return (
+            <Box sx={{ marginY: 1, borderRadius: "0.3em", overflow: "hidden" }}>
+              <Box
+                sx={{
+                  fontSize: "0.8rem",
+                  backgroundColor: "#eee",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Box sx={{ paddingLeft: 1.5 }}>{language}</Box>
+                <CopyButton text={code} />
+              </Box>
+              <SyntaxHighlighter
+                {...props}
+                children={code}
+                language={language}
+                style={oneLight}
+                customStyle={{
+                  margin: 0,
+                  borderRadius: 0,
+                  fontSize: "0.875rem",
+                  overflowX: "auto",
+                }}
+              />
+            </Box>
           );
         },
       }}

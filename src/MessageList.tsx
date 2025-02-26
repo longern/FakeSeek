@@ -96,9 +96,6 @@ function MessageList({
                     maxWidth: "100%",
                     maxHeight: "60vh",
                   },
-                  "& > pre": {
-                    overflowX: "auto",
-                  },
                 }),
           }}
           onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {

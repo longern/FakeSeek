@@ -11,7 +11,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChatMessage } from "./MessageList";
@@ -73,7 +73,7 @@ function ConversationList({
         {groupedConversations(Object.values(conversations)).map(
           (group, index) =>
             group.length ? (
-              <>
+              <Fragment key={index}>
                 <ListSubheader
                   sx={{
                     background: "#f9fbff",
@@ -111,14 +111,13 @@ function ConversationList({
                   >
                     <ListItemButton
                       selected={conversation.id === selectedConversation}
-                      sx={{ minHeight: "48px" }}
                       onClick={() => onSelect(conversation)}
                     >
                       {conversation.title}
                     </ListItemButton>
                   </ListItem>
                 ))}
-              </>
+              </Fragment>
             ) : null
         )}
       </List>
