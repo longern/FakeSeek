@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import React, { useState } from "react";
 import Markdown from "./Markdown";
+import { useTranslation } from "react-i18next";
 
 export interface ChatMessage {
   role: string;
@@ -71,6 +72,8 @@ function MessageList({
     null
   );
   const [showSelection, setShowSelection] = useState(false);
+
+  const { t } = useTranslation();
 
   return (
     <>
@@ -187,7 +190,7 @@ function MessageList({
           <ListItemIcon>
             <ContentCopyIcon />
           </ListItemIcon>
-          Copy
+          {t("Copy")}
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -198,7 +201,7 @@ function MessageList({
           <ListItemIcon>
             <SelectAllIcon />
           </ListItemIcon>
-          Select Text
+          {t("Select Text")}
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -210,7 +213,7 @@ function MessageList({
           <ListItemIcon>
             <ReplayIcon />
           </ListItemIcon>
-          Retry
+          {t("Retry")}
         </MenuItem>
       </Menu>
       <Dialog
@@ -242,7 +245,7 @@ function MessageList({
             <CloseIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
-            Select Text
+            {t("Select Text")}
           </Typography>
           <Box sx={{ width: "48px" }} />
         </Toolbar>
