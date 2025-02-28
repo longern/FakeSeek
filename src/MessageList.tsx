@@ -36,10 +36,16 @@ function ReasoningContent({
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  const { t } = useTranslation();
+
   return (
     <>
-      <Button onClick={() => setExpanded((expanded) => !expanded)}>
-        {reasoning ? "Reasoning" : "Reasoning Finished"}
+      <Button
+        size="small"
+        sx={{ paddingX: 1.5 }}
+        onClick={() => setExpanded((expanded) => !expanded)}
+      >
+        {reasoning ? t("Thinking...") : t("Thinking finished")}
         {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       </Button>
       <Collapse in={expanded}>

@@ -211,6 +211,11 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             setStopController(undefined);
             setShowSidebar(false);
           }}
+          onRename={(conversation) => {
+            const title = window.prompt(t("Rename"), conversation.title);
+            if (!title) return;
+            updateConversation(conversation.id, (prev) => ({ ...prev, title }));
+          }}
           onDelete={(conversation) => {
             if (!window.confirm("Delete this chat?")) return;
             removeConversation(conversation.id);

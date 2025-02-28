@@ -1,4 +1,5 @@
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
   IconButton,
@@ -53,11 +54,13 @@ function ConversationList({
   conversations,
   selectedConversation,
   onSelect,
+  onRename,
   onDelete,
 }: {
   conversations: Record<string, Conversation>;
   selectedConversation: string | null;
   onSelect: (conversation: Conversation) => void;
+  onRename: (conversation: Conversation) => void;
   onDelete: (conversation: Conversation) => void;
 }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -129,6 +132,18 @@ function ConversationList({
           setMenuConversation(null);
         }}
       >
+        <MenuItem
+          onClick={() => {
+            setAnchorEl(null);
+            setMenuConversation(null);
+            onRename(menuConversation!);
+          }}
+        >
+          <ListItemIcon>
+            <EditOutlinedIcon />
+          </ListItemIcon>
+          <ListItemText primary={t("Rename")}></ListItemText>
+        </MenuItem>
         <MenuItem
           onClick={() => {
             setAnchorEl(null);

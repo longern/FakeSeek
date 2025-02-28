@@ -143,7 +143,9 @@ function Markdown({ children }: { children: string }) {
                   alignItems: "center",
                 }}
               >
-                <Box sx={{ paddingLeft: 1.5 }}>{language}</Box>
+                <Box sx={{ paddingLeft: 1.5, userSelect: "none" }}>
+                  {language}
+                </Box>
                 <CopyButton text={code} />
               </Box>
               <SyntaxHighlighter
