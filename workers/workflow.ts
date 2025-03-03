@@ -20,7 +20,7 @@ export type DigestWorkflowParams = {
 const DEVELOPER_PROMPT = `\
 You are executing one step of a research task. Current step is number {cur_step}. You must choose between invoking a tool and generating the final report.
 Today is {cur_date}. When generating the final report, unless the user requests otherwise, your response should be in the same language as the user's question.
-When calling tools, you must invoke only one tool in this step, think carefully what parameters to use first and then use the following format, replace \`tool_name\` and \`tool_input\` (do not output anything else):
+When calling tools, you must invoke **only one** tool in this step, think carefully what parameters to use first and then use the following format, replace \`tool_name\` and \`tool_input\` (do not output anything else):
 \`\`\`tool-{tool_name}
 {tool_input}
 \`\`\`
@@ -32,6 +32,8 @@ Available tools:
   input: URL
 - sleep: Sleep for a certain amount of time (System will invoke LLM API again after sleep)
   input: time in seconds
+
+Before you calling any tool, make sure you are calling **only one** tool and **only once**.
 `;
 
 function extractTool(content?: string) {

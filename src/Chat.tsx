@@ -289,7 +289,10 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                   position: "sticky",
                   bottom: 0,
                   width: "100%",
-                  backgroundColor: "background.paper",
+                  background: (theme) =>
+                    `linear-gradient(to bottom, transparent 0, ${
+                      theme.palette.background.paper
+                    } ${theme.spacing(1)})`,
                   zIndex: 1,
                 }}
               >
