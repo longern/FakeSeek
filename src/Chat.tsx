@@ -101,11 +101,11 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     streamRequestAssistant(messages, {
       signal: abortController.signal,
       onPartialMessage: (message) => {
-        setMessages((messages) => {
-          const partialMessageCopy = partialMessage;
-          partialMessage = message;
-          return messages.map((m) => (m === partialMessageCopy ? message : m));
-        });
+        const oldMessage = partialMessage;
+        partialMessage = message;
+        setMessages((messages) =>
+          messages.map((m) => (m === oldMessage ? message : m))
+        );
       },
     }).catch((error) => {
       window.alert(error.message);
