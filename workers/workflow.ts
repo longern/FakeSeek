@@ -180,7 +180,15 @@ export class DigestWorkflow extends WorkflowEntrypoint<
         !(taskResult.content as string).match(/```tool-(.*)\n([\s\S]+?)\n```/g)
       )
         return {
-          messages: taskHistory.filter((m) => m.role === "assistant"),
+          messages: taskHistory
+            .filter((m) => m.role === "assistant")
+            .map((m) => ({
+              id: `msg-${crypto.randomUUID()}`,
+              type: "message",
+              role: "assistant",
+              status: "completed",
+              content: [{ type: "output_text", text: m.content as string }],
+            })),
           create_time: event.timestamp.getTime(),
           finish_time: Date.now(),
         };

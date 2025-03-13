@@ -11,21 +11,26 @@ import {
   Toolbar,
   useMediaQuery,
 } from "@mui/material";
+import { produce } from "immer";
 import OpenAI from "openai";
+import {
+  ResponseInputItem,
+  ResponseStreamEvent,
+} from "openai/resources/responses/responses.mjs";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
 import ConversationList, { Conversation } from "./ConversationList";
 import InputArea from "./InputArea";
 import MessageList, { ChatMessage } from "./MessageList";
 import { useConversations } from "./conversations";
-import { useTranslation } from "react-i18next";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
   options?: {
     signal?: AbortSignal;
-    onPartialMessage?: (message: ChatMessage) => void;
+    onStreamEvent?: (event: ResponseStreamEvent) => void;
   }
 ) {
   const client = new OpenAI({
@@ -33,30 +38,13 @@ async function streamRequestAssistant(
     baseURL: new URL("/api/v1", window.location.origin).toString(),
     dangerouslyAllowBrowser: true,
   });
-  const response = await client.chat.completions.create(
-    { model: "", messages: [], stream: true },
-    {
-      signal: options?.signal,
-      body: {
-        model: "deepseek-r1",
-        messages: messages as any,
-        stream: true,
-        include_reasoning: true,
-      },
-    }
-  );
-  let buffer = "";
-  let reasoningBuffer = "";
+  const response = await client.responses.create({
+    model: "deepseek-r1",
+    input: messages,
+    stream: true,
+  });
   for await (const chunk of response) {
-    const chunkChoice = chunk.choices[0];
-    const { delta } = chunkChoice;
-    buffer += delta.content ?? "";
-    reasoningBuffer += (delta as any).reasoning_content ?? "";
-    options?.onPartialMessage?.({
-      role: "assistant",
-      content: buffer,
-      reasoning_content: reasoningBuffer,
-    });
+    options?.onStreamEvent?.(chunk);
   }
 
   return response;
@@ -83,12 +71,23 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
 
   const methods = {
     sendMessage: (message: string) => {
-      const newMessage = { role: "user", content: message };
+      const newMessage = {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: message }],
+      } as ResponseInputItem.Message;
       setMessages((messages) => [...messages, newMessage]);
       requestAssistant([...messages, newMessage]);
     },
     createResearch: (task: string) => {
-      setMessages((messages) => [...messages, { role: "user", content: task }]);
+      setMessages((messages) => [
+        ...messages,
+        {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: task }],
+        },
+      ]);
       requestCreateResearch(task);
     },
   };
@@ -96,16 +95,73 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const requestAssistant = useCallback((messages: ChatMessage[]) => {
     const abortController = new AbortController();
     setStopController(abortController);
-    let partialMessage = { role: "assistant", content: "" };
-    setMessages((messages) => [...messages, partialMessage]);
     streamRequestAssistant(messages, {
       signal: abortController.signal,
-      onPartialMessage: (message) => {
-        const oldMessage = partialMessage;
-        partialMessage = message;
-        setMessages((messages) =>
-          messages.map((m) => (m === oldMessage ? message : m))
-        );
+      onStreamEvent(event) {
+        switch (event.type) {
+          case "response.output_item.added":
+            setMessages((messages) => [...messages, event.item]);
+            break;
+
+          case "response.output_item.done":
+            setMessages(
+              produce((messages) => {
+                for (const message of messages) {
+                  if (
+                    !("id" in message) ||
+                    message.id !== event.item.id ||
+                    (message.type !== "message" && message.type !== "reasoning")
+                  )
+                    continue;
+                  message.status = event.item.status as
+                    | "completed"
+                    | "in_progress"
+                    | "incomplete";
+                }
+              })
+            );
+            break;
+
+          case "response.content_part.added":
+            setMessages(
+              produce((messages) => {
+                for (const message of messages) {
+                  if (!("id" in message) || message.id !== event.item_id)
+                    continue;
+                  switch (message.type) {
+                    case "message":
+                      message.content.push(event.part);
+                      break;
+                    case "reasoning":
+                      message.summary.push(event.part as any);
+                      break;
+                  }
+                }
+              })
+            );
+            break;
+
+          case "response.output_text.delta":
+            setMessages(
+              produce((messages) => {
+                for (const message of messages) {
+                  if (!("id" in message) || message.id !== event.item_id)
+                    continue;
+                  switch (message.type) {
+                    case "message":
+                      const content = message.content[event.content_index];
+                      if (content.type !== "output_text") continue;
+                      content.text += event.delta;
+                      break;
+                    case "reasoning":
+                      const part = message.summary[event.content_index];
+                      part.text += event.delta;
+                  }
+                }
+              })
+            );
+            break;
+        }
       },
     }).catch((error) => {
       window.alert(error.message);
@@ -124,7 +180,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     const { id } = await response.json();
     setMessages((messages) => [
       ...messages,
-      { role: "assistant", content: `research: ${id}` },
+      { type: "web_search_call", id, status: "in_progress" },
     ]);
   }, []);
 
@@ -137,9 +193,13 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     } else {
       if (messages.length === 0) return;
       const newId = crypto.randomUUID();
+      const content = (messages[0] as ResponseInputItem.Message).content[0];
       addConversation({
         id: newId,
-        title: messages[0].content.slice(0, 10),
+        title:
+          content.type === "input_text"
+            ? content.text.slice(0, 15)
+            : "New Chat",
         create_time: Date.now(),
         messages,
       });

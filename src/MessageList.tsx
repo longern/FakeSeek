@@ -17,15 +17,21 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import {
+  ResponseInputItem,
+  ResponseOutputMessage,
+} from "openai/resources/responses/responses.mjs";
 import React, { useState } from "react";
-import Markdown from "./Markdown";
 import { useTranslation } from "react-i18next";
 
-export interface ChatMessage {
-  role: string;
-  content: string;
-  reasoning_content?: string;
-}
+import Markdown from "./Markdown";
+
+type ExcludeEasy<T> = T extends { content: infer A }
+  ? A extends string
+    ? never
+    : T
+  : T;
+export type ChatMessage = ExcludeEasy<ResponseInputItem>;
 
 function ReasoningContent({
   content,
@@ -74,58 +80,77 @@ function MessageList({
     mouseX: number;
     mouseY: number;
   } | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(
-    null
-  );
+  const [selectedMessage, setSelectedMessage] =
+    useState<ResponseOutputMessage | null>(null);
   const [showSelection, setShowSelection] = useState(false);
 
   const { t } = useTranslation();
 
   return (
     <>
-      {messages.map((message, index) => (
-        <Box
-          key={index}
-          sx={{
-            maxWidth: "100%",
-            overflowWrap: "break-word",
-            ...(message.role === "user"
-              ? {
-                  minWidth: "48px",
-                  padding: "8px 12px",
-                  backgroundColor: "#eff6ff",
-                  borderRadius: "20px",
-                  marginLeft: "64px",
-                  alignSelf: "flex-end",
-                  whiteSpace: "pre-wrap",
-                }
-              : {
-                  "& img": {
-                    display: "block",
-                    maxWidth: "100%",
-                    maxHeight: "60vh",
-                  },
-                }),
-          }}
-          onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
-            const { nativeEvent } = e;
-            if (nativeEvent.pointerType === "mouse") return;
-            nativeEvent.preventDefault();
-            window.getSelection()?.removeAllRanges();
-            setContextMenu(
-              contextMenu === null
-                ? { mouseX: e.clientX, mouseY: e.clientY }
-                : null
-            );
-            setSelectedMessage(message);
-          }}
-        >
-          {message.role === "user" ? (
-            message.content
-          ) : message.content.startsWith("research: ") ? (
+      {messages.map((message, index) =>
+        message.type === "message" ? (
+          <Box
+            key={index}
+            sx={{
+              maxWidth: "100%",
+              overflowWrap: "break-word",
+              ...(message.role === "user"
+                ? {
+                    minWidth: "48px",
+                    padding: "8px 12px",
+                    backgroundColor: "#eff6ff",
+                    borderRadius: "20px",
+                    marginLeft: "64px",
+                    alignSelf: "flex-end",
+                    whiteSpace: "pre-wrap",
+                  }
+                : {
+                    "& img": {
+                      display: "block",
+                      maxWidth: "100%",
+                      maxHeight: "60vh",
+                    },
+                  }),
+            }}
+            onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
+              const { nativeEvent } = e;
+              if (nativeEvent.pointerType === "mouse") return;
+              nativeEvent.preventDefault();
+              window.getSelection()?.removeAllRanges();
+              setContextMenu(
+                contextMenu === null
+                  ? { mouseX: e.clientX, mouseY: e.clientY }
+                  : null
+              );
+              setSelectedMessage(message as ResponseOutputMessage);
+            }}
+          >
+            {message.content.map((part, index) => (
+              <Box key={index}>
+                {part.type === "input_text" || part.type === "output_text" ? (
+                  message.role === "user" ? (
+                    part.text
+                  ) : (
+                    <Markdown>{part.text}</Markdown>
+                  )
+                ) : null}
+              </Box>
+            ))}
+          </Box>
+        ) : message.type === "reasoning" ? (
+          <Box key={message.id} sx={{ marginBottom: -1 }}>
+            <ReasoningContent
+              key={index}
+              content={message.summary.map((s) => s.text).join("\n")}
+              reasoning={message.status !== "completed"}
+            />
+          </Box>
+        ) : message.type === "web_search_call" ? (
+          <Box key={message.id}>
             <Button
               onClick={async () => {
-                const researchId = message.content.slice(10);
+                const researchId = message.id;
                 const res = await fetch(`/api/tasks/${researchId}`);
                 const data = await res.json();
                 if (
@@ -134,17 +159,24 @@ function MessageList({
                   const result = data.output
                     ? [
                         {
+                          type: "message",
                           role: "assistant",
-                          content: `(Researched for ${
-                            (data.output.finish_time -
-                              data.output.create_time) /
-                            1000
-                          } seconds)`,
+                          content: [
+                            {
+                              type: "output_text",
+                              text: `(Researched for ${
+                                (data.output.finish_time -
+                                  data.output.create_time) /
+                                1000
+                              } seconds)`,
+                            },
+                          ],
                         },
                         ...data.output.messages,
                       ]
                     : [
                         {
+                          type: "message",
                           role: "assistant",
                           content: data.error ?? "Error",
                         },
@@ -160,19 +192,9 @@ function MessageList({
             >
               Load Result
             </Button>
-          ) : (
-            <>
-              {message.reasoning_content && (
-                <ReasoningContent
-                  content={message.reasoning_content}
-                  reasoning={!message.content}
-                />
-              )}
-              <Markdown>{message.content}</Markdown>
-            </>
-          )}
-        </Box>
-      ))}
+          </Box>
+        ) : null
+      )}
 
       <Menu
         open={contextMenu !== null}
@@ -188,7 +210,12 @@ function MessageList({
         <MenuItem
           onClick={() => {
             if (!selectedMessage) return;
-            navigator.clipboard.writeText(selectedMessage.content);
+            const content = selectedMessage.content
+              .map((part) =>
+                part.type === "output_text" ? part.text : part.refusal
+              )
+              .join("");
+            navigator.clipboard.writeText(content);
             setContextMenu(null);
             setSelectedMessage(null);
           }}
