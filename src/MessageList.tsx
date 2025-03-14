@@ -285,7 +285,15 @@ function MessageList({
         <InputBase
           multiline
           fullWidth
-          value={selectedMessage?.content}
+          value={
+            selectedMessage === null
+              ? ""
+              : selectedMessage.content
+                  .map((part) =>
+                    part.type === "output_text" ? part.text : part.refusal
+                  )
+                  .join("")
+          }
           slotProps={{ input: { readOnly: true } }}
           sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
         />
