@@ -7,18 +7,21 @@ const app = new Hono<{
   Bindings: {
     OPENAI_API_KEY?: string;
     OPENAI_BASE_URL?: string;
+    OPENAI_MODEL?: string;
   };
 }>();
 
 app.post("/chat/completions", async (c) => {
   const baseURL = c.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  const body = await c.req.json();
+  if (!body.model) body.model = c.env.OPENAI_MODEL ?? "deepseek-r1";
   return fetch(baseURL + "/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${c.env.OPENAI_API_KEY}`,
     },
-    body: c.req.raw.body,
+    body: JSON.stringify(body),
   });
 });
 
@@ -170,7 +173,7 @@ app.post("/responses", async (c) => {
 
   const input: any = body.input;
   const completion = await client.chat.completions.create({
-    model: body.model,
+    model: body.model || (c.env.OPENAI_MODEL ?? "deepseek-r1"),
     messages: input
       .filter((message: any) => message.type === "message")
       .map((message: any) =>

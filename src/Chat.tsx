@@ -39,7 +39,7 @@ async function streamRequestAssistant(
     dangerouslyAllowBrowser: true,
   });
   const response = await client.responses.create({
-    model: "deepseek-r1",
+    model: "",
     input: messages,
     stream: true,
   });
@@ -172,10 +172,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const requestCreateResearch = useCallback(async (task: string) => {
     const response = await fetch("/api/tasks", {
       method: "PUT",
-      body: JSON.stringify({
-        instructions: task,
-        model: "deepseek-r1",
-      }),
+      body: JSON.stringify({ instructions: task }),
     });
     const { id } = await response.json();
     setMessages((messages) => [

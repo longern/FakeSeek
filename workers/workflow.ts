@@ -136,7 +136,7 @@ export class DigestWorkflow extends WorkflowEntrypoint<
           ).replace("{cur_step}", i.toString());
           const completion = await client.chat.completions
             .create({
-              model: model ?? this.env.OPENAI_MODEL ?? "o3-mini",
+              model: model || (this.env.OPENAI_MODEL ?? "deepseek-r1"),
               messages: taskHistory,
             })
             .then((res) => {
