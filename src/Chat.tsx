@@ -11,7 +11,7 @@ import {
   Toolbar,
   useMediaQuery,
 } from "@mui/material";
-import { produce } from "immer";
+import { produce, WritableDraft } from "immer";
 import OpenAI from "openai";
 import {
   ResponseInputItem,
@@ -48,6 +48,65 @@ async function streamRequestAssistant(
   }
 
   return response;
+}
+
+function findMessage(messages: ChatMessage[], id: string) {
+  type HasId<T> = T extends { id: string } ? T : never;
+  return messages.find(
+    (m): m is HasId<ChatMessage> => (m as { id?: string })?.id === id
+  );
+}
+
+function messageDispatch(
+  messages: WritableDraft<ChatMessage[]>,
+  event: ResponseStreamEvent
+) {
+  switch (event.type) {
+    case "response.output_item.added":
+      messages.push(event.item);
+      break;
+
+    case "response.output_item.done": {
+      const message = findMessage(messages, event.item.id);
+      if (!message) return;
+      if (message.type !== "message" && message.type !== "reasoning") break;
+      message.status = event.item.status as
+        | "completed"
+        | "in_progress"
+        | "incomplete";
+      break;
+    }
+
+    case "response.content_part.added": {
+      const message = findMessage(messages, event.item_id);
+      if (!message) return;
+      switch (message.type) {
+        case "message":
+          message.content.push(event.part);
+          break;
+        case "reasoning":
+          message.summary.push(event.part as any);
+          break;
+      }
+      break;
+    }
+
+    case "response.output_text.delta": {
+      const message = findMessage(messages, event.item_id);
+      if (!message) return;
+      switch (message.type) {
+        case "message":
+          const content = message.content[event.content_index];
+          if (content.type !== "output_text") break;
+          content.text += event.delta;
+          break;
+        case "reasoning":
+          const part = message.summary[event.content_index];
+          part.text += event.delta;
+      }
+      break;
+    }
+  }
 }
 
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
@@ -98,70 +157,11 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     streamRequestAssistant(messages, {
       signal: abortController.signal,
       onStreamEvent(event) {
-        switch (event.type) {
-          case "response.output_item.added":
-            setMessages((messages) => [...messages, event.item]);
-            break;
-
-          case "response.output_item.done":
-            setMessages(
-              produce((messages) => {
-                for (const message of messages) {
-                  if (
-                    !("id" in message) ||
-                    message.id !== event.item.id ||
-                    (message.type !== "message" && message.type !== "reasoning")
-                  )
-                    continue;
-                  message.status = event.item.status as
-                    | "completed"
-                    | "in_progress"
-                    | "incomplete";
-                }
-              })
-            );
-            break;
-
-          case "response.content_part.added":
-            setMessages(
-              produce((messages) => {
-                for (const message of messages) {
-                  if (!("id" in message) || message.id !== event.item_id)
-                    continue;
-                  switch (message.type) {
-                    case "message":
-                      message.content.push(event.part);
-                      break;
-                    case "reasoning":
-                      message.summary.push(event.part as any);
-                      break;
-                  }
-                }
-              })
-            );
-            break;
-
-          case "response.output_text.delta":
-            setMessages(
-              produce((messages) => {
-                for (const message of messages) {
-                  if (!("id" in message) || message.id !== event.item_id)
-                    continue;
-                  switch (message.type) {
-                    case "message":
-                      const content = message.content[event.content_index];
-                      if (content.type !== "output_text") continue;
-                      content.text += event.delta;
-                      break;
-                    case "reasoning":
-                      const part = message.summary[event.content_index];
-                      part.text += event.delta;
-                  }
-                }
-              })
-            );
-            break;
-        }
+        setMessages((messages) =>
+          produce(messages, (draft) => {
+            messageDispatch(draft, event);
+          })
+        );
       },
     }).catch((error) => {
       window.alert(error.message);
