@@ -172,22 +172,33 @@ app.post("/responses", async (c) => {
   });
 
   const input: any = body.input;
+  const model: string = body.model || (c.env.OPENAI_MODEL ?? "deepseek-r1");
   const completion = await client.chat.completions.create({
-    model: body.model || (c.env.OPENAI_MODEL ?? "deepseek-r1"),
+    model,
     messages: input
       .filter((message: any) => message.type === "message")
       .map((message: any) =>
         Array.isArray(message.content)
           ? {
               role: message.role,
-              content: message.content.map((part: any) =>
-                part.type === "input_text" || part.type === "output_text"
-                  ? {
-                      type: "text",
-                      text: part.text,
-                    }
-                  : part
-              ),
+              content:
+                model.indexOf("qwq") !== -1 // qwq series models don't support content array
+                  ? (message.content as any[])
+                      .flatMap((part: any) =>
+                        part.type === "input_text" ||
+                        part.type === "output_text"
+                          ? [part.text]
+                          : []
+                      )
+                      .join("\n")
+                  : message.content.map((part: any) =>
+                      part.type === "input_text" || part.type === "output_text"
+                        ? {
+                            type: "text",
+                            text: part.text,
+                          }
+                        : part
+                    ),
             }
           : message
       ),
@@ -204,6 +215,10 @@ app.post("/responses", async (c) => {
       Connection: "keep-alive",
     },
   });
+});
+
+app.onError((err) => {
+  return Response.json({ error: { message: err.message } }, { status: 500 });
 });
 
 export default app;
