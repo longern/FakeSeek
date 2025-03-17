@@ -173,35 +173,55 @@ app.post("/responses", async (c) => {
 
   const input: any = body.input;
   const model: string = body.model || (c.env.OPENAI_MODEL ?? "deepseek-r1");
+  const messages = Array.isArray(input)
+    ? input
+    : [
+        {
+          role: "user",
+          content: [{ type: "text", text: input }],
+        },
+      ];
+
+  if (body.instuctions) {
+    messages.unshift({
+      role: "system",
+      content: body.instuctions,
+    });
+  }
+
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].type !== "message") {
+      messages.splice(i, 1);
+      i--;
+      continue;
+    }
+
+    if (Array.isArray(messages[i].content)) {
+      const content = messages[i].content;
+      for (let j = 0; j < content.length; j++) {
+        if (
+          content[j].type === "input_text" ||
+          content[j].type === "output_text"
+        ) {
+          content[j] = {
+            type: "text",
+            text: content[j].text,
+          };
+        }
+      }
+    }
+
+    if (model.indexOf("qwq") !== -1) {
+      messages[i].content = messages[i].content
+        .flatMap((part: any) => (part.type === "text" ? [part.text] : []))
+        .join("\n");
+    }
+  }
+
   const completion = await client.chat.completions.create({
     model,
-    messages: input
-      .filter((message: any) => message.type === "message")
-      .map((message: any) =>
-        Array.isArray(message.content)
-          ? {
-              role: message.role,
-              content:
-                model.indexOf("qwq") !== -1 // qwq series models don't support content array
-                  ? (message.content as any[])
-                      .flatMap((part: any) =>
-                        part.type === "input_text" ||
-                        part.type === "output_text"
-                          ? [part.text]
-                          : []
-                      )
-                      .join("\n")
-                  : message.content.map((part: any) =>
-                      part.type === "input_text" || part.type === "output_text"
-                        ? {
-                            type: "text",
-                            text: part.text,
-                          }
-                        : part
-                    ),
-            }
-          : message
-      ),
+    messages,
+    max_tokens: body.max_output_tokens,
     stream: true,
   });
 
