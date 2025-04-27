@@ -15,7 +15,7 @@ export interface Conversation {
   messages: ChatMessage[];
 }
 
-export const counterSlice = createSlice({
+export const conversationsSlice = createSlice({
   name: "conversations",
   initialState: {
     conversations: {} as Record<string, Conversation>,
@@ -25,7 +25,7 @@ export const counterSlice = createSlice({
       state.conversations = payload;
     },
     add: (state, { payload }: { payload: Conversation }) => {
-      state.conversations[payload.id] = payload;
+      state.conversations = { [payload.id]: payload, ...state.conversations };
     },
     remove: (state, { payload }: { payload: string }) => {
       delete state.conversations[payload];
@@ -43,6 +43,6 @@ export const counterSlice = createSlice({
   },
 });
 
-export const { add, remove, set, update } = counterSlice.actions;
+export const { add, remove, set, update } = conversationsSlice.actions;
 
-export default counterSlice.reducer;
+export default conversationsSlice.reducer;

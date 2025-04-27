@@ -6,6 +6,7 @@ const resources = {
     translation: {
       Copy: "Copy",
       Delete: "Delete",
+      "Generate Image": "Generate Image",
       "New Chat": "New Chat",
       Rename: "Rename",
       Research: "Research",
@@ -23,6 +24,7 @@ const resources = {
     translation: {
       Copy: "复制",
       Delete: "删除",
+      "Generate Image": "生图",
       "New Chat": "开启新对话",
       Rename: "重命名",
       Research: "研究",

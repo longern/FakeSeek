@@ -16,6 +16,8 @@ import {
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { useTranslation } from "react-i18next";
+import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { setApiKey, setBaseURL } from "./app/provider";
 
 function SettingsDialog({
   open,
@@ -24,7 +26,9 @@ function SettingsDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const provider = useAppSelector((state) => state.provider);
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   return (
@@ -65,9 +69,38 @@ function SettingsDialog({
           >
             <List disablePadding>
               <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary={t("Providers")} />
-                  <IconButton edge="end" aria-label="Providers">
+                <ListItemButton
+                  onClick={() => {
+                    const newAPIKey = window.prompt(t("Enter new API key"));
+                    if (!newAPIKey) return;
+                    dispatch(setApiKey(newAPIKey));
+                  }}
+                >
+                  <ListItemText
+                    primary={t("API Key")}
+                    secondary={provider.apiKey ? "********" : "-"}
+                  />
+                  <IconButton edge="end">
+                    <NavigateNextIcon />
+                  </IconButton>
+                </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    const newBaseURL = window.prompt(
+                      t("Enter new base URL"),
+                      provider.baseURL
+                    );
+                    if (!newBaseURL) return;
+                    dispatch(setBaseURL(newBaseURL));
+                  }}
+                >
+                  <ListItemText
+                    primary={t("Base URL")}
+                    secondary={provider.baseURL || "-"}
+                  />
+                  <IconButton edge="end">
                     <NavigateNextIcon />
                   </IconButton>
                 </ListItemButton>

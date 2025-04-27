@@ -3,6 +3,7 @@ import {
   Search as SearchIcon,
   Stop as StopIcon,
 } from "@mui/icons-material";
+import BrushIcon from "@mui/icons-material/Brush";
 import { Box, Chip, IconButton, InputBase, Stack } from "@mui/material";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,15 +20,18 @@ function InputArea({
   stopController,
   onResearch,
   onSearch,
+  onGenerateImage,
   onChat,
 }: {
   stopController?: AbortController;
   onResearch: (task: string) => void;
   onSearch: (query: string) => void;
+  onGenerateImage: (prompt: string) => void;
   onChat: (message: string) => void;
 }) {
   const [enableSearch, setEnableSearch] = useState(false);
   const [enableResearch, setEnableResearch] = useState(false);
+  const [enableGenerateImage, setEnableGenerateImage] = useState(false);
   const [message, setMessage] = useState("");
 
   const { t } = useTranslation();
@@ -40,11 +44,13 @@ function InputArea({
         onSearch(message);
       } else if (enableResearch) {
         onResearch(message);
+      } else if (enableGenerateImage) {
+        onGenerateImage(message);
       } else {
         onChat(message);
       }
     },
-    [enableSearch, enableResearch, message]
+    [enableSearch, enableResearch, enableGenerateImage, message]
   );
 
   return (
@@ -96,6 +102,7 @@ function InputArea({
               });
             setEnableResearch(!enableResearch);
             setEnableSearch(false);
+            setEnableGenerateImage(false);
             navigator.vibrate?.(1);
           }}
         />
@@ -105,6 +112,18 @@ function InputArea({
           icon={<SearchIcon />}
           onClick={() => {
             setEnableSearch(!enableSearch);
+            setEnableResearch(false);
+            setEnableGenerateImage(false);
+            navigator.vibrate?.(1);
+          }}
+        />
+        <Chip
+          label={t("Generate Image")}
+          color={enableGenerateImage ? "primary" : "default"}
+          icon={<BrushIcon />}
+          onClick={() => {
+            setEnableGenerateImage(!enableGenerateImage);
+            setEnableSearch(false);
             setEnableResearch(false);
             navigator.vibrate?.(1);
           }}

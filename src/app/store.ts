@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import conversationsReducer from "./conversations";
+import providerReducer from "./provider";
 
 const store = configureStore({
   reducer: {
     conversations: conversationsReducer,
+    provider: providerReducer,
   },
 });
 

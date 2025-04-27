@@ -30,6 +30,16 @@ export function useInitialize() {
 }
 
 store.subscribe(async () => {
+  const provider = store.getState().provider;
+
+  if (provider.apiKey)
+    window.localStorage.setItem("OPENAI_API_KEY", provider.apiKey);
+  else window.localStorage.removeItem("OPENAI_API_KEY");
+
+  if (provider.baseURL)
+    window.localStorage.setItem("OPENAI_BASE_URL", provider.baseURL);
+  else window.localStorage.removeItem("OPENAI_BASE_URL");
+
   try {
     const root = await navigator.storage.getDirectory();
     const content = JSON.stringify(

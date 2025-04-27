@@ -40,17 +40,19 @@ import { useAppDispatch, useAppSelector } from "./app/hooks";
 async function streamRequestAssistant(
   messages: ChatMessage[],
   options?: {
+    apiKey?: string;
+    baseURL?: string;
     signal?: AbortSignal;
     onStreamEvent?: (event: ResponseStreamEvent) => void;
   }
 ) {
   const client = new OpenAI({
-    apiKey: "",
-    baseURL: new URL("/api/v1", window.location.origin).toString(),
+    apiKey: options?.apiKey,
+    baseURL: options?.baseURL,
     dangerouslyAllowBrowser: true,
   });
   const response = await client.responses.create({
-    model: "",
+    model: "gpt-4.1-nano",
     input: messages,
     stream: true,
   });
@@ -78,7 +80,7 @@ function messageDispatch(
       break;
 
     case "response.output_item.done": {
-      const message = findMessage(messages, event.item.id);
+      const message = findMessage(messages, event.item.id!);
       if (!message) return;
       if (message.type !== "message" && message.type !== "reasoning") break;
       message.status = event.item.status as
@@ -189,6 +191,8 @@ function AppDrawer({
           onDelete={(conversation) => {
             if (!window.confirm("Delete this chat?")) return;
             dispatch(removeConversation(conversation.id));
+            if (conversation.id === selectedConversation)
+              onConversationChange(null);
           }}
         />
         <Box sx={{ flexGrow: 1 }} />
@@ -218,6 +222,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const [showSidebar, setShowSidebar] = useState(false);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
+  const provider = useAppSelector((state) => state.provider);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
@@ -242,12 +247,23 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       ]);
       requestCreateResearch(task);
     },
+    generateImage: (prompt: string) => {
+      const newMessage = {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: prompt }],
+      } as ResponseInputItem.Message;
+      setMessages((messages) => [...messages, newMessage]);
+      requestGenerateImage(prompt);
+    },
   };
 
   const requestAssistant = useCallback((messages: ChatMessage[]) => {
     const abortController = new AbortController();
     setStopController(abortController);
     streamRequestAssistant(messages, {
+      apiKey: provider.apiKey,
+      baseURL: provider.baseURL,
       signal: abortController.signal,
       onStreamEvent(event) {
         setMessages((messages) =>
@@ -274,6 +290,37 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     ]);
   }, []);
 
+  const requestGenerateImage = useCallback(async (prompt: string) => {
+    const client = new OpenAI({
+      apiKey: provider.apiKey,
+      baseURL: provider.baseURL,
+      dangerouslyAllowBrowser: true,
+    });
+    const response = await client.images.generate({
+      prompt,
+      model: "gpt-image-1",
+      quality: "auto",
+      moderation: "low",
+    });
+
+    setMessages((messages) => [
+      ...messages,
+      {
+        type: "message",
+        role: "assistant",
+        content: [
+          {
+            type: "input_image",
+            image_url: response.data![0].b64_json,
+            detail: "auto",
+          },
+        ],
+      },
+    ]);
+
+    return response;
+  }, []);
+
   useEffect(() => {
     if (selectedConversation) {
       dispatch(
@@ -295,7 +342,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       );
       setSelectedConversation(newId);
     }
-  }, [messages, selectedConversation, updateConversation]);
+  }, [messages, selectedConversation, dispatch]);
 
   const inputArea = (
     <InputArea
@@ -306,6 +353,9 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       }}
       onResearch={(task) => {
         methods.createResearch(task);
+      }}
+      onGenerateImage={(prompt) => {
+        methods.generateImage(prompt);
       }}
     />
   );
