@@ -10,6 +10,12 @@ import SearchResults from "./SearchResults";
 import Chat from "./Chat";
 
 const theme = createTheme({
+  palette: {
+    background: {
+      default: "#f5f5f5",
+      paper: "#fff",
+    },
+  },
   components: {
     MuiButton: {
       styleOverrides: {

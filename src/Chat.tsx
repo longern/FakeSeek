@@ -7,6 +7,9 @@ import {
   Container,
   Drawer,
   IconButton,
+  List,
+  ListItem,
+  ListItemButton,
   Stack,
   Toolbar,
   useMediaQuery,
@@ -22,9 +25,10 @@ import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
 import ConversationList, { Conversation } from "./ConversationList";
+import { useConversations } from "./conversations";
 import InputArea from "./InputArea";
 import MessageList, { ChatMessage } from "./MessageList";
-import { useConversations } from "./conversations";
+import SettingsDialog from "./SettingsDialog";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -109,13 +113,92 @@ function messageDispatch(
   }
 }
 
+function AppDrawer({
+  open,
+  onClose,
+  selectedConversation,
+  onConversationChange,
+}: {
+  open: boolean;
+  onClose: () => void;
+  selectedConversation: string | null;
+  onConversationChange: (conversation: Conversation | null) => void;
+}) {
+  const { conversations, updateConversation, removeConversation } =
+    useConversations<Conversation>("conversations.json");
+  const [showMenu, setShowMenu] = useState(false);
+
+  const { t } = useTranslation();
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
+  return (
+    <>
+      <Drawer
+        variant={isMobile ? "temporary" : "permanent"}
+        open={open}
+        anchor="left"
+        sx={{
+          [`& .MuiDrawer-paper`]: {
+            width: "260px",
+            position: isMobile ? "fixed" : "relative",
+            backgroundColor: "#f9fbff",
+            borderRight: "none",
+          },
+        }}
+        onClose={onClose}
+      >
+        {!isMobile && (
+          <Box>
+            <Button
+              size="large"
+              sx={{
+                margin: 2,
+                borderRadius: "12px",
+                backgroundColor: "#dbeafe",
+                "&:hover": { backgroundColor: "#c6dcf8" },
+              }}
+              onClick={() => onConversationChange(null)}
+              startIcon={
+                <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
+              }
+            >
+              {t("New Chat")}
+            </Button>
+          </Box>
+        )}
+        <ConversationList
+          conversations={conversations}
+          selectedConversation={selectedConversation}
+          onSelect={onConversationChange}
+          onRename={(conversation) => {
+            const title = window.prompt(t("Rename"), conversation.title);
+            if (!title) return;
+            updateConversation(conversation.id, (prev) => ({ ...prev, title }));
+          }}
+          onDelete={(conversation) => {
+            if (!window.confirm("Delete this chat?")) return;
+            removeConversation(conversation.id);
+          }}
+        />
+        <Box sx={{ flexGrow: 1 }} />
+        <Box sx={{ padding: 1 }}>
+          <List disablePadding sx={{ borderRadius: 1, overflow: "hidden" }}>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => setShowMenu(true)}>
+                {t("Settings")}
+              </ListItemButton>
+            </ListItem>
+          </List>
+        </Box>
+      </Drawer>
+      <SettingsDialog open={showMenu} onClose={() => setShowMenu(false)} />
+    </>
+  );
+}
+
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
-  const {
-    conversations,
-    addConversation,
-    updateConversation,
-    removeConversation,
-  } = useConversations<Conversation>("conversations.json");
+  const { addConversation, updateConversation } =
+    useConversations<Conversation>("conversations.json");
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
   >(null);
@@ -219,67 +302,24 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
 
   return (
     <Stack direction="row" sx={{ height: "100%" }}>
-      <Drawer
-        variant={isMobile ? "temporary" : "permanent"}
+      <AppDrawer
         open={showSidebar}
-        anchor="left"
-        sx={{
-          [`& .MuiDrawer-paper`]: {
-            width: "260px",
-            position: isMobile ? "fixed" : "relative",
-            backgroundColor: "#f9fbff",
-            borderRight: "none",
-          },
-        }}
         onClose={() => setShowSidebar(false)}
-      >
-        {!isMobile && (
-          <Box>
-            <Button
-              size="large"
-              sx={{
-                margin: 2,
-                borderRadius: "12px",
-                backgroundColor: "#dbeafe",
-                "&:hover": { backgroundColor: "#c6dcf8" },
-              }}
-              onClick={() => {
-                setSelectedConversation(null);
-                setMessages([]);
-                stopController?.abort();
-                setStopController(undefined);
-                setShowSidebar(false);
-              }}
-              startIcon={
-                <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
-              }
-            >
-              {t("New Chat")}
-            </Button>
-          </Box>
-        )}
-        <ConversationList
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          onSelect={(conversation) => {
+        selectedConversation={selectedConversation}
+        onConversationChange={(conversation) => {
+          if (conversation === null) {
+            setSelectedConversation(null);
+            setMessages([]);
+          } else {
             setSelectedConversation(conversation.id);
             setMessages(conversation.messages);
-            stopController?.abort();
-            setStopController(undefined);
-            setShowSidebar(false);
-          }}
-          onRename={(conversation) => {
-            const title = window.prompt(t("Rename"), conversation.title);
-            if (!title) return;
-            updateConversation(conversation.id, (prev) => ({ ...prev, title }));
-          }}
-          onDelete={(conversation) => {
-            if (!window.confirm("Delete this chat?")) return;
-            removeConversation(conversation.id);
-          }}
-        />
-      </Drawer>
-      <Stack sx={{ width: "100%" }}>
+          }
+          stopController?.abort();
+          setStopController(undefined);
+          setShowSidebar(false);
+        }}
+      />
+      <Stack sx={{ width: "100%", backgroundColor: "background.paper" }}>
         {isMobile ? (
           <Toolbar disableGutters>
             <IconButton
