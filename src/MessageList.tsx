@@ -17,21 +17,12 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import {
-  ResponseInputItem,
-  ResponseOutputMessage,
-} from "openai/resources/responses/responses.mjs";
+import { ResponseOutputMessage } from "openai/resources/responses/responses.mjs";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Markdown from "./Markdown";
-
-type ExcludeEasy<T> = T extends { content: infer A }
-  ? A extends string
-    ? never
-    : T
-  : T;
-export type ChatMessage = ExcludeEasy<ResponseInputItem>;
+import { ChatMessage } from "./app/conversations";
 
 function ReasoningContent({
   content,

@@ -24,11 +24,18 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
-import ConversationList, { Conversation } from "./ConversationList";
-import { useConversations } from "./conversations";
+import {
+  ChatMessage,
+  Conversation,
+  add as addConversation,
+  remove as removeConversation,
+  update as updateConversation,
+} from "./app/conversations";
+import ConversationList from "./ConversationList";
 import InputArea from "./InputArea";
-import MessageList, { ChatMessage } from "./MessageList";
+import MessageList from "./MessageList";
 import SettingsDialog from "./SettingsDialog";
+import { useAppDispatch, useAppSelector } from "./app/hooks";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -124,8 +131,10 @@ function AppDrawer({
   selectedConversation: string | null;
   onConversationChange: (conversation: Conversation | null) => void;
 }) {
-  const { conversations, updateConversation, removeConversation } =
-    useConversations<Conversation>("conversations.json");
+  const conversations = useAppSelector(
+    (state) => state.conversations.conversations
+  );
+  const dispatch = useAppDispatch();
   const [showMenu, setShowMenu] = useState(false);
 
   const { t } = useTranslation();
@@ -173,11 +182,13 @@ function AppDrawer({
           onRename={(conversation) => {
             const title = window.prompt(t("Rename"), conversation.title);
             if (!title) return;
-            updateConversation(conversation.id, (prev) => ({ ...prev, title }));
+            dispatch(
+              updateConversation({ id: conversation.id, patch: { title } })
+            );
           }}
           onDelete={(conversation) => {
             if (!window.confirm("Delete this chat?")) return;
-            removeConversation(conversation.id);
+            dispatch(removeConversation(conversation.id));
           }}
         />
         <Box sx={{ flexGrow: 1 }} />
@@ -197,8 +208,6 @@ function AppDrawer({
 }
 
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
-  const { addConversation, updateConversation } =
-    useConversations<Conversation>("conversations.json");
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
   >(null);
@@ -210,6 +219,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
 
   const methods = {
     sendMessage: (message: string) => {
@@ -266,23 +276,23 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
 
   useEffect(() => {
     if (selectedConversation) {
-      updateConversation(selectedConversation, (prev) => ({
-        ...prev,
-        messages,
-      }));
+      dispatch(
+        updateConversation({ id: selectedConversation, patch: { messages } })
+      );
     } else {
       if (messages.length === 0) return;
       const newId = crypto.randomUUID();
       const content = (messages[0] as ResponseInputItem.Message).content[0];
-      addConversation({
-        id: newId,
-        title:
-          content.type === "input_text"
-            ? content.text.slice(0, 15)
-            : "New Chat",
-        create_time: Date.now(),
-        messages,
-      });
+      const title =
+        content.type === "input_text" ? content.text.slice(0, 15) : "New Chat";
+      dispatch(
+        addConversation({
+          id: newId,
+          title: title,
+          create_time: Date.now(),
+          messages,
+        })
+      );
       setSelectedConversation(newId);
     }
   }, [messages, selectedConversation, updateConversation]);

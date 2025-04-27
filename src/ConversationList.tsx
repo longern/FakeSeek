@@ -15,14 +15,7 @@ import {
 import { Fragment, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ChatMessage } from "./MessageList";
-
-export interface Conversation {
-  id: string;
-  title: string;
-  create_time: number;
-  messages: ChatMessage[];
-}
+import { Conversation } from "./app/conversations";
 
 function groupedConversations(conversations: Conversation[]) {
   const groups: Conversation[][] = [];
