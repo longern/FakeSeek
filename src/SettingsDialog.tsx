@@ -68,7 +68,12 @@ function SettingsDialog({
         </Typography>
         <Box sx={{ width: 48 }} />
       </Toolbar>
-      <DialogContent sx={{ padding: 2.5 }}>
+      <DialogContent
+        sx={{
+          padding: 2.5,
+          "& .MuiListItemButton-root": { minHeight: "60px" },
+        }}
+      >
         <Stack>
           <Card
             elevation={0}
@@ -124,7 +129,7 @@ function SettingsDialog({
                 >
                   <ListItemText primary={t("Image Quality")} />
                   <Typography variant="body2" color="text.secondary">
-                    {provider.imageQuality}
+                    {t(`quality.${provider.imageQuality}`)}
                   </Typography>
                   <UnfoldMoreIcon />
                 </ListItemButton>
@@ -149,7 +154,7 @@ function SettingsDialog({
                         }}
                       >
                         <ListItemText
-                          primary={t(quality)}
+                          primary={t(`quality.${quality}`)}
                           sx={{ marginRight: 2 }}
                         />
                         {provider.imageQuality === quality ? (

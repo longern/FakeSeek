@@ -4,9 +4,12 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
+      "API Key": "API Key",
+      "Base URL": "Base URL",
       Copy: "Copy",
       Delete: "Delete",
       "Generate Image": "Generate Image",
+      "Image Quality": "Image Quality",
       "New Chat": "New Chat",
       Rename: "Rename",
       Research: "Research",
@@ -20,13 +23,20 @@ const resources = {
       "Thinking finished": "Thinking finished",
       Today: "Today",
       Yesterday: "Yesterday",
+
+      "quality.low": "Low",
+      "quality.medium": "Medium",
+      "quality.high": "High",
     },
   },
   "zh-CN": {
     translation: {
+      "API Key": "API 密钥",
+      "Base URL": "API 地址",
       Copy: "复制",
       Delete: "删除",
       "Generate Image": "生图",
+      "Image Quality": "图片质量",
       "New Chat": "开启新对话",
       Rename: "重命名",
       Research: "研究",
@@ -40,6 +50,10 @@ const resources = {
       "Thinking finished": "思考完成",
       Today: "今天",
       Yesterday: "昨天",
+
+      "quality.low": "低",
+      "quality.medium": "中",
+      "quality.high": "高",
     },
   },
 };

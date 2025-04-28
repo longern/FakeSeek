@@ -1,28 +1,30 @@
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReplayIcon from "@mui/icons-material/Replay";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
   Box,
   Button,
-  Collapse,
   Dialog,
   IconButton,
   InputBase,
   ListItemIcon,
   Menu,
   MenuItem,
+  Stack,
   Toolbar,
   Typography,
 } from "@mui/material";
-import { ResponseOutputMessage } from "openai/resources/responses/responses.mjs";
+import {
+  ResponseFunctionToolCall,
+  ResponseOutputMessage,
+} from "openai/resources/responses/responses.mjs";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Markdown from "./Markdown";
 import { ChatMessage } from "./app/conversations";
+import { FunctionCallOutput, ReasoningContent } from "./MessageItem";
 
 function base64ToBlob(base64: string, contentType: string) {
   const byteCharacters = atob(base64);
@@ -32,40 +34,6 @@ function base64ToBlob(base64: string, contentType: string) {
   }
 
   return new Blob([byteNumbers], { type: contentType });
-}
-
-function ReasoningContent({
-  content,
-  reasoning,
-}: {
-  content: string;
-  reasoning: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  const { t } = useTranslation();
-
-  return (
-    <>
-      <Button
-        size="small"
-        sx={{ paddingX: 1.5 }}
-        onClick={() => setExpanded((expanded) => !expanded)}
-      >
-        {reasoning ? t("Thinking...") : t("Thinking finished")}
-        {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-      </Button>
-      <Collapse in={expanded}>
-        <Typography
-          variant="subtitle2"
-          color="text.secondary"
-          sx={{ marginTop: 1, paddingLeft: 1, borderLeft: "4px solid #ccc" }}
-        >
-          {content}
-        </Typography>
-      </Collapse>
-    </>
-  );
 }
 
 function MessageList({
@@ -88,7 +56,17 @@ function MessageList({
   const { t } = useTranslation();
 
   return (
-    <>
+    <Stack
+      gap={1}
+      sx={{
+        "& img": {
+          display: "block",
+          maxWidth: "100%",
+          maxHeight: "60vh",
+          borderRadius: "8px",
+        },
+      }}
+    >
       {messages.map((message, index) =>
         message.type === "message" ? (
           <Box
@@ -106,14 +84,7 @@ function MessageList({
                     alignSelf: "flex-end",
                     whiteSpace: "pre-wrap",
                   }
-                : {
-                    "& img": {
-                      display: "block",
-                      maxWidth: "100%",
-                      maxHeight: "60vh",
-                      borderRadius: "8px",
-                    },
-                  }),
+                : null),
             }}
             onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
               const { nativeEvent } = e;
@@ -148,11 +119,22 @@ function MessageList({
         ) : message.type === "reasoning" ? (
           <Box key={message.id} sx={{ marginBottom: -1 }}>
             <ReasoningContent
-              key={index}
+              key={message.id}
               content={message.summary.map((s) => s.text).join("\n")}
               reasoning={message.status !== "completed"}
             />
           </Box>
+        ) : message.type === "function_call_output" ? (
+          <FunctionCallOutput
+            key={message.id || `out_${message.call_id}`}
+            message={message}
+            toolCall={
+              messages.find(
+                (m) =>
+                  m.type === "function_call" && m.call_id === message.call_id
+              ) as ResponseFunctionToolCall | undefined
+            }
+          />
         ) : message.type === "web_search_call" ? (
           <Box key={message.id}>
             <Button
@@ -309,7 +291,7 @@ function MessageList({
           sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
         />
       </Dialog>
-    </>
+    </Stack>
   );
 }
 

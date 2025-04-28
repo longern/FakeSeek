@@ -305,18 +305,28 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         moderation: "low",
       });
 
+      const callId = crypto.randomUUID();
+
       setMessages((messages) => [
         ...messages,
         {
-          type: "message",
-          role: "assistant",
-          content: [
-            {
-              type: "input_image",
-              image_url: response.data![0].b64_json,
-              detail: "auto",
-            },
-          ],
+          id: crypto.randomUUID(),
+          type: "function_call",
+          call_id: callId,
+          name: "generate_image",
+          arguments: JSON.stringify({
+            prompt: prompt,
+            model: "gpt-image-1",
+            quality: provider.imageQuality,
+            moderation: "low",
+          }),
+        },
+        {
+          id: crypto.randomUUID(),
+          type: "function_call_output",
+          call_id: callId,
+          function_name: "generate_image",
+          output: JSON.stringify(response.data),
         },
       ]);
     } catch (error) {
@@ -431,18 +441,16 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 maxWidth="md"
                 sx={{ flexGrow: 1, padding: 2, overflowX: "hidden" }}
               >
-                <Stack gap={1}>
-                  <MessageList
-                    messages={messages}
-                    onMessageChange={setMessages}
-                    onRetry={(message) => {
-                      const index = messages.indexOf(message);
-                      const priorMessages = messages.slice(0, index);
-                      setMessages(priorMessages);
-                      requestAssistant(priorMessages);
-                    }}
-                  />
-                </Stack>
+                <MessageList
+                  messages={messages}
+                  onMessageChange={setMessages}
+                  onRetry={(message) => {
+                    const index = messages.indexOf(message);
+                    const priorMessages = messages.slice(0, index);
+                    setMessages(priorMessages);
+                    requestAssistant(priorMessages);
+                  }}
+                />
               </Container>
               <Box
                 sx={{
