@@ -24,6 +24,16 @@ import { useTranslation } from "react-i18next";
 import Markdown from "./Markdown";
 import { ChatMessage } from "./app/conversations";
 
+function base64ToBlob(base64: string, contentType: string) {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Uint8Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+
+  return new Blob([byteNumbers], { type: contentType });
+}
+
 function ReasoningContent({
   content,
   reasoning,
@@ -101,6 +111,7 @@ function MessageList({
                       display: "block",
                       maxWidth: "100%",
                       maxHeight: "60vh",
+                      borderRadius: "8px",
                     },
                   }),
             }}
@@ -201,17 +212,21 @@ function MessageList({
             ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
             : undefined
         }
-        MenuListProps={{ sx: { minWidth: "160px" } }}
+        slotProps={{ list: { sx: { minWidth: "160px" } } }}
       >
         <MenuItem
           onClick={() => {
             if (!selectedMessage) return;
-            const content = selectedMessage.content
-              .map((part) =>
-                part.type === "output_text" ? part.text : part.refusal
-              )
-              .join("");
-            navigator.clipboard.writeText(content);
+            const content = selectedMessage.content.map((part: any) =>
+              part.type === "refusal"
+                ? new ClipboardItem({ "text/plain": part.refusal })
+                : part.type === "input_image"
+                ? new ClipboardItem({
+                    "image/png": base64ToBlob(part.image_url, "image/png"),
+                  })
+                : new ClipboardItem({ "text/plain": part.text })
+            );
+            navigator.clipboard.write(content);
             setContextMenu(null);
             setSelectedMessage(null);
           }}

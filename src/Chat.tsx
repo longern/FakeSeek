@@ -299,7 +299,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     const response = await client.images.generate({
       prompt,
       model: "gpt-image-1",
-      quality: "auto",
+      quality: provider.imageQuality,
       moderation: "low",
     });
 

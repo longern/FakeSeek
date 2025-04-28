@@ -8,6 +8,7 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  Menu,
   Stack,
   Toolbar,
   Typography,
@@ -15,9 +16,12 @@ import {
 } from "@mui/material";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
+
 import { useAppDispatch, useAppSelector } from "./app/hooks";
-import { setApiKey, setBaseURL } from "./app/provider";
+import { setApiKey, setBaseURL, setImageQuality } from "./app/provider";
 
 function SettingsDialog({
   open,
@@ -26,6 +30,8 @@ function SettingsDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const [showQualitySelector, setQualitySelectorAnchor] =
+    useState<HTMLElement | null>(null);
   const provider = useAppSelector((state) => state.provider);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
@@ -104,6 +110,66 @@ function SettingsDialog({
                     <NavigateNextIcon />
                   </IconButton>
                 </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    const newBaseURL = window.prompt(
+                      t("Enter new base URL"),
+                      provider.baseURL
+                    );
+                    if (!newBaseURL) return;
+                    dispatch(setBaseURL(newBaseURL));
+                  }}
+                >
+                  <ListItemText
+                    primary={t("Base URL")}
+                    secondary={provider.baseURL || "-"}
+                  />
+                  <IconButton edge="end">
+                    <NavigateNextIcon />
+                  </IconButton>
+                </ListItemButton>
+              </ListItem>
+            </List>
+          </Card>
+          <Card elevation={0} sx={{ borderRadius: 3, marginTop: 2 }}>
+            <List disablePadding>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={(event) =>
+                    setQualitySelectorAnchor(event.currentTarget)
+                  }
+                >
+                  <ListItemText
+                    primary={t("Image Quality")}
+                    secondary={provider.imageQuality}
+                  />
+                  <IconButton edge="end">
+                    <UnfoldMoreIcon />
+                  </IconButton>
+                </ListItemButton>
+                <Menu
+                  anchorEl={showQualitySelector}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                  open={Boolean(showQualitySelector)}
+                  onClose={() => setQualitySelectorAnchor(null)}
+                  slotProps={{ list: { disablePadding: true } }}
+                >
+                  {["low", "medium", "high"].map((quality) => (
+                    <ListItem key={quality} disablePadding>
+                      <ListItemButton
+                        onClick={() => {
+                          dispatch(setImageQuality(quality as any));
+                          setQualitySelectorAnchor(null);
+                        }}
+                      >
+                        <ListItemText primary={t(quality)} />
+                      </ListItemButton>
+                    </ListItem>
+                  ))}
+                </Menu>
               </ListItem>
             </List>
           </Card>
