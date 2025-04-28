@@ -296,29 +296,32 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       baseURL: provider.baseURL,
       dangerouslyAllowBrowser: true,
     });
-    const response = await client.images.generate({
-      prompt,
-      model: "gpt-image-1",
-      quality: provider.imageQuality,
-      moderation: "low",
-    });
 
-    setMessages((messages) => [
-      ...messages,
-      {
-        type: "message",
-        role: "assistant",
-        content: [
-          {
-            type: "input_image",
-            image_url: response.data![0].b64_json,
-            detail: "auto",
-          },
-        ],
-      },
-    ]);
+    try {
+      const response = await client.images.generate({
+        prompt,
+        model: "gpt-image-1",
+        quality: provider.imageQuality,
+        moderation: "low",
+      });
 
-    return response;
+      setMessages((messages) => [
+        ...messages,
+        {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "input_image",
+              image_url: response.data![0].b64_json,
+              detail: "auto",
+            },
+          ],
+        },
+      ]);
+    } catch (error) {
+      window.alert((error as Error).message);
+    }
   }, []);
 
   useEffect(() => {

@@ -18,6 +18,8 @@ const resources = {
       Settings: "Settings",
       "Thinking...": "Thinking...",
       "Thinking finished": "Thinking finished",
+      Today: "Today",
+      Yesterday: "Yesterday",
     },
   },
   "zh-CN": {
@@ -36,6 +38,8 @@ const resources = {
       Settings: "设置",
       "Thinking...": "思考中...",
       "Thinking finished": "思考完成",
+      Today: "今天",
+      Yesterday: "昨天",
     },
   },
 };

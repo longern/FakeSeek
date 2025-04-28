@@ -22,6 +22,7 @@ import { useState } from "react";
 
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { setApiKey, setBaseURL, setImageQuality } from "./app/provider";
+import { Check } from "@mui/icons-material";
 
 function SettingsDialog({
   open,
@@ -111,26 +112,6 @@ function SettingsDialog({
                   </IconButton>
                 </ListItemButton>
               </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton
-                  onClick={() => {
-                    const newBaseURL = window.prompt(
-                      t("Enter new base URL"),
-                      provider.baseURL
-                    );
-                    if (!newBaseURL) return;
-                    dispatch(setBaseURL(newBaseURL));
-                  }}
-                >
-                  <ListItemText
-                    primary={t("Base URL")}
-                    secondary={provider.baseURL || "-"}
-                  />
-                  <IconButton edge="end">
-                    <NavigateNextIcon />
-                  </IconButton>
-                </ListItemButton>
-              </ListItem>
             </List>
           </Card>
           <Card elevation={0} sx={{ borderRadius: 3, marginTop: 2 }}>
@@ -141,13 +122,11 @@ function SettingsDialog({
                     setQualitySelectorAnchor(event.currentTarget)
                   }
                 >
-                  <ListItemText
-                    primary={t("Image Quality")}
-                    secondary={provider.imageQuality}
-                  />
-                  <IconButton edge="end">
-                    <UnfoldMoreIcon />
-                  </IconButton>
+                  <ListItemText primary={t("Image Quality")} />
+                  <Typography variant="body2" color="text.secondary">
+                    {provider.imageQuality}
+                  </Typography>
+                  <UnfoldMoreIcon />
                 </ListItemButton>
                 <Menu
                   anchorEl={showQualitySelector}
@@ -155,17 +134,32 @@ function SettingsDialog({
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                   open={Boolean(showQualitySelector)}
                   onClose={() => setQualitySelectorAnchor(null)}
-                  slotProps={{ list: { disablePadding: true } }}
+                  slotProps={{
+                    list: { disablePadding: true },
+                    backdrop: { invisible: false },
+                  }}
                 >
                   {["low", "medium", "high"].map((quality) => (
                     <ListItem key={quality} disablePadding>
                       <ListItemButton
+                        selected={provider.imageQuality === quality}
                         onClick={() => {
                           dispatch(setImageQuality(quality as any));
                           setQualitySelectorAnchor(null);
                         }}
                       >
-                        <ListItemText primary={t(quality)} />
+                        <ListItemText
+                          primary={t(quality)}
+                          sx={{ marginRight: 2 }}
+                        />
+                        {provider.imageQuality === quality ? (
+                          <Check
+                            color="primary"
+                            sx={{ width: 24, height: 24 }}
+                          />
+                        ) : (
+                          <Box sx={{ width: 24, height: 24 }} />
+                        )}
                       </ListItemButton>
                     </ListItem>
                   ))}
