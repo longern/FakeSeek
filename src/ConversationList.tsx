@@ -11,6 +11,7 @@ import {
   ListSubheader,
   Menu,
   MenuItem,
+  useMediaQuery,
 } from "@mui/material";
 import { Fragment, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -60,12 +61,13 @@ function ConversationList({
   const [menuConversation, setMenuConversation] = useState<Conversation | null>(
     null
   );
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const { t } = useTranslation();
 
   return (
     <>
-      <List disablePadding sx={{ overflowY: "auto" }}>
+      <List disablePadding sx={{ overflowY: "auto", paddingX: 1 }}>
         {groupedConversations(Object.values(conversations)).map(
           (group, index) =>
             group.length ? (
@@ -75,9 +77,10 @@ function ConversationList({
                     background: "#f9fbff",
                     color: "text.secondary",
                     lineHeight: "unset",
-                    fontWeight: "bold",
-                    marginTop: 2,
-                    marginBottom: 1,
+                    fontWeight: isMobile ? "normal" : undefined,
+                    marginTop: 1.5,
+                    marginBottom: 0.5,
+                    paddingY: 0.5,
                   }}
                 >
                   {index === 0
@@ -95,21 +98,68 @@ function ConversationList({
                     disablePadding
                     key={conversation.id}
                     secondaryAction={
-                      <IconButton
-                        onClick={(e) => {
-                          setAnchorEl(e.currentTarget);
-                          setMenuConversation(conversation);
-                        }}
-                      >
-                        <MoreHorizIcon />
-                      </IconButton>
+                      isMobile ? null : (
+                        <IconButton
+                          edge="end"
+                          className={
+                            menuConversation === conversation
+                              ? "ConversationList-anchor"
+                              : undefined
+                          }
+                          onClick={(e) => {
+                            setAnchorEl(e.currentTarget);
+                            setMenuConversation(conversation);
+                          }}
+                        >
+                          <MoreHorizIcon fontSize="small" />
+                        </IconButton>
+                      )
                     }
+                    sx={{
+                      "&>.MuiListItemSecondaryAction-root": {
+                        visibility: "hidden",
+                      },
+                      "&:hover>.MuiListItemSecondaryAction-root": {
+                        visibility: "visible",
+                      },
+                      "&>.Mui-selected+.MuiListItemSecondaryAction-root": {
+                        visibility: "visible",
+                      },
+                      "& .ConversationList-anchor": {
+                        visibility: "visible",
+                      },
+                    }}
                   >
                     <ListItemButton
                       selected={conversation.id === selectedConversation}
                       onClick={() => onSelect(conversation)}
+                      onContextMenu={(
+                        e: React.PointerEvent<HTMLDivElement>
+                      ) => {
+                        const { nativeEvent } = e;
+                        if (nativeEvent.pointerType === "mouse") return;
+                        nativeEvent.preventDefault();
+                        setAnchorEl(e.currentTarget);
+                        setMenuConversation(conversation);
+                      }}
+                      sx={{
+                        borderRadius: 2,
+                        paddingY: isMobile ? undefined : 0.5,
+                        "&.Mui-selected": { backgroundColor: "#dbeafe" },
+                      }}
                     >
-                      {conversation.title}
+                      <ListItemText
+                        primary={conversation.title}
+                        sx={{
+                          display: "inline",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        slotProps={{
+                          primary: { fontSize: isMobile ? undefined : "14px" },
+                        }}
+                      />
                     </ListItemButton>
                   </ListItem>
                 ))}
@@ -117,12 +167,13 @@ function ConversationList({
             ) : null
         )}
       </List>
+
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
-        onClose={() => {
-          setAnchorEl(null);
-          setMenuConversation(null);
+        onClose={() => setAnchorEl(null)}
+        onTransitionEnd={() => {
+          if (!anchorEl) setMenuConversation(null);
         }}
       >
         <MenuItem

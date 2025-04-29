@@ -48,7 +48,7 @@ function AppDrawer({
         anchor="left"
         sx={{
           [`& .MuiDrawer-paper`]: {
-            width: "260px",
+            width: isMobile ? "300px" : "260px",
             position: isMobile ? "fixed" : "relative",
             backgroundColor: "#f9fbff",
             borderRight: "none",
