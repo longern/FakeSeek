@@ -3,21 +3,18 @@ import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
   Box,
-  Button,
   Container,
-  Drawer,
   IconButton,
-  List,
-  ListItem,
-  ListItemButton,
   Stack,
   Toolbar,
   useMediaQuery,
 } from "@mui/material";
 import { produce, WritableDraft } from "immer";
 import OpenAI from "openai";
+import { ImagesResponse } from "openai/resources.mjs";
 import {
   ResponseInputItem,
+  ResponseInputMessageContentList,
   ResponseStreamEvent,
 } from "openai/resources/responses/responses.mjs";
 import { useCallback, useEffect, useState } from "react";
@@ -25,17 +22,14 @@ import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
 import {
-  ChatMessage,
-  Conversation,
   add as addConversation,
-  remove as removeConversation,
+  ChatMessage,
   update as updateConversation,
 } from "./app/conversations";
-import ConversationList from "./ConversationList";
+import { useAppDispatch, useAppSelector } from "./app/hooks";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
-import SettingsDialog from "./SettingsDialog";
-import { useAppDispatch, useAppSelector } from "./app/hooks";
+import AppDrawer from "./AppDrawer";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -122,95 +116,6 @@ function messageDispatch(
   }
 }
 
-function AppDrawer({
-  open,
-  onClose,
-  selectedConversation,
-  onConversationChange,
-}: {
-  open: boolean;
-  onClose: () => void;
-  selectedConversation: string | null;
-  onConversationChange: (conversation: Conversation | null) => void;
-}) {
-  const conversations = useAppSelector(
-    (state) => state.conversations.conversations
-  );
-  const dispatch = useAppDispatch();
-  const [showMenu, setShowMenu] = useState(false);
-
-  const { t } = useTranslation();
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
-
-  return (
-    <>
-      <Drawer
-        variant={isMobile ? "temporary" : "permanent"}
-        open={open}
-        anchor="left"
-        sx={{
-          [`& .MuiDrawer-paper`]: {
-            width: "260px",
-            position: isMobile ? "fixed" : "relative",
-            backgroundColor: "#f9fbff",
-            borderRight: "none",
-          },
-        }}
-        onClose={onClose}
-      >
-        {!isMobile && (
-          <Box>
-            <Button
-              size="large"
-              sx={{
-                margin: 2,
-                borderRadius: "12px",
-                backgroundColor: "#dbeafe",
-                "&:hover": { backgroundColor: "#c6dcf8" },
-              }}
-              onClick={() => onConversationChange(null)}
-              startIcon={
-                <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
-              }
-            >
-              {t("New Chat")}
-            </Button>
-          </Box>
-        )}
-        <ConversationList
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          onSelect={onConversationChange}
-          onRename={(conversation) => {
-            const title = window.prompt(t("Rename"), conversation.title);
-            if (!title) return;
-            dispatch(
-              updateConversation({ id: conversation.id, patch: { title } })
-            );
-          }}
-          onDelete={(conversation) => {
-            if (!window.confirm("Delete this chat?")) return;
-            dispatch(removeConversation(conversation.id));
-            if (conversation.id === selectedConversation)
-              onConversationChange(null);
-          }}
-        />
-        <Box sx={{ flexGrow: 1 }} />
-        <Box sx={{ padding: 1 }}>
-          <List disablePadding sx={{ borderRadius: 1, overflow: "hidden" }}>
-            <ListItem disablePadding>
-              <ListItemButton onClick={() => setShowMenu(true)}>
-                {t("Settings")}
-              </ListItemButton>
-            </ListItem>
-          </List>
-        </Box>
-      </Drawer>
-      <SettingsDialog open={showMenu} onClose={() => setShowMenu(false)} />
-    </>
-  );
-}
-
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
@@ -247,14 +152,14 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
       ]);
       requestCreateResearch(task);
     },
-    generateImage: (prompt: string) => {
-      const newMessage = {
+    generateImage: (prompt: ResponseInputMessageContentList) => {
+      const newMessage: ResponseInputItem.Message = {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: prompt }],
-      } as ResponseInputItem.Message;
+        content: prompt,
+      };
       setMessages((messages) => [...messages, newMessage]);
-      requestGenerateImage(prompt);
+      requestGenerateImage(newMessage.content);
     },
   };
 
@@ -290,49 +195,70 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     ]);
   }, []);
 
-  const requestGenerateImage = useCallback(async (prompt: string) => {
-    const client = new OpenAI({
-      apiKey: provider.apiKey,
-      baseURL: provider.baseURL,
-      dangerouslyAllowBrowser: true,
-    });
-
-    try {
-      const response = await client.images.generate({
-        prompt,
-        model: "gpt-image-1",
-        quality: provider.imageQuality,
-        moderation: "low",
+  const requestGenerateImage = useCallback(
+    async (content: ResponseInputMessageContentList) => {
+      const client = new OpenAI({
+        apiKey: provider.apiKey,
+        baseURL: provider.baseURL,
+        dangerouslyAllowBrowser: true,
       });
 
-      const callId = crypto.randomUUID();
+      try {
+        let response: ImagesResponse;
 
-      setMessages((messages) => [
-        ...messages,
-        {
-          id: crypto.randomUUID(),
-          type: "function_call",
-          call_id: callId,
-          name: "generate_image",
-          arguments: JSON.stringify({
-            prompt: prompt,
+        if (content.length === 1 && content[0].type === "input_text") {
+          response = await client.images.generate({
+            prompt: content[0].text,
             model: "gpt-image-1",
             quality: provider.imageQuality,
             moderation: "low",
-          }),
-        },
-        {
-          id: crypto.randomUUID(),
-          type: "function_call_output",
-          call_id: callId,
-          function_name: "generate_image",
-          output: JSON.stringify(response.data),
-        },
-      ]);
-    } catch (error) {
-      window.alert((error as Error).message);
-    }
-  }, []);
+          });
+        } else {
+          const imageResponses = await Promise.all(
+            content
+              .filter((part) => part.type === "input_image")
+              .map((part) => fetch(part.image_url!))
+          );
+          response = await client.images.edit({
+            image: imageResponses,
+            prompt: content
+              .filter((part) => part.type === "input_text")
+              .map((part) => part.text)
+              .join("\n"),
+            model: "gpt-image-1",
+            quality: provider.imageQuality,
+          });
+        }
+
+        const callId = crypto.randomUUID();
+
+        setMessages((messages) => [
+          ...messages,
+          {
+            id: crypto.randomUUID(),
+            type: "function_call",
+            call_id: callId,
+            name: "generate_image",
+            arguments: JSON.stringify({
+              prompt: prompt,
+              model: "gpt-image-1",
+              quality: provider.imageQuality,
+              moderation: "low",
+            }),
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify(response.data),
+          },
+        ]);
+      } catch (error) {
+        window.alert((error as Error).message);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (selectedConversation) {

@@ -108,10 +108,7 @@ function MessageList({
                     <Markdown>{part.text}</Markdown>
                   )
                 ) : part.type === "input_image" ? (
-                  <img
-                    src={"data:image/png;base64," + part.image_url}
-                    alt="Generated Image"
-                  />
+                  <img src={part.image_url!} alt="Generated Image" />
                 ) : null}
               </Box>
             ))}

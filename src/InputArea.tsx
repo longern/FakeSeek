@@ -1,10 +1,23 @@
 import {
+  Add as AddIcon,
   ArrowUpward as ArrowUpwardIcon,
+  Image as ImageIcon,
   Search as SearchIcon,
   Stop as StopIcon,
 } from "@mui/icons-material";
 import BrushIcon from "@mui/icons-material/Brush";
-import { Box, Chip, IconButton, InputBase, Stack } from "@mui/material";
+import {
+  Badge,
+  Box,
+  Button,
+  Chip,
+  Collapse,
+  IconButton,
+  InputAdornment,
+  InputBase,
+  Stack,
+} from "@mui/material";
+import { ResponseInputMessageContentList } from "openai/resources/responses/responses.mjs";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -26,13 +39,15 @@ function InputArea({
   stopController?: AbortController;
   onResearch: (task: string) => void;
   onSearch: (query: string) => void;
-  onGenerateImage: (prompt: string) => void;
+  onGenerateImage: (prompt: ResponseInputMessageContentList) => void;
   onChat: (message: string) => void;
 }) {
   const [enableSearch, setEnableSearch] = useState(false);
   const [enableResearch, setEnableResearch] = useState(false);
   const [enableGenerateImage, setEnableGenerateImage] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
   const [message, setMessage] = useState("");
+  const [images, setImages] = useState<File[]>([]);
 
   const { t } = useTranslation();
 
@@ -45,7 +60,28 @@ function InputArea({
       } else if (enableResearch) {
         onResearch(message);
       } else if (enableGenerateImage) {
-        onGenerateImage(message);
+        const imagesBase64 = images.map((image) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(image);
+          return new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              resolve(reader.result as string);
+            };
+          });
+        });
+        Promise.all(imagesBase64).then((base64Images) => {
+          console.log(images, base64Images);
+          const imageData = base64Images.map((base64) => ({
+            type: "input_image" as const,
+            detail: "low" as const,
+            image_url: base64,
+          }));
+          onGenerateImage([
+            ...imageData,
+            { type: "input_text", text: message },
+          ]);
+        });
+        setImages([]);
       } else {
         onChat(message);
       }
@@ -70,6 +106,15 @@ function InputArea({
           backgroundColor: "whitesmoke",
           padding: "0.5rem 1rem",
         }}
+        startAdornment={
+          images.length ? (
+            <InputAdornment position="start">
+              <Badge badgeContent={images.length}>
+                <ImageIcon />
+              </Badge>
+            </InputAdornment>
+          ) : null
+        }
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
@@ -129,6 +174,13 @@ function InputArea({
           }}
         />
         <Box sx={{ flexGrow: 1 }} />
+        <IconButton
+          aria-label={t("Add")}
+          size="small"
+          onClick={() => setShowPanel((showPanel) => !showPanel)}
+        >
+          <AddIcon />
+        </IconButton>
         {stopController ? (
           <IconButton
             aria-label={t("Stop")}
@@ -167,6 +219,23 @@ function InputArea({
           </IconButton>
         )}
       </Stack>
+      <Collapse in={showPanel}>
+        <Button component="label">
+          {t("Image")}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              if (!e.target.files) return;
+              const files = Array.from(e.target.files);
+              setImages(() => [...images, ...files]);
+              e.target.files = null;
+            }}
+          />
+        </Button>
+      </Collapse>
     </Stack>
   );
 }

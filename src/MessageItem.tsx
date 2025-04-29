@@ -6,7 +6,7 @@ import {
   ResponseFunctionToolCall,
   ResponseInputItem,
 } from "openai/resources/responses/responses.mjs";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export function ReasoningContent({
@@ -43,6 +43,34 @@ export function ReasoningContent({
   );
 }
 
+function GenerateImageContent({
+  message,
+}: {
+  message: ResponseInputItem.FunctionCallOutput;
+}) {
+  const imageURLs = useMemo(() => {
+    const data: Array<Image> = JSON.parse(message.output);
+    return data.map((image) => {
+      const byteCharacters = atob(image.b64_json!);
+      const byteNumbers = new Uint8Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      return URL.createObjectURL(
+        new Blob([byteNumbers], { type: "image/png" })
+      );
+    });
+  }, [message]);
+
+  return (
+    <>
+      {imageURLs.map((image, index) => (
+        <img key={index} src={image} alt={`Generated Image ${index + 1}`} />
+      ))}
+    </>
+  );
+}
+
 export function FunctionCallOutput({
   message,
   toolCall,
@@ -54,16 +82,9 @@ export function FunctionCallOutput({
 
   switch (toolCall.name) {
     case "generate_image":
-      const data: Array<Image> = JSON.parse(message.output);
       return (
         <Box sx={{ marginRight: "64px" }}>
-          {data.map((image, index) => (
-            <img
-              key={index}
-              src={"data:image/png;base64," + image.b64_json!}
-              alt={`Generated Image ${index + 1}`}
-            />
-          ))}
+          <GenerateImageContent message={message} />
         </Box>
       );
   }
