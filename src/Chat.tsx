@@ -132,11 +132,11 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const dispatch = useAppDispatch();
 
   const methods = {
-    sendMessage: (message: string) => {
+    sendMessage: (message: ResponseInputMessageContentList) => {
       const newMessage = {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: message }],
+        content: message,
       } as ResponseInputItem.Message;
       setMessages((messages) => [...messages, newMessage]);
       requestAssistant([...messages, newMessage]);

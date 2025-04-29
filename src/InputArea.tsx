@@ -9,7 +9,6 @@ import BrushIcon from "@mui/icons-material/Brush";
 import {
   Badge,
   Box,
-  Button,
   Card,
   CardActionArea,
   CardContent,
@@ -35,6 +34,20 @@ function urlBase64ToUint8Array(base64String: string) {
   );
 }
 
+function readImages(images: File[]) {
+  const imagesBase64 = images.map((image) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(image);
+    return new Promise<string>((resolve) => {
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+    });
+  });
+
+  return Promise.all(imagesBase64);
+}
+
 function InputArea({
   stopController,
   onResearch,
@@ -46,7 +59,7 @@ function InputArea({
   onResearch: (task: string) => void;
   onSearch: (query: string) => void;
   onGenerateImage: (prompt: ResponseInputMessageContentList) => void;
-  onChat: (message: string) => void;
+  onChat: (message: ResponseInputMessageContentList) => void;
 }) {
   const [enableSearch, setEnableSearch] = useState(false);
   const [enableResearch, setEnableResearch] = useState(false);
@@ -66,17 +79,7 @@ function InputArea({
       } else if (enableResearch) {
         onResearch(message);
       } else if (enableGenerateImage) {
-        const imagesBase64 = images.map((image) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(image);
-          return new Promise<string>((resolve) => {
-            reader.onloadend = () => {
-              resolve(reader.result as string);
-            };
-          });
-        });
-        Promise.all(imagesBase64).then((base64Images) => {
-          console.log(images, base64Images);
+        readImages(images).then((base64Images) => {
           const imageData = base64Images.map((base64) => ({
             type: "input_image" as const,
             detail: "low" as const,
@@ -89,7 +92,20 @@ function InputArea({
         });
         setImages([]);
       } else {
-        onChat(message);
+        if (images.length) {
+          readImages(images).then((base64Images) => {
+            const imageData = base64Images.map((base64) => ({
+              type: "input_image" as const,
+              detail: "low" as const,
+              image_url: base64,
+            }));
+            onChat([...imageData, { type: "input_text", text: message }]);
+          });
+          setImages([]);
+          return;
+        } else {
+          onChat([{ type: "input_text", text: message }]);
+        }
       }
     },
     [enableSearch, enableResearch, enableGenerateImage, message]
