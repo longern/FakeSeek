@@ -10,12 +10,18 @@ import {
   Badge,
   Box,
   Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  CardMedia,
   Chip,
   Collapse,
+  Grid,
   IconButton,
   InputAdornment,
   InputBase,
   Stack,
+  Typography,
 } from "@mui/material";
 import { ResponseInputMessageContentList } from "openai/resources/responses/responses.mjs";
 import { useCallback, useState } from "react";
@@ -220,21 +226,42 @@ function InputArea({
         )}
       </Stack>
       <Collapse in={showPanel}>
-        <Button component="label">
-          {t("Image")}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            hidden
-            onChange={(e) => {
-              if (!e.target.files) return;
-              const files = Array.from(e.target.files);
-              setImages(() => [...images, ...files]);
-              e.target.files = null;
-            }}
-          />
-        </Button>
+        <Grid container>
+          <Grid size={{ xs: 4, lg: 2 }}>
+            <Card elevation={0} sx={{ margin: 1 }}>
+              <CardActionArea component="label">
+                <CardMedia
+                  sx={{
+                    backgroundColor: "background.default",
+                    borderRadius: 1,
+                    paddingY: 3,
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ImageIcon />
+                </CardMedia>
+                <CardContent sx={{ padding: 1, textAlign: "center" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t("Image")}
+                  </Typography>
+                </CardContent>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={(e) => {
+                    if (!e.target.files) return;
+                    const files = Array.from(e.target.files);
+                    setImages(() => [...images, ...files]);
+                    e.target.files = null;
+                  }}
+                />
+              </CardActionArea>
+            </Card>
+          </Grid>
+        </Grid>
       </Collapse>
     </Stack>
   );
