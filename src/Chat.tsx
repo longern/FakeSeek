@@ -343,7 +343,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             </IconButton>
           </Toolbar>
         ) : null}
-        {!messages.length ? (
+        {!messages.length && !isMobile ? (
           <Container
             maxWidth="md"
             sx={{

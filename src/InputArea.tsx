@@ -1,6 +1,7 @@
 import {
   Add as AddIcon,
   ArrowUpward as ArrowUpwardIcon,
+  Camera as CameraIcon,
   Image as ImageIcon,
   Search as SearchIcon,
   Stop as StopIcon,
@@ -14,6 +15,7 @@ import {
   CardMedia,
   Chip,
   Collapse,
+  Divider,
   Grid,
   IconButton,
   InputBase,
@@ -115,35 +117,37 @@ function InputArea({
       onSubmit={handleSend}
       sx={{ width: "100%", padding: 1 }}
     >
-      <Card
-        elevation={0}
-        sx={{
-          borderRadius: "24px",
-          border: images.length ? "1px solid #ccc" : "none",
-          borderBottom: "none",
-        }}
-      >
-        <Stack direction="row" gap={1} sx={{ margin: 1.5, overflowX: "auto" }}>
-          {images.map((image, index) => (
-            <Box
-              key={index}
-              sx={{
-                flexShrink: 0,
-                display: "flex",
-                borderRadius: 3,
-                overflow: "hidden",
-              }}
+      <Card variant="outlined" elevation={0} sx={{ borderRadius: "24px" }}>
+        {images.length > 0 && (
+          <>
+            <Stack
+              direction="row"
+              gap={1}
+              sx={{ margin: 1.5, overflowX: "auto" }}
             >
-              <img
-                src={URL.createObjectURL(image)}
-                alt={`Image ${index + 1}`}
-                width="64"
-                height="64"
-                style={{ objectFit: "cover" }}
-              />
-            </Box>
-          ))}
-        </Stack>
+              {images.map((image, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    flexShrink: 0,
+                    display: "flex",
+                    borderRadius: 3,
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src={URL.createObjectURL(image)}
+                    alt={`Image ${index + 1}`}
+                    width="64"
+                    height="64"
+                    style={{ objectFit: "cover" }}
+                  />
+                </Box>
+              ))}
+            </Stack>
+            <Divider />
+          </>
+        )}
         <InputBase
           multiline
           placeholder={t("Send message...")}
@@ -153,7 +157,6 @@ function InputArea({
           sx={{
             minHeight: "48px",
             borderRadius: "24px",
-            backgroundColor: "whitesmoke",
             padding: "0.5rem 1rem",
           }}
           onChange={(e) => setMessage(e.target.value)}
@@ -291,7 +294,41 @@ function InputArea({
                     if (!e.target.files) return;
                     const files = Array.from(e.target.files);
                     setImages(() => [...images, ...files]);
-                    e.target.files = null;
+                    e.target.value = "";
+                  }}
+                />
+              </CardActionArea>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 4, lg: 2 }}>
+            <Card elevation={0} sx={{ margin: 1 }}>
+              <CardActionArea component="label">
+                <CardMedia
+                  sx={{
+                    backgroundColor: "background.default",
+                    borderRadius: 1,
+                    paddingY: 3,
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <CameraIcon />
+                </CardMedia>
+                <CardContent sx={{ padding: 1, textAlign: "center" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t("Camera")}
+                  </Typography>
+                </CardContent>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture
+                  hidden
+                  onChange={(e) => {
+                    if (!e.target.files) return;
+                    const files = Array.from(e.target.files);
+                    setImages(() => [...images, ...files]);
+                    e.target.value = "";
                   }}
                 />
               </CardActionArea>
