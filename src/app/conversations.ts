@@ -1,12 +1,26 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
+import {
+  ResponseComputerToolCall,
+  ResponseFileSearchToolCall,
+  ResponseFunctionToolCall,
+  ResponseFunctionWebSearch,
+  ResponseInputItem,
+  ResponseOutputMessage,
+  ResponseReasoningItem,
+} from "openai/resources/responses/responses.mjs";
 
-type ExcludeEasy<T> = T extends { content: infer A }
-  ? A extends string
-    ? never
-    : T
-  : T;
-export type ChatMessage = ExcludeEasy<ResponseInputItem>;
+// Exclude EasyInputMessage
+export type ChatMessage =
+  | ResponseInputItem.Message
+  | ResponseOutputMessage
+  | ResponseFileSearchToolCall
+  | ResponseComputerToolCall
+  | ResponseInputItem.ComputerCallOutput
+  | ResponseFunctionWebSearch
+  | ResponseFunctionToolCall
+  | ResponseInputItem.FunctionCallOutput
+  | ResponseReasoningItem
+  | ResponseInputItem.ItemReference;
 
 export interface Conversation {
   id: string;

@@ -1,40 +1,17 @@
-import CloseIcon from "@mui/icons-material/Close";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import ReplayIcon from "@mui/icons-material/Replay";
-import SelectAllIcon from "@mui/icons-material/SelectAll";
-import {
-  Box,
-  Button,
-  Dialog,
-  IconButton,
-  InputBase,
-  ListItemIcon,
-  Menu,
-  MenuItem,
-  Stack,
-  Toolbar,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Stack } from "@mui/material";
 import {
   ResponseFunctionToolCall,
-  ResponseOutputMessage,
+  ResponseInputItem,
 } from "openai/resources/responses/responses.mjs";
-import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+import React from "react";
 
-import Markdown from "./Markdown";
 import { ChatMessage } from "./app/conversations";
-import { FunctionCallOutput, ReasoningContent } from "./MessageItem";
-
-function base64ToBlob(base64: string, contentType: string) {
-  const byteCharacters = atob(base64);
-  const byteNumbers = new Uint8Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-
-  return new Blob([byteNumbers], { type: contentType });
-}
+import {
+  AssistantMessage,
+  FunctionCallOutput,
+  ReasoningContent,
+  UserMessage,
+} from "./MessageItem";
 
 function MessageList({
   messages,
@@ -45,16 +22,6 @@ function MessageList({
   onMessageChange: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   onRetry: (message: ChatMessage) => void;
 }) {
-  const [contextMenu, setContextMenu] = useState<{
-    mouseX: number;
-    mouseY: number;
-  } | null>(null);
-  const [selectedMessage, setSelectedMessage] =
-    useState<ResponseOutputMessage | null>(null);
-  const [showSelection, setShowSelection] = useState(false);
-
-  const { t } = useTranslation();
-
   return (
     <Stack
       gap={1}
@@ -62,57 +29,25 @@ function MessageList({
         "& img": {
           display: "block",
           maxWidth: "100%",
-          maxHeight: "60vh",
+          maxHeight: "50vh",
           borderRadius: "8px",
         },
       }}
     >
       {messages.map((message, index) =>
         message.type === "message" ? (
-          <Box
-            key={index}
-            sx={{
-              maxWidth: "100%",
-              overflowWrap: "break-word",
-              ...(message.role === "user"
-                ? {
-                    minWidth: "48px",
-                    padding: "8px 12px",
-                    backgroundColor: "#eff6ff",
-                    borderRadius: "20px",
-                    marginLeft: "64px",
-                    alignSelf: "flex-end",
-                    whiteSpace: "pre-wrap",
-                  }
-                : null),
-            }}
-            onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
-              const { nativeEvent } = e;
-              if (nativeEvent.pointerType === "mouse") return;
-              nativeEvent.preventDefault();
-              window.getSelection()?.removeAllRanges();
-              setContextMenu(
-                contextMenu === null
-                  ? { mouseX: e.clientX, mouseY: e.clientY }
-                  : null
-              );
-              setSelectedMessage(message as ResponseOutputMessage);
-            }}
-          >
-            {message.content.map((part, index) => (
-              <Box key={index}>
-                {part.type === "input_text" || part.type === "output_text" ? (
-                  message.role === "user" ? (
-                    part.text
-                  ) : (
-                    <Markdown>{part.text}</Markdown>
-                  )
-                ) : part.type === "input_image" ? (
-                  <img src={part.image_url!} alt="Generated Image" />
-                ) : null}
-              </Box>
-            ))}
-          </Box>
+          message.role === "user" ? (
+            <UserMessage
+              key={index}
+              message={message as ResponseInputItem.Message}
+            />
+          ) : message.role === "assistant" ? (
+            <AssistantMessage
+              key={message?.id}
+              message={message}
+              onRetry={() => onRetry(message)}
+            />
+          ) : null
         ) : message.type === "reasoning" ? (
           <Box key={message.id} sx={{ marginBottom: -1 }}>
             <ReasoningContent
@@ -181,113 +116,6 @@ function MessageList({
           </Box>
         ) : null
       )}
-
-      <Menu
-        open={contextMenu !== null}
-        onClose={() => setContextMenu(null)}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : undefined
-        }
-        slotProps={{ list: { sx: { minWidth: "160px" } } }}
-      >
-        <MenuItem
-          onClick={() => {
-            if (!selectedMessage) return;
-            const content = selectedMessage.content.map((part: any) =>
-              part.type === "refusal"
-                ? new ClipboardItem({ "text/plain": part.refusal })
-                : part.type === "input_image"
-                ? new ClipboardItem({
-                    "image/png": base64ToBlob(part.image_url, "image/png"),
-                  })
-                : new ClipboardItem({ "text/plain": part.text })
-            );
-            navigator.clipboard.write(content);
-            setContextMenu(null);
-            setSelectedMessage(null);
-          }}
-        >
-          <ListItemIcon>
-            <ContentCopyIcon />
-          </ListItemIcon>
-          {t("Copy")}
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            setShowSelection(true);
-            setContextMenu(null);
-          }}
-        >
-          <ListItemIcon>
-            <SelectAllIcon />
-          </ListItemIcon>
-          {t("Select Text")}
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            onRetry(selectedMessage!);
-            setContextMenu(null);
-            setSelectedMessage(null);
-          }}
-        >
-          <ListItemIcon>
-            <ReplayIcon />
-          </ListItemIcon>
-          {t("Retry")}
-        </MenuItem>
-      </Menu>
-      <Dialog
-        fullScreen
-        open={showSelection}
-        onClose={() => {
-          setShowSelection(false);
-          setSelectedMessage(null);
-        }}
-      >
-        <Toolbar
-          disableGutters
-          sx={{
-            position: "sticky",
-            top: 0,
-            backgroundColor: "background.paper",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-            zIndex: 1,
-          }}
-        >
-          <IconButton
-            aria-label="Close"
-            size="large"
-            onClick={() => {
-              setShowSelection(false);
-              setSelectedMessage(null);
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
-            {t("Select Text")}
-          </Typography>
-          <Box sx={{ width: "48px" }} />
-        </Toolbar>
-        <InputBase
-          multiline
-          fullWidth
-          value={
-            selectedMessage === null
-              ? ""
-              : selectedMessage.content
-                  .map((part) =>
-                    part.type === "output_text" ? part.text : part.refusal
-                  )
-                  .join("")
-          }
-          slotProps={{ input: { readOnly: true } }}
-          sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
-        />
-      </Dialog>
     </Stack>
   );
 }
