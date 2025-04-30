@@ -175,6 +175,12 @@ function ConversationList({
         onTransitionEnd={() => {
           if (!anchorEl) setMenuConversation(null);
         }}
+        anchorOrigin={
+          isMobile ? { vertical: "bottom", horizontal: "right" } : undefined
+        }
+        transformOrigin={
+          isMobile ? { vertical: "top", horizontal: "right" } : undefined
+        }
       >
         <MenuItem
           onClick={() => {

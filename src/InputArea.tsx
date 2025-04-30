@@ -7,7 +7,6 @@ import {
 } from "@mui/icons-material";
 import BrushIcon from "@mui/icons-material/Brush";
 import {
-  Badge,
   Box,
   Card,
   CardActionArea,
@@ -17,7 +16,6 @@ import {
   Collapse,
   Grid,
   IconButton,
-  InputAdornment,
   InputBase,
   Stack,
   Typography,
@@ -117,35 +115,57 @@ function InputArea({
       onSubmit={handleSend}
       sx={{ width: "100%", padding: 1 }}
     >
-      <InputBase
-        multiline
-        placeholder={t("Send message...")}
-        required
-        value={message}
+      <Card
+        elevation={0}
         sx={{
-          minHeight: "48px",
           borderRadius: "24px",
-          backgroundColor: "whitesmoke",
-          padding: "0.5rem 1rem",
+          border: images.length ? "1px solid #ccc" : "none",
+          borderBottom: "none",
         }}
-        startAdornment={
-          images.length ? (
-            <InputAdornment position="start">
-              <Badge badgeContent={images.length}>
-                <ImageIcon />
-              </Badge>
-            </InputAdornment>
-          ) : null
-        }
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            const form = e.currentTarget.form!;
-            if (form.checkValidity()) form.requestSubmit();
-          }
-        }}
-      />
+      >
+        <Stack direction="row" gap={1} sx={{ margin: 1.5, overflowX: "auto" }}>
+          {images.map((image, index) => (
+            <Box
+              key={index}
+              sx={{
+                flexShrink: 0,
+                display: "flex",
+                borderRadius: 3,
+                overflow: "hidden",
+              }}
+            >
+              <img
+                src={URL.createObjectURL(image)}
+                alt={`Image ${index + 1}`}
+                width="64"
+                height="64"
+                style={{ objectFit: "cover" }}
+              />
+            </Box>
+          ))}
+        </Stack>
+        <InputBase
+          multiline
+          placeholder={t("Send message...")}
+          required
+          value={message}
+          fullWidth
+          sx={{
+            minHeight: "48px",
+            borderRadius: "24px",
+            backgroundColor: "whitesmoke",
+            padding: "0.5rem 1rem",
+          }}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              const form = e.currentTarget.form!;
+              if (form.checkValidity()) form.requestSubmit();
+            }
+          }}
+        />
+      </Card>
       <Stack direction="row" alignItems="center" gap={1} sx={{ paddingY: 1 }}>
         <Chip
           label={t("Research")}
