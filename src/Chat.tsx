@@ -45,11 +45,14 @@ async function streamRequestAssistant(
     baseURL: options?.baseURL,
     dangerouslyAllowBrowser: true,
   });
-  const response = await client.responses.create({
-    model: "gpt-4.1-nano",
-    input: messages,
-    stream: true,
-  });
+  const response = await client.responses.create(
+    {
+      model: "gpt-4.1-nano",
+      input: messages,
+      stream: true,
+    },
+    { signal: options?.signal }
+  );
   for await (const chunk of response) {
     options?.onStreamEvent?.(chunk);
   }
@@ -177,10 +180,13 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
           })
         );
       },
-    }).catch((error) => {
-      window.alert(error.message);
-    });
-    setStopController(undefined);
+    })
+      .catch((error) => {
+        window.alert(error.message);
+      })
+      .finally(() => {
+        setStopController(undefined);
+      });
   }, []);
 
   const requestCreateResearch = useCallback(async (task: string) => {
@@ -197,6 +203,9 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
 
   const requestGenerateImage = useCallback(
     async (content: ResponseInputMessageContentList) => {
+      const abortController = new AbortController();
+      setStopController(abortController);
+
       const client = new OpenAI({
         apiKey: provider.apiKey,
         baseURL: provider.baseURL,
@@ -207,27 +216,33 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         let response: ImagesResponse;
 
         if (content.length === 1 && content[0].type === "input_text") {
-          response = await client.images.generate({
-            prompt: content[0].text,
-            model: "gpt-image-1",
-            quality: provider.imageQuality,
-            moderation: "low",
-          });
+          response = await client.images.generate(
+            {
+              prompt: content[0].text,
+              model: "gpt-image-1",
+              quality: provider.imageQuality,
+              moderation: "low",
+            },
+            { signal: abortController.signal }
+          );
         } else {
           const imageResponses = await Promise.all(
             content
               .filter((part) => part.type === "input_image")
               .map((part) => fetch(part.image_url!))
           );
-          response = await client.images.edit({
-            image: imageResponses,
-            prompt: content
-              .filter((part) => part.type === "input_text")
-              .map((part) => part.text)
-              .join("\n"),
-            model: "gpt-image-1",
-            quality: provider.imageQuality,
-          });
+          response = await client.images.edit(
+            {
+              image: imageResponses,
+              prompt: content
+                .filter((part) => part.type === "input_text")
+                .map((part) => part.text)
+                .join("\n"),
+              model: "gpt-image-1",
+              quality: provider.imageQuality,
+            },
+            { signal: abortController.signal }
+          );
         }
 
         const callId = crypto.randomUUID();
@@ -255,6 +270,8 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         ]);
       } catch (error) {
         window.alert((error as Error).message);
+      } finally {
+        setStopController(undefined);
       }
     },
     []
