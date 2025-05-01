@@ -2,6 +2,7 @@ import {
   Add as AddIcon,
   ArrowUpward as ArrowUpwardIcon,
   Camera as CameraIcon,
+  Close as CloseIcon,
   Image as ImageIcon,
   Search as SearchIcon,
   Stop as StopIcon,
@@ -129,6 +130,7 @@ function InputArea({
                 <Box
                   key={index}
                   sx={{
+                    position: "relative",
                     flexShrink: 0,
                     display: "flex",
                     borderRadius: 3,
@@ -138,10 +140,25 @@ function InputArea({
                   <img
                     src={URL.createObjectURL(image)}
                     alt={`Image ${index + 1}`}
-                    width="64"
-                    height="64"
+                    width="96"
+                    height="96"
                     style={{ objectFit: "cover" }}
                   />
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setImages((prev) => prev.filter((_, i) => i !== index));
+                    }}
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      width: "24px",
+                      height: "24px",
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
                 </Box>
               ))}
             </Stack>
