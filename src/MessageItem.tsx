@@ -56,6 +56,8 @@ export function UserMessage({
           whiteSpace: "pre-wrap",
         }}
         onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
+          if (part.type !== "input_text") return;
+
           const { nativeEvent } = e;
           if (nativeEvent.pointerType === "mouse") return;
           nativeEvent.preventDefault();
@@ -87,15 +89,8 @@ export function UserMessage({
         <MenuItem
           onClick={async () => {
             const part = message.content[selectedPart!];
-            if (part.type === "input_file") return;
-            else if (part.type === "input_image") {
-              const res = await fetch(part.image_url!);
-              const blob = await res.blob();
-              const content = new ClipboardItem({ "image/png": blob });
-              await navigator.clipboard.write([content]);
-            } else {
-              await navigator.clipboard.writeText(part.text);
-            }
+            if (part.type !== "input_text") return;
+            await navigator.clipboard.writeText(part.text);
             setContextMenu(null);
           }}
         >

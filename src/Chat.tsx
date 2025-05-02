@@ -229,7 +229,14 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
           const imageResponses = await Promise.all(
             content
               .filter((part) => part.type === "input_image")
-              .map((part) => fetch(part.image_url!))
+              .map(async (part, index) => {
+                const res = await fetch(part.image_url!);
+                const blob = await res.blob();
+                const file = new File([blob], `image_${index + 1}`, {
+                  type: blob.type,
+                });
+                return file;
+              })
           );
           response = await client.images.edit(
             {

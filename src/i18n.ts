@@ -6,6 +6,7 @@ const resources = {
     translation: {
       "API Key": "API Key",
       "Base URL": "Base URL",
+      Camera: "Camera",
       Copy: "Copy",
       Delete: "Delete",
       "Generate Image": "Generate Image",
@@ -37,6 +38,7 @@ const resources = {
     translation: {
       "API Key": "API 密钥",
       "Base URL": "API 地址",
+      Camera: "相机",
       Copy: "复制",
       Delete: "删除",
       "Generate Image": "生图",

@@ -243,7 +243,12 @@ function InputArea({
           size="small"
           onClick={() => setShowPanel((showPanel) => !showPanel)}
         >
-          <AddIcon />
+          <AddIcon
+            sx={{
+              transform: showPanel ? "rotate(45deg)" : "rotate(0deg)",
+              transition: "transform 0.2s",
+            }}
+          />
         </IconButton>
         {stopController ? (
           <IconButton
@@ -316,6 +321,7 @@ function InputArea({
                       URL.createObjectURL(file)
                     );
                     setImages((images) => [...images, ...imageURLs]);
+                    setShowPanel(false);
                     e.target.value = "";
                   }}
                 />
@@ -353,6 +359,7 @@ function InputArea({
                       URL.createObjectURL(file)
                     );
                     setImages((images) => [...images, ...imageURLs]);
+                    setShowPanel(false);
                     e.target.value = "";
                   }}
                 />
