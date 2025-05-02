@@ -35,14 +35,16 @@ function urlBase64ToUint8Array(base64String: string) {
   );
 }
 
-function readImages(images: File[]) {
-  const imagesBase64 = images.map((image) => {
+function readImages(images: string[]) {
+  const imagesBase64 = images.map(async (image) => {
+    const res = await fetch(image);
+    const blob = await res.blob();
     const reader = new FileReader();
-    reader.readAsDataURL(image);
     return new Promise<string>((resolve) => {
-      reader.onloadend = () => {
+      reader.onload = () => {
         resolve(reader.result as string);
       };
+      reader.readAsDataURL(blob);
     });
   });
 
@@ -67,7 +69,7 @@ function InputArea({
   const [enableGenerateImage, setEnableGenerateImage] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [message, setMessage] = useState("");
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<string[]>([]);
 
   const { t } = useTranslation();
 
@@ -135,14 +137,14 @@ function InputArea({
                     display: "flex",
                     borderRadius: 3,
                     overflow: "hidden",
+                    "&>img": { objectFit: "cover" },
                   }}
                 >
                   <img
-                    src={URL.createObjectURL(image)}
+                    src={image}
                     alt={`Image ${index + 1}`}
                     width="96"
                     height="96"
-                    style={{ objectFit: "cover" }}
                   />
                   <IconButton
                     size="small"
@@ -310,7 +312,10 @@ function InputArea({
                   onChange={(e) => {
                     if (!e.target.files) return;
                     const files = Array.from(e.target.files);
-                    setImages(() => [...images, ...files]);
+                    const imageURLs = files.map((file) =>
+                      URL.createObjectURL(file)
+                    );
+                    setImages((images) => [...images, ...imageURLs]);
                     e.target.value = "";
                   }}
                 />
@@ -344,7 +349,10 @@ function InputArea({
                   onChange={(e) => {
                     if (!e.target.files) return;
                     const files = Array.from(e.target.files);
-                    setImages(() => [...images, ...files]);
+                    const imageURLs = files.map((file) =>
+                      URL.createObjectURL(file)
+                    );
+                    setImages((images) => [...images, ...imageURLs]);
                     e.target.value = "";
                   }}
                 />
