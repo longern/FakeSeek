@@ -13,6 +13,7 @@ import { produce, WritableDraft } from "immer";
 import OpenAI from "openai";
 import { ImagesResponse } from "openai/resources.mjs";
 import {
+  ResponseFunctionToolCall,
   ResponseInputItem,
   ResponseInputMessageContentList,
   ResponseStreamEvent,
@@ -62,15 +63,30 @@ async function streamRequestAssistant(
 }
 
 function findMessage(messages: ChatMessage[], id: string) {
-  type HasId<T> = T extends { id: string } ? T : never;
+  type HasId<T> = T extends { id?: string } ? T : never;
   return messages.find(
     (m): m is HasId<ChatMessage> => (m as { id?: string })?.id === id
   );
 }
 
+export interface FunctionCallOutputCompletedEvent {
+  item: ResponseInputItem.FunctionCallOutput;
+  output_index: number;
+  type: "response.functioin_call_output.completed";
+}
+
+export interface FunctionCallOutputIncompleteEvent {
+  item: ResponseInputItem.FunctionCallOutput;
+  output_index: number;
+  type: "response.functioin_call_output.incomplete";
+}
+
 function messageDispatch(
   messages: WritableDraft<ChatMessage[]>,
-  event: ResponseStreamEvent
+  event:
+    | ResponseStreamEvent
+    | FunctionCallOutputCompletedEvent
+    | FunctionCallOutputIncompleteEvent
 ) {
   switch (event.type) {
     case "response.output_item.added":
@@ -80,7 +96,7 @@ function messageDispatch(
     case "response.output_item.done": {
       const message = findMessage(messages, event.item.id!);
       if (!message) return;
-      if (message.type !== "message" && message.type !== "reasoning") break;
+      if (message.type === "item_reference") break;
       message.status = event.item.status as
         | "completed"
         | "in_progress"
@@ -115,6 +131,24 @@ function messageDispatch(
           const part = message.summary[event.content_index];
           part.text += event.delta;
       }
+      break;
+    }
+
+    case "response.functioin_call_output.completed": {
+      const message = findMessage(messages, event.item.id!);
+      if (!message) return;
+      if (message.type !== "function_call_output") break;
+      message.status = "completed";
+      message.output = event.item.output;
+      break;
+    }
+
+    case "response.functioin_call_output.incomplete": {
+      const message = findMessage(messages, event.item.id!);
+      if (!message) return;
+      if (message.type !== "function_call_output") break;
+      message.status = "incomplete";
+      message.output = event.item.output;
       break;
     }
   }
@@ -213,13 +247,44 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         dangerouslyAllowBrowser: true,
       });
 
+      const callId = crypto.randomUUID();
+      const prompt = content
+        .filter((part) => part.type === "input_text")
+        .map((part) => part.text)
+        .join("\n");
+      const toolCallMessage: ResponseFunctionToolCall = {
+        id: crypto.randomUUID(),
+        type: "function_call",
+        call_id: callId,
+        name: "generate_image",
+        arguments: JSON.stringify({
+          prompt,
+          model: "gpt-image-1",
+          quality: provider.imageQuality,
+          moderation: "low",
+        }),
+        status: "completed",
+      };
+      const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
+        id: crypto.randomUUID(),
+        type: "function_call_output",
+        call_id: callId,
+        output: "",
+        status: "in_progress",
+      };
+      setMessages((messages) => [
+        ...messages,
+        toolCallMessage,
+        toolCallOutputMessage,
+      ]);
+
       try {
         let response: ImagesResponse;
 
         if (content.length === 1 && content[0].type === "input_text") {
           response = await client.images.generate(
             {
-              prompt: content[0].text,
+              prompt: prompt,
               model: "gpt-image-1",
               quality: provider.imageQuality,
               moderation: "low",
@@ -242,10 +307,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
           response = await client.images.edit(
             {
               image: imageResponses,
-              prompt: content
-                .filter((part) => part.type === "input_text")
-                .map((part) => part.text)
-                .join("\n"),
+              prompt: prompt,
               model: "gpt-image-1",
               quality: provider.imageQuality,
             },
@@ -253,31 +315,33 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
           );
         }
 
-        const callId = crypto.randomUUID();
-
-        setMessages((messages) => [
-          ...messages,
-          {
-            id: crypto.randomUUID(),
-            type: "function_call",
-            call_id: callId,
-            name: "generate_image",
-            arguments: JSON.stringify({
-              prompt: prompt,
-              model: "gpt-image-1",
-              quality: provider.imageQuality,
-              moderation: "low",
-            }),
-          },
-          {
-            id: crypto.randomUUID(),
-            type: "function_call_output",
-            call_id: callId,
-            output: JSON.stringify(response.data),
-          },
-        ]);
+        setMessages((messages) =>
+          produce(messages, (draft) => {
+            messageDispatch(draft, {
+              type: "response.functioin_call_output.completed",
+              output_index: 0,
+              item: {
+                ...toolCallOutputMessage,
+                status: "completed",
+                output: JSON.stringify(response.data),
+              },
+            });
+          })
+        );
       } catch (error) {
-        window.alert((error as Error).message);
+        setMessages((messages) =>
+          produce(messages, (draft) => {
+            messageDispatch(draft, {
+              type: "response.functioin_call_output.incomplete",
+              output_index: 0,
+              item: {
+                ...toolCallOutputMessage,
+                status: "incomplete",
+                output: (error as Error).message,
+              },
+            });
+          })
+        );
       } finally {
         setStopController(undefined);
       }

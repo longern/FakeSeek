@@ -7,6 +7,7 @@ import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
   Box,
   Button,
+  CircularProgress,
   Collapse,
   Dialog,
   IconButton,
@@ -306,6 +307,22 @@ export function FunctionCallOutput({
   toolCall?: ResponseFunctionToolCall;
 }) {
   if (!toolCall) return message.output;
+
+  if (message.status === "in_progress") {
+    return (
+      <Box sx={{ marginRight: "64px" }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
+
+  if (message.status === "incomplete") {
+    return (
+      <Box sx={{ marginRight: "64px" }}>
+        <Typography color="error">{message.output}</Typography>
+      </Box>
+    );
+  }
 
   switch (toolCall.name) {
     case "generate_image":
