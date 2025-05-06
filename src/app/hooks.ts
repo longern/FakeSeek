@@ -1,8 +1,9 @@
-import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
-import store, { AppDispatch, AppState } from "./store";
 import { set as setConversations } from "./conversations";
+import "./opfs-polyfill";
+import store, { AppDispatch, AppState } from "./store";
 
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
 export const useAppSelector = useSelector.withTypes<AppState>();
@@ -29,6 +30,19 @@ export function useInitialize() {
   }, [dispatch]);
 }
 
+const debounce = <T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+};
+
 store.subscribe(async () => {
   const { apiKey, baseURL, ...rest } = store.getState().provider;
 
@@ -40,22 +54,25 @@ store.subscribe(async () => {
 
   window.localStorage.setItem("settings", JSON.stringify(rest));
 
-  try {
-    const root = await navigator.storage.getDirectory();
-    const content = JSON.stringify(
-      store.getState().conversations.conversations
-    );
-    if (content === "{}") {
-      await root.removeEntry("conversations.json");
-      return;
+  const debounedSave = debounce(async (conversations: any) => {
+    try {
+      const root = await navigator.storage.getDirectory();
+      const content = JSON.stringify(conversations);
+      if (content === "{}") {
+        await root.removeEntry("conversations.json");
+        return;
+      }
+      const fileHandle = await root.getFileHandle("conversations.json", {
+        create: true,
+      });
+      const writable = await fileHandle.createWritable();
+      await writable.write(content).finally(() => {
+        writable.close();
+      });
+    } catch (err) {
+      console.error(err instanceof Error ? err : new Error("Saving failed"));
     }
-    const fileHandle = await root.getFileHandle("conversations.json", {
-      create: true,
-    });
-    const writable = await fileHandle.createWritable();
-    await writable.write(content);
-    await writable.close();
-  } catch (err) {
-    console.error(err instanceof Error ? err : new Error("Saving failed"));
-  }
+  }, 50);
+
+  debounedSave(store.getState().conversations.conversations);
 });
