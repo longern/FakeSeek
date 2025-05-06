@@ -5,21 +5,19 @@ import { Stream } from "openai/streaming.mjs";
 
 const app = new Hono<{
   Bindings: {
-    OPENAI_API_KEY?: string;
-    OPENAI_BASE_URL?: string;
-    OPENAI_MODEL?: string;
+    OPENROUTER_API_KEY: string;
   };
 }>();
 
 app.post("/chat/completions", async (c) => {
-  const baseURL = c.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  const baseURL = "https://openrouter.ai/api/v1";
   const body = await c.req.json();
-  if (!body.model) body.model = c.env.OPENAI_MODEL ?? "deepseek-r1";
+  body.model = "deepseek/deepseek-chat-v3-0324:free";
   return fetch(baseURL + "/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${c.env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${c.env.OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify(body),
   });
@@ -163,16 +161,16 @@ async function transformCompletion(
 }
 
 app.post("/responses", async (c) => {
-  const baseURL = c.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  const baseURL = "https://openrouter.ai/api/v1";
   const body = await c.req.json();
 
   const client = new OpenAI({
-    apiKey: c.env.OPENAI_API_KEY,
+    apiKey: c.env.OPENROUTER_API_KEY,
     baseURL,
   });
 
   const input: any = body.input;
-  const model: string = body.model || (c.env.OPENAI_MODEL ?? "deepseek-r1");
+  const model: string = "deepseek/deepseek-chat-v3-0324:free";
   const messages = Array.isArray(input)
     ? input
     : [

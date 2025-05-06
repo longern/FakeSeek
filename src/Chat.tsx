@@ -42,7 +42,8 @@ async function streamRequestAssistant(
 ) {
   const client = new OpenAI({
     apiKey: options?.apiKey,
-    baseURL: options?.baseURL,
+    baseURL:
+      options?.baseURL || new URL("/api/v1", window.location.href).toString(),
     dangerouslyAllowBrowser: true,
   });
   const response = await client.responses.create(
