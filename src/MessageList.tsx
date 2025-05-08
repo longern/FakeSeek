@@ -20,7 +20,7 @@ function MessageList({
 }: {
   messages: ChatMessage[];
   onMessageChange: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
-  onRetry: (message: ChatMessage) => void;
+  onRetry: (message: ChatMessage, options?: { model?: string }) => void;
 }) {
   return (
     <Stack
@@ -45,7 +45,9 @@ function MessageList({
             <AssistantMessage
               key={message?.id}
               message={message}
-              onRetry={() => onRetry(message)}
+              onRetry={(options?: { model?: string }) =>
+                onRetry(message, options)
+              }
             />
           ) : null
         ) : message.type === "reasoning" ? (

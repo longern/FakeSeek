@@ -38,6 +38,7 @@ async function streamRequestAssistant(
   options?: {
     apiKey?: string;
     baseURL?: string;
+    model?: string;
     signal?: AbortSignal;
     onStreamEvent?: (event: ResponseStreamEvent) => void;
   }
@@ -50,7 +51,7 @@ async function streamRequestAssistant(
   });
   const response = await client.responses.create(
     {
-      model: "gpt-4.1-nano",
+      model: options?.model ?? "gpt-4.1-nano",
       input: messages,
       stream: true,
     },
@@ -203,12 +204,13 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   };
 
   const requestAssistant = useCallback(
-    (messages: ChatMessage[]) => {
+    (messages: ChatMessage[], options?: { model?: string }) => {
       const abortController = new AbortController();
       setStopController(abortController);
       streamRequestAssistant(messages, {
         apiKey: provider.apiKey,
         baseURL: provider.baseURL,
+        model: options?.model,
         signal: abortController.signal,
         onStreamEvent(event) {
           setMessages((messages) =>
@@ -471,11 +473,11 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 <MessageList
                   messages={messages}
                   onMessageChange={setMessages}
-                  onRetry={(message) => {
+                  onRetry={(message, options?: { model?: string }) => {
                     const index = messages.indexOf(message);
                     const priorMessages = messages.slice(0, index);
                     setMessages(priorMessages);
-                    requestAssistant(priorMessages);
+                    requestAssistant(priorMessages, options);
                   }}
                 />
               </Container>

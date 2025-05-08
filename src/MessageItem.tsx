@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Collapse,
   Dialog,
+  Divider,
   IconButton,
   InputBase,
   ListItemIcon,
@@ -112,7 +113,7 @@ export function AssistantMessage({
   onRetry,
 }: {
   message: ResponseOutputMessage;
-  onRetry: () => void;
+  onRetry: (options?: { model?: string }) => void;
 }) {
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
@@ -185,6 +186,15 @@ export function AssistantMessage({
         onClose={() => setRetryMenuAnchor(null)}
         slotProps={{ list: { sx: { minWidth: "160px" } } }}
       >
+        <MenuItem
+          onClick={() => {
+            onRetry({ model: "o4-mini" });
+            setRetryMenuAnchor(null);
+          }}
+        >
+          o4-mini
+        </MenuItem>
+        <Divider component="li" />
         <MenuItem
           onClick={() => {
             onRetry();
