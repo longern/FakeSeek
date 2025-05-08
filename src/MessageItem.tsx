@@ -5,6 +5,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReplayIcon from "@mui/icons-material/Replay";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -15,6 +16,7 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
+  Stack,
   Toolbar,
   Typography,
 } from "@mui/material";
@@ -24,7 +26,7 @@ import {
   ResponseInputItem,
   ResponseOutputMessage,
 } from "openai/resources/responses/responses.mjs";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Markdown from "./Markdown";
@@ -117,13 +119,28 @@ export function AssistantMessage({
     mouseY: number;
   } | null>(null);
   const [showSelection, setShowSelection] = useState(false);
+  const [retryMenuAnchor, setRetryMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
 
   const { t } = useTranslation();
+
+  const handleCopy = useCallback(() => {
+    const content = message.content
+      .map((part) => (part.type === "refusal" ? part.refusal : part.text))
+      .join("\n");
+    navigator.clipboard.writeText(content);
+    setContextMenu(null);
+  }, [message.content]);
 
   return (
     <>
       <Box
-        sx={{ maxWidth: "100%", overflowWrap: "break-word" }}
+        sx={{
+          maxWidth: "100%",
+          overflowWrap: "break-word",
+          marginRight: 2,
+        }}
         onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
           const { nativeEvent } = e;
           if (nativeEvent.pointerType === "mouse") return;
@@ -137,11 +154,46 @@ export function AssistantMessage({
             {part.type === "output_text" ? (
               <Markdown>{part.text}</Markdown>
             ) : part.type === "refusal" ? (
-              part.refusal
+              <Alert severity="error">{part.refusal}</Alert>
             ) : null}
           </Box>
         ))}
+
+        <Stack direction="row" gap={1} sx={{ marginTop: 1 }}>
+          <IconButton
+            sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+            onClick={handleCopy}
+          >
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+          <Button
+            size="small"
+            sx={{ minWidth: 0, color: "text.secondary" }}
+            onClick={(e) => {
+              setRetryMenuAnchor(e.currentTarget);
+            }}
+          >
+            <ReplayIcon fontSize="small" />
+            <ExpandMoreIcon fontSize="small" />
+          </Button>
+        </Stack>
       </Box>
+
+      <Menu
+        anchorEl={retryMenuAnchor}
+        open={Boolean(retryMenuAnchor)}
+        onClose={() => setRetryMenuAnchor(null)}
+        slotProps={{ list: { sx: { minWidth: "160px" } } }}
+      >
+        <MenuItem
+          onClick={() => {
+            onRetry();
+            setRetryMenuAnchor(null);
+          }}
+        >
+          {t("Retry")}
+        </MenuItem>
+      </Menu>
 
       <Menu
         open={Boolean(contextMenu)}
@@ -154,17 +206,7 @@ export function AssistantMessage({
         }
         slotProps={{ list: { sx: { minWidth: "160px" } } }}
       >
-        <MenuItem
-          onClick={() => {
-            const content = message.content
-              .map((part) =>
-                part.type === "refusal" ? part.refusal : part.text
-              )
-              .join("\n");
-            navigator.clipboard.writeText(content);
-            setContextMenu(null);
-          }}
-        >
+        <MenuItem onClick={handleCopy}>
           <ListItemIcon>
             <ContentCopyIcon />
           </ListItemIcon>
@@ -319,7 +361,7 @@ export function FunctionCallOutput({
   if (message.status === "incomplete") {
     return (
       <Box sx={{ marginRight: "64px" }}>
-        <Typography color="error">{message.output}</Typography>
+        <Alert severity="error">{message.output}</Alert>
       </Box>
     );
   }

@@ -173,6 +173,7 @@ function InputArea({
           required
           value={message}
           fullWidth
+          maxRows={12}
           sx={{
             minHeight: "48px",
             borderRadius: "24px",

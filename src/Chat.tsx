@@ -16,6 +16,7 @@ import {
   ResponseFunctionToolCall,
   ResponseInputItem,
   ResponseInputMessageContentList,
+  ResponseOutputItem,
   ResponseStreamEvent,
 } from "openai/resources/responses/responses.mjs";
 import { useCallback, useEffect, useState } from "react";
@@ -201,28 +202,39 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
     },
   };
 
-  const requestAssistant = useCallback((messages: ChatMessage[]) => {
-    const abortController = new AbortController();
-    setStopController(abortController);
-    streamRequestAssistant(messages, {
-      apiKey: provider.apiKey,
-      baseURL: provider.baseURL,
-      signal: abortController.signal,
-      onStreamEvent(event) {
-        setMessages((messages) =>
-          produce(messages, (draft) => {
-            messageDispatch(draft, event);
-          })
-        );
-      },
-    })
-      .catch((error) => {
-        window.alert(error.message);
+  const requestAssistant = useCallback(
+    (messages: ChatMessage[]) => {
+      const abortController = new AbortController();
+      setStopController(abortController);
+      streamRequestAssistant(messages, {
+        apiKey: provider.apiKey,
+        baseURL: provider.baseURL,
+        signal: abortController.signal,
+        onStreamEvent(event) {
+          setMessages((messages) =>
+            produce(messages, (draft) => {
+              messageDispatch(draft, event);
+            })
+          );
+        },
       })
-      .finally(() => {
-        setStopController(undefined);
-      });
-  }, []);
+        .catch((error) => {
+          setMessages((messages) => [
+            ...messages,
+            {
+              type: "message",
+              role: "assistant",
+              content: [{ type: "refusal", refusal: (error as Error).message }],
+              status: "incomplete",
+            } as ResponseOutputItem,
+          ]);
+        })
+        .finally(() => {
+          setStopController(undefined);
+        });
+    },
+    [provider.apiKey, provider.baseURL]
+  );
 
   const requestCreateResearch = useCallback(async (task: string) => {
     const response = await fetch("/api/tasks", {

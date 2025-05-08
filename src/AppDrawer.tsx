@@ -20,6 +20,10 @@ import { useAppDispatch, useAppSelector } from "./app/hooks";
 import ConversationList from "./ConversationList";
 import SettingsDialog from "./SettingsDialog";
 
+const addCommentIcon = (
+  <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
+);
+
 function AppDrawer({
   open,
   onClose,
@@ -67,9 +71,7 @@ function AppDrawer({
                 "&:hover": { backgroundColor: "#c6dcf8" },
               }}
               onClick={() => onConversationChange(null)}
-              startIcon={
-                <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
-              }
+              startIcon={addCommentIcon}
             >
               {t("New Chat")}
             </Button>
