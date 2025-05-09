@@ -30,6 +30,8 @@ import {
 } from "openai/resources/responses/responses.mjs";
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PhotoProvider, PhotoView } from "react-photo-view";
+import "react-photo-view/dist/react-photo-view.css";
 
 import Markdown from "./Markdown";
 
@@ -75,7 +77,11 @@ export function UserMessage({
           {part.type === "input_text" ? (
             part.text
           ) : part.type === "input_image" ? (
-            <img src={part.image_url!} alt="Input Image" />
+            <PhotoProvider bannerVisible={false}>
+              <PhotoView src={part.image_url!}>
+                <img src={part.image_url!} alt="Input Image" />
+              </PhotoView>
+            </PhotoProvider>
           ) : null}
         </Box>
       </Box>
@@ -350,11 +356,13 @@ function GenerateImageContent({
   }, [message]);
 
   return (
-    <>
+    <PhotoProvider bannerVisible={false}>
       {imageURLs.map((image, index) => (
-        <img key={index} src={image} alt={`Generated Image ${index + 1}`} />
+        <PhotoView key={index} src={image}>
+          <img src={image} alt={`Generated Image ${index + 1}`} />
+        </PhotoView>
       ))}
-    </>
+    </PhotoProvider>
   );
 }
 
