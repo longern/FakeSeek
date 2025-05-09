@@ -49,11 +49,16 @@ async function streamRequestAssistant(
       options?.baseURL || new URL("/api/v1", window.location.href).toString(),
     dangerouslyAllowBrowser: true,
   });
+  const model =
+    options?.model ?? messages.some((m) => m.type === "reasoning")
+      ? "o4-mini"
+      : "gpt-4.1-nano";
   const response = await client.responses.create(
     {
-      model: options?.model ?? "gpt-4.1-nano",
+      model: model,
       input: messages,
       stream: true,
+      reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
     },
     { signal: options?.signal }
   );
@@ -97,24 +102,24 @@ function messageDispatch(
 
     case "response.output_item.done": {
       const message = findMessage(messages, event.item.id!);
-      if (!message) return;
-      if (message.type === "item_reference") break;
-      message.status = event.item.status as
+      if (!message || message.type === "item_reference") break;
+      const status = event.item.status as
         | "completed"
         | "in_progress"
-        | "incomplete";
+        | "incomplete"
+        | undefined;
+      const isReasoningCompleted =
+        message.type === "reasoning" && status === undefined;
+      message.status = isReasoningCompleted ? "completed" : status;
       break;
     }
 
     case "response.content_part.added": {
       const message = findMessage(messages, event.item_id);
-      if (!message) return;
+      if (!message) break;
       switch (message.type) {
         case "message":
           message.content.push(event.part);
-          break;
-        case "reasoning":
-          message.summary.push(event.part as any);
           break;
       }
       break;
@@ -122,24 +127,35 @@ function messageDispatch(
 
     case "response.output_text.delta": {
       const message = findMessage(messages, event.item_id);
-      if (!message) return;
+      if (!message) break;
       switch (message.type) {
         case "message":
           const content = message.content[event.content_index];
           if (content.type !== "output_text") break;
           content.text += event.delta;
           break;
-        case "reasoning":
-          const part = message.summary[event.content_index];
-          part.text += event.delta;
       }
+      break;
+    }
+
+    case "response.reasoning_summary_part.added": {
+      const message = findMessage(messages, event.item_id);
+      if (!message || message.type !== "reasoning") break;
+      message.summary.push(event.part);
+      break;
+    }
+
+    case "response.reasoning_summary_text.delta": {
+      const message = findMessage(messages, event.item_id);
+      if (!message || message.type !== "reasoning") break;
+      const part = message.summary[event.summary_index];
+      part.text += event.delta;
       break;
     }
 
     case "response.functioin_call_output.completed": {
       const message = findMessage(messages, event.item.id!);
-      if (!message) return;
-      if (message.type !== "function_call_output") break;
+      if (!message || message.type !== "function_call_output") break;
       message.status = "completed";
       message.output = event.item.output;
       break;
@@ -147,8 +163,7 @@ function messageDispatch(
 
     case "response.functioin_call_output.incomplete": {
       const message = findMessage(messages, event.item.id!);
-      if (!message) return;
-      if (message.type !== "function_call_output") break;
+      if (!message || message.type !== "function_call_output") break;
       message.status = "incomplete";
       message.output = event.item.output;
       break;
@@ -475,7 +490,12 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                   onMessageChange={setMessages}
                   onRetry={(message, options?: { model?: string }) => {
                     const index = messages.indexOf(message);
-                    const priorMessages = messages.slice(0, index);
+                    const hasReasoning =
+                      messages[index - 1]?.type === "reasoning";
+                    const priorMessages = messages.slice(
+                      0,
+                      hasReasoning ? index - 1 : index
+                    );
                     setMessages(priorMessages);
                     requestAssistant(priorMessages, options);
                   }}

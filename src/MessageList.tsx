@@ -54,7 +54,7 @@ function MessageList({
           <Box key={message.id} sx={{ marginBottom: -1 }}>
             <ReasoningContent
               key={message.id}
-              content={message.summary.map((s) => s.text).join("\n")}
+              content={message.summary}
               reasoning={message.status !== "completed"}
             />
           </Box>

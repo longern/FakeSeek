@@ -48,9 +48,9 @@ async function transformCompletion(
       "reasoning_content" in delta &&
       typeof delta.reasoning_content === "string"
     ) {
-      if (lastMessageId !== `rsn_${id}`) {
+      if (lastMessageId !== `rs_${id}`) {
         outputIndex += 1;
-        lastMessageId = `rsn_${id}`;
+        lastMessageId = `rs_${id}`;
 
         writer.write(
           encoder.encode(
@@ -59,9 +59,8 @@ async function transformCompletion(
               output_index: outputIndex,
               item: {
                 type: "reasoning",
-                id: `rsn_${id}`,
+                id: `rs_${id}`,
                 status: "in_progress",
-                role: "assistant",
                 summary: [],
               },
             })}\n\n`
@@ -70,29 +69,30 @@ async function transformCompletion(
 
         writer.write(
           encoder.encode(
-            `event: response.content_part.added\ndata: ${JSON.stringify({
-              type: "response.content_part.added",
-              item_id: `rsn_${id}`,
-              output_index: outputIndex,
-              content_index: 0,
-              part: {
-                type: "summary_text",
-                text: "",
-              },
-            })}\n\n`
+            `event: response.reasoning_summary_part.added\ndata: ${JSON.stringify(
+              {
+                type: "response.reasoning_summary_part.added",
+                item_id: `rs_${id}`,
+                output_index: outputIndex,
+                summary_index: 0,
+                part: { type: "summary_text", text: "" },
+              }
+            )}\n\n`
           )
         );
       }
 
       writer.write(
         encoder.encode(
-          `event: response.output_text.delta\ndata: ${JSON.stringify({
-            type: "response.output_text.delta",
-            item_id: `rsn_${id}`,
-            output_index: outputIndex,
-            content_index: 0,
-            delta: delta.reasoning_content,
-          })}\n\n`
+          `event: response.reasoning_summary_text.delta\ndata: ${JSON.stringify(
+            {
+              type: "response.reasoning_summary_text.delta",
+              item_id: `rs_${id}`,
+              output_index: outputIndex,
+              summary_index: 0,
+              delta: delta.reasoning_content,
+            }
+          )}\n\n`
         )
       );
     } else {

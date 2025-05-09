@@ -26,6 +26,7 @@ import {
   ResponseFunctionToolCall,
   ResponseInputItem,
   ResponseOutputMessage,
+  ResponseReasoningItem,
 } from "openai/resources/responses/responses.mjs";
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -293,7 +294,7 @@ export function ReasoningContent({
   content,
   reasoning,
 }: {
-  content: string;
+  content: ResponseReasoningItem.Summary[];
   reasoning: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -310,14 +311,20 @@ export function ReasoningContent({
         {reasoning ? t("Thinking...") : t("Thinking finished")}
         {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       </Button>
-      <Collapse in={expanded}>
-        <Typography
-          variant="subtitle2"
+      <Collapse in={expanded} unmountOnExit>
+        <Box
           color="text.secondary"
-          sx={{ marginTop: 1, paddingLeft: 1, borderLeft: "4px solid #ccc" }}
+          sx={{
+            marginY: -1,
+            paddingLeft: 1,
+            borderLeft: "2px solid #ddd",
+            fontSize: "0.875rem",
+          }}
         >
-          {content}
-        </Typography>
+          {content.map((part, index) => (
+            <Markdown key={index}>{part.text}</Markdown>
+          ))}
+        </Box>
       </Collapse>
     </>
   );
