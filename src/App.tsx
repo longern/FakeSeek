@@ -8,7 +8,6 @@ import {
 
 import SearchResults from "./SearchResults";
 import Chat from "./Chat";
-import { useInitialize } from "./app/hooks";
 
 const theme = createTheme({
   palette: {
@@ -30,8 +29,6 @@ const theme = createTheme({
 
 function App() {
   const [query, setQuery] = useState("");
-
-  useInitialize();
 
   return (
     <ThemeProvider theme={theme}>

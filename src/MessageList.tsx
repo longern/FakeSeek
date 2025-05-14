@@ -2,26 +2,27 @@ import { Box, Button, Stack } from "@mui/material";
 import {
   ResponseFunctionToolCall,
   ResponseInputItem,
+  ResponseOutputMessage,
 } from "openai/resources/responses/responses.mjs";
-import React from "react";
 
-import { ChatMessage } from "./app/conversations";
+import { add as addMessage, ChatMessage } from "./app/messages";
 import {
   AssistantMessage,
   FunctionCallOutput,
   ReasoningContent,
   UserMessage,
 } from "./MessageItem";
+import { useAppDispatch } from "./app/hooks";
 
 function MessageList({
   messages,
-  onMessageChange,
   onRetry,
 }: {
   messages: ChatMessage[];
-  onMessageChange: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   onRetry: (message: ChatMessage, options?: { model?: string }) => void;
 }) {
+  const dispatch = useAppDispatch();
+
   return (
     <Stack
       gap={1}
@@ -79,7 +80,7 @@ function MessageList({
                 if (
                   ["terminated", "errored", "complete"].includes(data.status)
                 ) {
-                  const result = data.output
+                  const result: ResponseOutputMessage[] = data.output
                     ? [
                         {
                           type: "message",
@@ -101,15 +102,22 @@ function MessageList({
                         {
                           type: "message",
                           role: "assistant",
-                          content: data.error ?? "Error",
+                          content: [
+                            { type: "refusal", refusal: data.error ?? "Error" },
+                          ],
                         },
                       ];
-                  onMessageChange((messages) => {
-                    const newMessages = [...messages];
-                    const index = newMessages.findIndex((m) => m === message);
-                    newMessages.splice(index, 1, ...result);
-                    return newMessages;
-                  });
+                  for (const item of result) {
+                    dispatch(
+                      addMessage({
+                        id: message.id,
+                        type: "message",
+                        role: "assistant",
+                        content: item.content,
+                        status: "completed",
+                      } as ResponseOutputMessage)
+                    );
+                  }
                 }
               }}
             >

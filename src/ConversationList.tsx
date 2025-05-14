@@ -31,7 +31,7 @@ function groupedConversations(conversations: Conversation[]) {
   for (const conversation of conversations) {
     while (
       currentGroup < breakpoints.length &&
-      conversation.create_time < breakpoints[currentGroup]
+      conversation.created_at < breakpoints[currentGroup]
     ) {
       groups.push(group);
       group = [];

@@ -1,45 +1,35 @@
-import { createSlice } from "@reduxjs/toolkit";
-import {
-  ResponseComputerToolCall,
-  ResponseFileSearchToolCall,
-  ResponseFunctionToolCall,
-  ResponseFunctionWebSearch,
-  ResponseInputItem,
-  ResponseOutputMessage,
-  ResponseReasoningItem,
-} from "openai/resources/responses/responses.mjs";
-
-// Exclude EasyInputMessage
-export type ChatMessage =
-  | ResponseInputItem.Message
-  | ResponseOutputMessage
-  | ResponseFileSearchToolCall
-  | ResponseComputerToolCall
-  | ResponseInputItem.ComputerCallOutput
-  | ResponseFunctionWebSearch
-  | ResponseFunctionToolCall
-  | ResponseInputItem.FunctionCallOutput
-  | ResponseReasoningItem
-  | ResponseInputItem.ItemReference;
+import { createAction, createSlice } from "@reduxjs/toolkit";
 
 export interface Conversation {
   id: string;
   title: string;
-  create_time: number;
-  messages: ChatMessage[];
+  created_at: number;
 }
+
+export const add = createAction(
+  "conversations/add",
+  (action: { title: string }) => {
+    const id: string = crypto.randomUUID();
+    const created_at = Date.now();
+    return {
+      payload: {
+        id,
+        title: action.title,
+        created_at,
+      },
+    };
+  }
+);
 
 export const conversationsSlice = createSlice({
   name: "conversations",
   initialState: {
     conversations: {} as Record<string, Conversation>,
+    current: null as string | null,
   },
   reducers: {
     set: (state, { payload }: { payload: Record<string, Conversation> }) => {
       state.conversations = payload;
-    },
-    add: (state, { payload }: { payload: Conversation }) => {
-      state.conversations = { [payload.id]: payload, ...state.conversations };
     },
     remove: (state, { payload }: { payload: string }) => {
       delete state.conversations[payload];
@@ -54,9 +44,21 @@ export const conversationsSlice = createSlice({
         ...payload.patch,
       };
     },
+    change: (state, { payload }: { payload: string | null | undefined }) => {
+      if (state.current === payload) return;
+      state.current = payload ?? null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(add, (state, { payload }) => {
+      state.conversations = {
+        [payload.id]: payload,
+        ...state.conversations,
+      };
+    });
   },
 });
 
-export const { add, remove, set, update } = conversationsSlice.actions;
+export const { remove, set, update, change } = conversationsSlice.actions;
 
 export default conversationsSlice.reducer;

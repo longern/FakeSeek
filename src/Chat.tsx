@@ -9,29 +9,35 @@ import {
   Toolbar,
   useMediaQuery,
 } from "@mui/material";
-import { produce, WritableDraft } from "immer";
 import OpenAI from "openai";
 import { ImagesResponse } from "openai/resources.mjs";
 import {
   ResponseFunctionToolCall,
+  ResponseFunctionWebSearch,
   ResponseInputItem,
   ResponseInputMessageContentList,
   ResponseOutputItem,
   ResponseStreamEvent,
 } from "openai/resources/responses/responses.mjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
-import {
-  add as addConversation,
-  ChatMessage,
-  update as updateConversation,
-} from "./app/conversations";
+import { change as changeConversation } from "./app/conversations";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
+import {
+  addContentPart,
+  add as addMessage,
+  addReasoningSummaryPart,
+  ChatMessage,
+  contentPartDelta,
+  reasoningSummaryTextDelta,
+  remove as removeMessage,
+  update as updateMessage,
+} from "./app/messages";
+import AppDrawer from "./AppDrawer";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
-import AppDrawer from "./AppDrawer";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -53,10 +59,22 @@ async function streamRequestAssistant(
     options?.model ?? messages.some((m) => m.type === "reasoning")
       ? "o4-mini"
       : "gpt-4.1-nano";
+  const normMessages = messages.map((message) => {
+    if (
+      message.type === "message" &&
+      (message.role === "user" ||
+        message.role === "developer" ||
+        message.role === "system")
+    ) {
+      const { id, ...rest } = message;
+      return rest as ResponseInputItem.Message;
+    }
+    return message;
+  });
   const response = await client.responses.create(
     {
       model: model,
-      input: messages,
+      input: normMessages,
       stream: true,
       reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
     },
@@ -67,13 +85,6 @@ async function streamRequestAssistant(
   }
 
   return response;
-}
-
-function findMessage(messages: ChatMessage[], id: string) {
-  type HasId<T> = T extends { id?: string } ? T : never;
-  return messages.find(
-    (m): m is HasId<ChatMessage> => (m as { id?: string })?.id === id
-  );
 }
 
 export interface FunctionCallOutputCompletedEvent {
@@ -88,94 +99,86 @@ export interface FunctionCallOutputIncompleteEvent {
   type: "response.functioin_call_output.incomplete";
 }
 
-function messageDispatch(
-  messages: WritableDraft<ChatMessage[]>,
-  event:
-    | ResponseStreamEvent
-    | FunctionCallOutputCompletedEvent
-    | FunctionCallOutputIncompleteEvent
-) {
-  switch (event.type) {
-    case "response.output_item.added":
-      messages.push(event.item);
-      break;
+function useMessageDispatch() {
+  const dispatch = useAppDispatch();
 
-    case "response.output_item.done": {
-      const message = findMessage(messages, event.item.id!);
-      if (!message || message.type === "item_reference") break;
-      const status = event.item.status as
-        | "completed"
-        | "in_progress"
-        | "incomplete"
-        | undefined;
-      const isReasoningCompleted =
-        message.type === "reasoning" && status === undefined;
-      message.status = isReasoningCompleted ? "completed" : status;
-      break;
-    }
-
-    case "response.content_part.added": {
-      const message = findMessage(messages, event.item_id);
-      if (!message) break;
-      switch (message.type) {
-        case "message":
-          message.content.push(event.part);
+  const messageDispatch = useCallback(
+    (
+      event:
+        | ResponseStreamEvent
+        | FunctionCallOutputCompletedEvent
+        | FunctionCallOutputIncompleteEvent
+    ) => {
+      switch (event.type) {
+        case "response.output_item.added":
+          dispatch(addMessage(event.item));
           break;
-      }
-      break;
-    }
 
-    case "response.output_text.delta": {
-      const message = findMessage(messages, event.item_id);
-      if (!message) break;
-      switch (message.type) {
-        case "message":
-          const content = message.content[event.content_index];
-          if (content.type !== "output_text") break;
-          content.text += event.delta;
+        case "response.output_item.done": {
+          const eventStatus = event.item.status as
+            | "completed"
+            | "in_progress"
+            | "incomplete"
+            | undefined;
+          const isReasoningCompleted =
+            event.item.type === "reasoning" && eventStatus === undefined;
+          const status = isReasoningCompleted ? "completed" : eventStatus;
+          dispatch(updateMessage({ id: event.item.id!, patch: { status } }));
           break;
+        }
+
+        case "response.content_part.added": {
+          dispatch(addContentPart(event));
+          break;
+        }
+
+        case "response.output_text.delta": {
+          dispatch(contentPartDelta(event));
+          break;
+        }
+
+        case "response.reasoning_summary_part.added": {
+          dispatch(addReasoningSummaryPart(event));
+          break;
+        }
+
+        case "response.reasoning_summary_text.delta": {
+          dispatch(reasoningSummaryTextDelta(event));
+          break;
+        }
+
+        case "response.functioin_call_output.completed": {
+          dispatch(
+            updateMessage({
+              id: event.item.id!,
+              patch: { status: "completed", output: event.item.output },
+            })
+          );
+          break;
+        }
+
+        case "response.functioin_call_output.incomplete": {
+          dispatch(
+            updateMessage({
+              id: event.item.id!,
+              patch: { status: "incomplete", output: event.item.output },
+            })
+          );
+          break;
+        }
       }
-      break;
-    }
+    },
+    [dispatch]
+  );
 
-    case "response.reasoning_summary_part.added": {
-      const message = findMessage(messages, event.item_id);
-      if (!message || message.type !== "reasoning") break;
-      message.summary.push(event.part);
-      break;
-    }
-
-    case "response.reasoning_summary_text.delta": {
-      const message = findMessage(messages, event.item_id);
-      if (!message || message.type !== "reasoning") break;
-      const part = message.summary[event.summary_index];
-      part.text += event.delta;
-      break;
-    }
-
-    case "response.functioin_call_output.completed": {
-      const message = findMessage(messages, event.item.id!);
-      if (!message || message.type !== "function_call_output") break;
-      message.status = "completed";
-      message.output = event.item.output;
-      break;
-    }
-
-    case "response.functioin_call_output.incomplete": {
-      const message = findMessage(messages, event.item.id!);
-      if (!message || message.type !== "function_call_output") break;
-      message.status = "incomplete";
-      message.output = event.item.output;
-      break;
-    }
-  }
+  return messageDispatch;
 }
 
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
-  const [selectedConversation, setSelectedConversation] = useState<
-    string | null
-  >(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const selectedConversation = useAppSelector(
+    (state) => state.conversations.current
+  );
+  const messages = useAppSelector((state) => state.messages.messages);
   const [stopController, setStopController] = useState<
     AbortController | undefined
   >(undefined);
@@ -185,6 +188,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
   const provider = useAppSelector((state) => state.provider);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const messageDispatch = useMessageDispatch();
 
   const methods = {
     sendMessage: (message: ResponseInputMessageContentList) => {
@@ -193,27 +197,25 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         role: "user",
         content: message,
       } as ResponseInputItem.Message;
-      setMessages((messages) => [...messages, newMessage]);
-      requestAssistant([...messages, newMessage]);
+      dispatch(addMessage(newMessage));
+      requestAssistant([...Object.values(messages), newMessage as ChatMessage]);
     },
     createResearch: (task: string) => {
-      setMessages((messages) => [
-        ...messages,
-        {
-          type: "message",
-          role: "user",
-          content: [{ type: "input_text", text: task }],
-        },
-      ]);
+      const newMessage = {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: task }],
+      } as ResponseInputItem.Message;
+      dispatch(addMessage(newMessage));
       requestCreateResearch(task);
     },
-    generateImage: (prompt: ResponseInputMessageContentList) => {
+    generateImage: async (prompt: ResponseInputMessageContentList) => {
       const newMessage: ResponseInputItem.Message = {
         type: "message",
         role: "user",
         content: prompt,
       };
-      setMessages((messages) => [...messages, newMessage]);
+      await dispatch(addMessage(newMessage));
       requestGenerateImage(newMessage.content);
     },
   };
@@ -228,42 +230,44 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         model: options?.model,
         signal: abortController.signal,
         onStreamEvent(event) {
-          setMessages((messages) =>
-            produce(messages, (draft) => {
-              messageDispatch(draft, event);
-            })
-          );
+          messageDispatch(event);
         },
       })
         .catch((error) => {
-          setMessages((messages) => [
-            ...messages,
-            {
+          dispatch(
+            addMessage({
               type: "message",
               role: "assistant",
               content: [{ type: "refusal", refusal: (error as Error).message }],
               status: "incomplete",
-            } as ResponseOutputItem,
-          ]);
+            } as ResponseOutputItem)
+          );
         })
         .finally(() => {
           setStopController(undefined);
         });
     },
-    [provider.apiKey, provider.baseURL]
+    [provider.apiKey, provider.baseURL, dispatch, messageDispatch]
   );
 
-  const requestCreateResearch = useCallback(async (task: string) => {
-    const response = await fetch("/api/tasks", {
-      method: "PUT",
-      body: JSON.stringify({ instructions: task }),
-    });
-    const { id } = await response.json();
-    setMessages((messages) => [
-      ...messages,
-      { type: "web_search_call", id, status: "in_progress" },
-    ]);
-  }, []);
+  const requestCreateResearch = useCallback(
+    async (task: string) => {
+      const response = await fetch("/api/tasks", {
+        method: "PUT",
+        body: JSON.stringify({ instructions: task }),
+      });
+      const { id } = await response.json();
+
+      dispatch(
+        addMessage({
+          type: "web_search_call",
+          id,
+          status: "in_progress",
+        } as ResponseFunctionWebSearch)
+      );
+    },
+    [dispatch]
+  );
 
   const requestGenerateImage = useCallback(
     async (content: ResponseInputMessageContentList) => {
@@ -281,6 +285,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         .filter((part) => part.type === "input_text")
         .map((part) => part.text)
         .join("\n");
+
       const toolCallMessage: ResponseFunctionToolCall = {
         id: crypto.randomUUID(),
         type: "function_call",
@@ -294,6 +299,8 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         }),
         status: "completed",
       };
+      dispatch(addMessage(toolCallMessage));
+
       const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
         id: crypto.randomUUID(),
         type: "function_call_output",
@@ -301,11 +308,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         output: "",
         status: "in_progress",
       };
-      setMessages((messages) => [
-        ...messages,
-        toolCallMessage,
-        toolCallOutputMessage,
-      ]);
+      dispatch(addMessage(toolCallOutputMessage));
 
       try {
         let response: ImagesResponse;
@@ -344,62 +347,31 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
           );
         }
 
-        setMessages((messages) =>
-          produce(messages, (draft) => {
-            messageDispatch(draft, {
-              type: "response.functioin_call_output.completed",
-              output_index: 0,
-              item: {
-                ...toolCallOutputMessage,
-                status: "completed",
-                output: JSON.stringify(response.data),
-              },
-            });
-          })
-        );
+        messageDispatch({
+          type: "response.functioin_call_output.completed",
+          output_index: 0,
+          item: {
+            ...toolCallOutputMessage,
+            status: "completed",
+            output: JSON.stringify(response.data),
+          },
+        });
       } catch (error) {
-        setMessages((messages) =>
-          produce(messages, (draft) => {
-            messageDispatch(draft, {
-              type: "response.functioin_call_output.incomplete",
-              output_index: 0,
-              item: {
-                ...toolCallOutputMessage,
-                status: "incomplete",
-                output: (error as Error).message,
-              },
-            });
-          })
-        );
+        messageDispatch({
+          type: "response.functioin_call_output.incomplete",
+          output_index: 0,
+          item: {
+            ...toolCallOutputMessage,
+            status: "incomplete",
+            output: (error as Error).message,
+          },
+        });
       } finally {
         setStopController(undefined);
       }
     },
     []
   );
-
-  useEffect(() => {
-    if (selectedConversation) {
-      dispatch(
-        updateConversation({ id: selectedConversation, patch: { messages } })
-      );
-    } else {
-      if (messages.length === 0) return;
-      const newId = crypto.randomUUID();
-      const content = (messages[0] as ResponseInputItem.Message).content[0];
-      const title =
-        content.type === "input_text" ? content.text.slice(0, 15) : "New Chat";
-      dispatch(
-        addConversation({
-          id: newId,
-          title: title,
-          create_time: Date.now(),
-          messages,
-        })
-      );
-      setSelectedConversation(newId);
-    }
-  }, [messages, selectedConversation, dispatch]);
 
   const inputArea = (
     <InputArea
@@ -424,13 +396,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         onClose={() => setShowSidebar(false)}
         selectedConversation={selectedConversation}
         onConversationChange={(conversation) => {
-          if (conversation === null) {
-            setSelectedConversation(null);
-            setMessages([]);
-          } else {
-            setSelectedConversation(conversation.id);
-            setMessages(conversation.messages);
-          }
+          dispatch(changeConversation(conversation?.id));
           stopController?.abort();
           setStopController(undefined);
           setShowSidebar(false);
@@ -451,8 +417,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
               aria-label={t("New Chat")}
               size="large"
               onClick={() => {
-                setSelectedConversation(null);
-                setMessages([]);
+                dispatch(changeConversation(null));
                 stopController?.abort();
                 setStopController(undefined);
               }}
@@ -461,7 +426,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             </IconButton>
           </Toolbar>
         ) : null}
-        {!messages.length && !isMobile ? (
+        {!Object.values(messages).length && !isMobile ? (
           <Container
             maxWidth="md"
             sx={{
@@ -486,17 +451,16 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 sx={{ flexGrow: 1, padding: 2, overflowX: "hidden" }}
               >
                 <MessageList
-                  messages={messages}
-                  onMessageChange={setMessages}
+                  messages={Object.values(messages)}
                   onRetry={(message, options?: { model?: string }) => {
-                    const index = messages.indexOf(message);
-                    const hasReasoning =
-                      messages[index - 1]?.type === "reasoning";
-                    const priorMessages = messages.slice(
-                      0,
-                      hasReasoning ? index - 1 : index
-                    );
-                    setMessages(priorMessages);
+                    const array = Object.values(messages);
+                    const index = array.indexOf(message);
+                    const hasReasoning = array[index - 1]?.type === "reasoning";
+                    const sliceIndex = hasReasoning ? index - 1 : index;
+                    const priorMessages = array.slice(0, sliceIndex);
+                    for (let i = sliceIndex; i < array.length; i++) {
+                      dispatch(removeMessage(array[i].id!));
+                    }
                     requestAssistant(priorMessages, options);
                   }}
                 />
