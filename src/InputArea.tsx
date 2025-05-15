@@ -157,6 +157,11 @@ function InputArea({
                       right: 0,
                       width: "24px",
                       height: "24px",
+                      backgroundColor: "rgba(0, 0, 0, 0.3)",
+                      color: "white",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      },
                     }}
                   >
                     <CloseIcon fontSize="small" />
@@ -173,12 +178,9 @@ function InputArea({
           required
           value={message}
           fullWidth
+          minRows={2}
           maxRows={12}
-          sx={{
-            minHeight: "48px",
-            borderRadius: "24px",
-            padding: "0.5rem 1rem",
-          }}
+          autoFocus
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -187,108 +189,117 @@ function InputArea({
               if (form.checkValidity()) form.requestSubmit();
             }
           }}
-        />
-      </Card>
-      <Stack direction="row" alignItems="center" gap={1} sx={{ paddingY: 1 }}>
-        <Chip
-          label={t("Research")}
-          color={enableResearch ? "primary" : "default"}
-          onClick={() => {
-            if (!enableResearch) Notification.requestPermission();
-            navigator.serviceWorker
-              .getRegistration()
-              .then(async (registration) => {
-                if (!registration) return;
-                const subscription =
-                  await registration.pushManager.getSubscription();
-                if (subscription) return;
-                const SERVER_PUBLIC_KEY =
-                  "BGQRGebCwAzQGNxKag65PqQdQSE4wOlPLN36wpyVIMFzXKg58AgsoSVFiBi9IJrRNqHBxsftMNvwAN5Ki5AOe8A";
-                await registration.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey:
-                    urlBase64ToUint8Array(SERVER_PUBLIC_KEY),
-                });
-              });
-            setEnableResearch(!enableResearch);
-            setEnableSearch(false);
-            setEnableGenerateImage(false);
-            navigator.vibrate?.(1);
+          sx={{
+            padding: 0,
+            "&>.MuiInputBase-input": { paddingX: 2, paddingTop: 1.5 },
           }}
         />
-        <Chip
-          label={t("Search")}
-          color={enableSearch ? "primary" : "default"}
-          icon={<SearchIcon />}
-          onClick={() => {
-            setEnableSearch(!enableSearch);
-            setEnableResearch(false);
-            setEnableGenerateImage(false);
-            navigator.vibrate?.(1);
-          }}
-        />
-        <Chip
-          label={t("Generate Image")}
-          color={enableGenerateImage ? "primary" : "default"}
-          icon={<BrushIcon />}
-          onClick={() => {
-            setEnableGenerateImage(!enableGenerateImage);
-            setEnableSearch(false);
-            setEnableResearch(false);
-            navigator.vibrate?.(1);
-          }}
-        />
-        <Box sx={{ flexGrow: 1 }} />
-        <IconButton
-          aria-label={t("Add")}
-          size="small"
-          onClick={() => setShowPanel((showPanel) => !showPanel)}
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={1}
+          sx={{ padding: 1.5 }}
         >
-          <AddIcon
-            sx={{
-              transform: showPanel ? "rotate(45deg)" : "rotate(0deg)",
-              transition: "transform 0.2s",
+          <Chip
+            label={t("Research")}
+            color={enableResearch ? "primary" : "default"}
+            onClick={() => {
+              if (!enableResearch) Notification.requestPermission();
+              navigator.serviceWorker
+                .getRegistration()
+                .then(async (registration) => {
+                  if (!registration) return;
+                  const subscription =
+                    await registration.pushManager.getSubscription();
+                  if (subscription) return;
+                  const SERVER_PUBLIC_KEY =
+                    "BGQRGebCwAzQGNxKag65PqQdQSE4wOlPLN36wpyVIMFzXKg58AgsoSVFiBi9IJrRNqHBxsftMNvwAN5Ki5AOe8A";
+                  await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey:
+                      urlBase64ToUint8Array(SERVER_PUBLIC_KEY),
+                  });
+                });
+              setEnableResearch(!enableResearch);
+              setEnableSearch(false);
+              setEnableGenerateImage(false);
+              navigator.vibrate?.(1);
             }}
           />
-        </IconButton>
-        {stopController ? (
-          <IconButton
-            aria-label={t("Stop")}
-            size="small"
-            sx={{
-              backgroundColor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": {
-                backgroundColor: "primary.dark",
-              },
+          <Chip
+            label={t("Search")}
+            color={enableSearch ? "primary" : "default"}
+            icon={<SearchIcon />}
+            onClick={() => {
+              setEnableSearch(!enableSearch);
+              setEnableResearch(false);
+              setEnableGenerateImage(false);
+              navigator.vibrate?.(1);
             }}
-            onClick={() => stopController.abort("User manually stopped")}
-          >
-            <StopIcon />
-          </IconButton>
-        ) : (
+          />
+          <Chip
+            label={t("Generate Image")}
+            color={enableGenerateImage ? "primary" : "default"}
+            icon={<BrushIcon />}
+            onClick={() => {
+              setEnableGenerateImage(!enableGenerateImage);
+              setEnableSearch(false);
+              setEnableResearch(false);
+              navigator.vibrate?.(1);
+            }}
+          />
+          <Box sx={{ flexGrow: 1 }} />
           <IconButton
-            type="submit"
-            aria-label={t("Send")}
+            aria-label={t("Add")}
             size="small"
-            color="primary"
-            disabled={!message}
-            sx={{
-              backgroundColor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": {
-                backgroundColor: "primary.dark",
-              },
-              "&:disabled": {
-                backgroundColor: "action.disabled",
+            onClick={() => setShowPanel((showPanel) => !showPanel)}
+          >
+            <AddIcon
+              sx={{
+                transform: showPanel ? "rotate(45deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            />
+          </IconButton>
+          {stopController ? (
+            <IconButton
+              aria-label={t("Stop")}
+              size="small"
+              sx={{
+                backgroundColor: "primary.main",
                 color: "primary.contrastText",
-              },
-            }}
-          >
-            <ArrowUpwardIcon />
-          </IconButton>
-        )}
-      </Stack>
+                "&:hover": {
+                  backgroundColor: "primary.dark",
+                },
+              }}
+              onClick={() => stopController.abort("User manually stopped")}
+            >
+              <StopIcon />
+            </IconButton>
+          ) : (
+            <IconButton
+              type="submit"
+              aria-label={t("Send")}
+              size="small"
+              color="primary"
+              disabled={!message}
+              sx={{
+                backgroundColor: "primary.main",
+                color: "primary.contrastText",
+                "&:hover": {
+                  backgroundColor: "primary.dark",
+                },
+                "&:disabled": {
+                  backgroundColor: "action.disabled",
+                  color: "primary.contrastText",
+                },
+              }}
+            >
+              <ArrowUpwardIcon />
+            </IconButton>
+          )}
+        </Stack>
+      </Card>
       <Collapse in={showPanel}>
         <Grid container>
           <Grid size={{ xs: 4, lg: 2 }}>

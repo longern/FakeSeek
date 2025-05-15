@@ -24,16 +24,15 @@ import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
 import { change as changeConversation } from "./app/conversations";
-import { useAppDispatch, useAppSelector } from "./app/hooks";
 import {
-  addContentPart,
+  useAppDispatch,
+  useAppSelector,
+  useMessageDispatch,
+} from "./app/hooks";
+import {
   add as addMessage,
-  addReasoningSummaryPart,
   ChatMessage,
-  contentPartDelta,
-  reasoningSummaryTextDelta,
   remove as removeMessage,
-  update as updateMessage,
 } from "./app/messages";
 import AppDrawer from "./AppDrawer";
 import InputArea from "./InputArea";
@@ -85,93 +84,6 @@ async function streamRequestAssistant(
   }
 
   return response;
-}
-
-export interface FunctionCallOutputCompletedEvent {
-  item: ResponseInputItem.FunctionCallOutput;
-  output_index: number;
-  type: "response.functioin_call_output.completed";
-}
-
-export interface FunctionCallOutputIncompleteEvent {
-  item: ResponseInputItem.FunctionCallOutput;
-  output_index: number;
-  type: "response.functioin_call_output.incomplete";
-}
-
-function useMessageDispatch() {
-  const dispatch = useAppDispatch();
-
-  const messageDispatch = useCallback(
-    (
-      event:
-        | ResponseStreamEvent
-        | FunctionCallOutputCompletedEvent
-        | FunctionCallOutputIncompleteEvent
-    ) => {
-      switch (event.type) {
-        case "response.output_item.added":
-          dispatch(addMessage(event.item));
-          break;
-
-        case "response.output_item.done": {
-          const eventStatus = event.item.status as
-            | "completed"
-            | "in_progress"
-            | "incomplete"
-            | undefined;
-          const isReasoningCompleted =
-            event.item.type === "reasoning" && eventStatus === undefined;
-          const status = isReasoningCompleted ? "completed" : eventStatus;
-          dispatch(updateMessage({ id: event.item.id!, patch: { status } }));
-          break;
-        }
-
-        case "response.content_part.added": {
-          dispatch(addContentPart(event));
-          break;
-        }
-
-        case "response.output_text.delta": {
-          dispatch(contentPartDelta(event));
-          break;
-        }
-
-        case "response.reasoning_summary_part.added": {
-          dispatch(addReasoningSummaryPart(event));
-          break;
-        }
-
-        case "response.reasoning_summary_text.delta": {
-          dispatch(reasoningSummaryTextDelta(event));
-          break;
-        }
-
-        case "response.functioin_call_output.completed": {
-          dispatch(
-            updateMessage({
-              id: event.item.id!,
-              patch: { status: "completed", output: event.item.output },
-            })
-          );
-          break;
-        }
-
-        case "response.functioin_call_output.incomplete": {
-          dispatch(
-            updateMessage({
-              id: event.item.id!,
-              patch: { status: "incomplete", output: event.item.output },
-            })
-          );
-          break;
-        }
-      }
-    },
-    [dispatch]
-  );
-
-  return messageDispatch;
 }
 
 function Chat({ onSearch }: { onSearch: (query: string) => void }) {
