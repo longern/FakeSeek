@@ -38,6 +38,7 @@ import {
 import AppDrawer from "./AppDrawer";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
+import { addMessageThunk } from "./app/db-middleware";
 
 async function streamRequestAssistant(
   messages: ChatMessage[],
@@ -110,7 +111,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         role: "user",
         content: message,
       } as ResponseInputItem.Message;
-      dispatch(addMessage(newMessage));
+      dispatch(addMessageThunk(newMessage));
       requestAssistant([...Object.values(messages), newMessage as ChatMessage]);
     },
     createResearch: (task: string) => {
@@ -119,7 +120,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         role: "user",
         content: [{ type: "input_text", text: task }],
       } as ResponseInputItem.Message;
-      dispatch(addMessage(newMessage));
+      dispatch(addMessageThunk(newMessage));
       requestCreateResearch(task);
     },
     generateImage: async (prompt: ResponseInputMessageContentList) => {
@@ -128,7 +129,7 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
         role: "user",
         content: prompt,
       };
-      await dispatch(addMessage(newMessage));
+      await dispatch(addMessageThunk(newMessage));
       requestGenerateImage(newMessage.content);
     },
   };

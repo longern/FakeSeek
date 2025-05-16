@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createAction, createSlice } from "@reduxjs/toolkit";
 import {
   ResponseComputerToolCall,
   ResponseContentPartAddedEvent,
@@ -26,6 +26,21 @@ export type ChatMessage =
   | ResponseReasoningItem
   | ResponseInputItem.ItemReference;
 
+export const add = createAction(
+  "messages/add",
+  (action: Omit<ChatMessage, "id"> & { id?: string | null }) => {
+    const id: string = crypto.randomUUID();
+    const created_at = Date.now();
+    return {
+      payload: {
+        id,
+        created_at,
+        ...action,
+      } as ChatMessage,
+    };
+  }
+);
+
 export const messagesSlice = createSlice({
   name: "messages",
   initialState: {
@@ -34,12 +49,6 @@ export const messagesSlice = createSlice({
   reducers: {
     set: (state, { payload }: { payload: Record<string, ChatMessage> }) => {
       state.messages = payload;
-    },
-    add: (
-      state,
-      { payload }: { payload: Omit<ChatMessage, "id"> & { id?: string | null } }
-    ) => {
-      state.messages[payload.id!] = payload as ChatMessage;
     },
     remove: (state, { payload }: { payload: string }) => {
       delete state.messages[payload];
@@ -113,10 +122,15 @@ export const messagesSlice = createSlice({
       part.text += payload.delta;
     },
   },
+
+  extraReducers: (builder) => {
+    builder.addCase(add, (state, { payload }) => {
+      state.messages[payload.id!] = payload;
+    });
+  },
 });
 
 export const {
-  add,
   remove,
   set,
   update,

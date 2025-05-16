@@ -1,13 +1,14 @@
-import { isAction, Middleware, PayloadAction } from "@reduxjs/toolkit";
-
 import {
-  add as addConversation,
-  change as changeConversation,
-  Conversation,
-  conversationsSlice,
-} from "./conversations";
+  createAsyncThunk,
+  isAction,
+  Middleware,
+  PayloadAction,
+} from "@reduxjs/toolkit";
+
+import { add as addConversation, conversationsSlice } from "./conversations";
 import { db } from "./db";
 import {
+  add as addMessage,
   addContentPart,
   addReasoningSummaryPart,
   ChatMessage,
@@ -40,7 +41,9 @@ type ValueOf<T> = T[keyof T];
 type ConversationActions =
   | ReturnType<ValueOf<typeof conversationsSlice.actions>>
   | ReturnType<typeof addConversation>;
-type MessageActions = ReturnType<ValueOf<typeof messagesSlice.actions>>;
+type MessageActions =
+  | ReturnType<ValueOf<typeof messagesSlice.actions>>
+  | ReturnType<typeof addMessage>;
 
 const isAppAction = (
   action: unknown
@@ -58,23 +61,44 @@ function generateTitle(message: ChatMessage): string {
   return textContent ? textContent.slice(0, 15) : DEFAULT_TITLE;
 }
 
+export const addMessageThunk = createAsyncThunk<
+  ChatMessage,
+  Omit<ChatMessage, "id" | "created_at">,
+  { state: AppState }
+>("messages/add", async (message, { dispatch, getState }) => {
+  if (!getState().conversations.current) {
+    dispatch(
+      addConversation({
+        title: generateTitle(message as ChatMessage),
+      })
+    ).payload;
+  }
+  const result = dispatch(addMessage(message));
+  return result.payload;
+});
+
 export const dbMiddleware: Middleware<{}, AppState> =
-  (store) => (next) => async (action) => {
+  (store) => (next) => (action) => {
     const state = store.getState();
     if (!isAppAction(action)) return next(action);
 
     switch (action.type) {
       case initializeAction.type:
-        const conversations = await db.conversations
+        db.conversations
           .orderBy("created_at")
-          .toArray();
-        conversations.reverse();
-        store.dispatch({
-          type: "conversations/set",
-          payload: Object.fromEntries(
-            conversations.map((conversation) => [conversation.id, conversation])
-          ),
-        });
+          .toArray()
+          .then((conversations) => {
+            conversations.reverse();
+            store.dispatch({
+              type: "conversations/set",
+              payload: Object.fromEntries(
+                conversations.map((conversation) => [
+                  conversation.id,
+                  conversation,
+                ])
+              ),
+            });
+          });
         break;
 
       case "conversations/add": {
@@ -99,43 +123,37 @@ export const dbMiddleware: Middleware<{}, AppState> =
         const id = action.payload;
         if (!id) store.dispatch(setMessages({}));
         else {
-          const messagesArray = await db.messages
+          db.messages
             .where("conversation_id")
             .equals(id)
-            .sortBy("created_at");
-          const messages = Object.fromEntries(
-            messagesArray.map((message) => {
-              const { conversation_id, created_at, ...rest } = message;
-              return [message.id, rest];
-            })
-          );
-          store.dispatch(setMessages(messages));
+            .sortBy("created_at")
+            .then((messagesArray) => {
+              const messages = Object.fromEntries(
+                messagesArray.map((message) => {
+                  const { conversation_id, created_at, ...rest } = message;
+                  return [message.id, rest];
+                })
+              );
+              store.dispatch(setMessages(messages));
+            });
         }
         break;
       }
 
       case "messages/add": {
+        const result = next(action);
         let conversation_id = state.conversations.current;
         if (!conversation_id) {
-          const title = generateTitle(action.payload as ChatMessage);
-          const newConversation = await (store.dispatch(
-            addConversation({ title })
-          ) as unknown as Promise<PayloadAction<Conversation>>);
-          conversation_id = newConversation.payload.id;
-          await store.dispatch(changeConversation(conversation_id));
+          console.error("No current conversation set for message addition.");
+          break;
         }
-        const message = {
+        db.messages.add({
           ...action.payload,
           id: action.payload.id || crypto.randomUUID(),
           created_at: Date.now(),
           conversation_id,
-        } as ChatMessage & {
-          id: string;
-          created_at: number;
-          conversation_id: string;
-        };
-        db.messages.add(message);
-        return next(action);
+        });
+        return result;
       }
 
       case "messages/update": {

@@ -55,6 +55,7 @@ export const conversationsSlice = createSlice({
         [payload.id]: payload,
         ...state.conversations,
       };
+      state.current = payload.id;
     });
   },
 });
