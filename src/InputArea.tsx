@@ -24,7 +24,7 @@ import {
   Typography,
 } from "@mui/material";
 import { ResponseInputMessageContentList } from "openai/resources/responses/responses.mjs";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -70,6 +70,7 @@ function InputArea({
   const [showPanel, setShowPanel] = useState(false);
   const [message, setMessage] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { t } = useTranslation();
 
@@ -173,6 +174,7 @@ function InputArea({
           </>
         )}
         <InputBase
+          inputRef={inputRef}
           multiline
           placeholder={t("Send message...")}
           required
@@ -189,6 +191,7 @@ function InputArea({
               if (form.checkValidity()) form.requestSubmit();
             }
           }}
+          onFocus={() => setShowPanel(false)}
           sx={{
             padding: 0,
             "&>.MuiInputBase-input": { paddingX: 2, paddingTop: 1.5 },
@@ -224,6 +227,7 @@ function InputArea({
               setEnableSearch(false);
               setEnableGenerateImage(false);
               navigator.vibrate?.(1);
+              inputRef.current?.focus();
             }}
           />
           <Chip
@@ -235,6 +239,7 @@ function InputArea({
               setEnableResearch(false);
               setEnableGenerateImage(false);
               navigator.vibrate?.(1);
+              inputRef.current?.focus();
             }}
           />
           <Chip
@@ -246,13 +251,19 @@ function InputArea({
               setEnableSearch(false);
               setEnableResearch(false);
               navigator.vibrate?.(1);
+              inputRef.current?.focus();
             }}
           />
           <Box sx={{ flexGrow: 1 }} />
           <IconButton
             aria-label={t("Add")}
             size="small"
-            onClick={() => setShowPanel((showPanel) => !showPanel)}
+            onClick={() => {
+              setShowPanel((showPanel) => !showPanel);
+              if (showPanel && inputRef.current) {
+                inputRef.current.focus();
+              }
+            }}
           >
             <AddIcon
               sx={{
@@ -334,6 +345,7 @@ function InputArea({
                     );
                     setImages((images) => [...images, ...imageURLs]);
                     setShowPanel(false);
+                    inputRef.current?.focus();
                     e.target.value = "";
                   }}
                 />
@@ -372,6 +384,7 @@ function InputArea({
                     );
                     setImages((images) => [...images, ...imageURLs]);
                     setShowPanel(false);
+                    inputRef.current?.focus();
                     e.target.value = "";
                   }}
                 />

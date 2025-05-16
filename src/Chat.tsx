@@ -7,6 +7,7 @@ import {
   IconButton,
   Stack,
   Toolbar,
+  Typography,
   useMediaQuery,
 } from "@mui/material";
 import OpenAI from "openai";
@@ -343,11 +344,19 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
             maxWidth="md"
             sx={{
               display: "flex",
+              flexDirection: "column",
               justifyContent: "center",
               alignItems: "center",
               height: "100%",
+              gap: 2,
             }}
           >
+            <Typography
+              variant="h5"
+              sx={{ textAlign: "center", userSelect: "none" }}
+            >
+              {t("What can I help with?")}
+            </Typography>
             {inputArea}
           </Container>
         ) : (
@@ -362,20 +371,40 @@ function Chat({ onSearch }: { onSearch: (query: string) => void }) {
                 maxWidth="md"
                 sx={{ flexGrow: 1, padding: 2, overflowX: "hidden" }}
               >
-                <MessageList
-                  messages={Object.values(messages)}
-                  onRetry={(message, options?: { model?: string }) => {
-                    const array = Object.values(messages);
-                    const index = array.indexOf(message);
-                    const hasReasoning = array[index - 1]?.type === "reasoning";
-                    const sliceIndex = hasReasoning ? index - 1 : index;
-                    const priorMessages = array.slice(0, sliceIndex);
-                    for (let i = sliceIndex; i < array.length; i++) {
-                      dispatch(removeMessage(array[i].id!));
-                    }
-                    requestAssistant(priorMessages, options);
-                  }}
-                />
+                {!Object.values(messages).length ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginTop: "35vh",
+                    }}
+                  >
+                    <Typography
+                      variant="h5"
+                      sx={{ textAlign: "center", userSelect: "none" }}
+                    >
+                      {t("What can I help with?")}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <MessageList
+                    messages={Object.values(messages)}
+                    onRetry={(message, options?: { model?: string }) => {
+                      const array = Object.values(messages);
+                      const index = array.indexOf(message);
+                      const hasReasoning =
+                        array[index - 1]?.type === "reasoning";
+                      const sliceIndex = hasReasoning ? index - 1 : index;
+                      const priorMessages = array.slice(0, sliceIndex);
+                      for (let i = sliceIndex; i < array.length; i++) {
+                        dispatch(removeMessage(array[i].id!));
+                      }
+                      requestAssistant(priorMessages, options);
+                    }}
+                  />
+                )}
               </Container>
               <Box
                 sx={{

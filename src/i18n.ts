@@ -27,6 +27,7 @@ const resources = {
       "Thinking...": "Thinking...",
       "Thinking finished": "Thinking finished",
       Today: "Today",
+      "What can I help with?": "What can I help with?",
       Yesterday: "Yesterday",
 
       "quality.low": "Low",
@@ -59,6 +60,7 @@ const resources = {
       "Thinking...": "思考中...",
       "Thinking finished": "思考完成",
       Today: "今天",
+      "What can I help with?": "有什么可以帮忙的？",
       Yesterday: "昨天",
 
       "quality.low": "低",
