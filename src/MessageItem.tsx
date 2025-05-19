@@ -450,24 +450,24 @@ function SearchImageResultsContent({
   return (
     <Stack gap={0.5} sx={{ flexDirection: "row", flexWrap: "wrap" }}>
       {results.map((result, index) => (
-        <Box key={index}>
-          <Link
-            href={result.image.contextLink}
-            underline="hover"
-            target="_blank"
-            rel="noopener noreferrer"
+        <Link
+          key={index}
+          href={result.image.contextLink}
+          underline="hover"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Box
+            sx={{ "&>img": { objectFit: "contain", backgroundColor: "black" } }}
           >
             <img
               src={result.image.thumbnailLink}
               alt={result.title}
-              style={{
-                maxWidth: "100%",
-                maxHeight: "200px",
-                borderRadius: "8px",
-              }}
+              width="150"
+              height="150"
             />
-          </Link>
-        </Box>
+          </Box>
+        </Link>
       ))}
     </Stack>
   );
