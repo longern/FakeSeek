@@ -14,6 +14,7 @@ import {
   Divider,
   IconButton,
   InputBase,
+  Link,
   ListItemIcon,
   Menu,
   MenuItem,
@@ -366,6 +367,62 @@ function GenerateImageContent({
   );
 }
 
+interface SearchResults {
+  items: Array<{
+    title: string;
+    htmlTitle: string;
+    link: string;
+    formattedUrl: string;
+    htmlFormattedUrl: string;
+    snippet: string;
+  }>;
+}
+
+function SearchResultsContent({
+  message,
+}: {
+  message: ResponseInputItem.FunctionCallOutput;
+}) {
+  const results = useMemo(() => {
+    return JSON.parse(message.output) as SearchResults["items"];
+  }, [message]);
+
+  return (
+    <Stack gap={3.5}>
+      {results.map((result, index) => (
+        <Box key={index}>
+          <Link
+            href={result.link}
+            underline="hover"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Typography variant="h6" component="h3">
+              {result.title}
+            </Typography>
+            <Box>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                sx={{
+                  display: "inline-block",
+                  maxWidth: "100%",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {result.link}
+              </Typography>
+            </Box>
+          </Link>
+          <Box sx={{ overflowWrap: "break-word" }}>{result.snippet}</Box>
+        </Box>
+      ))}
+    </Stack>
+  );
+}
+
 export function FunctionCallOutput({
   message,
   toolCall,
@@ -396,6 +453,12 @@ export function FunctionCallOutput({
       return (
         <Box sx={{ marginRight: "64px" }}>
           <GenerateImageContent message={message} />
+        </Box>
+      );
+    case "search":
+      return (
+        <Box sx={{ marginRight: "64px" }}>
+          <SearchResultsContent message={message} />
         </Box>
       );
   }

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   createTheme,
   CssBaseline,
@@ -6,7 +5,6 @@ import {
   ThemeProvider,
 } from "@mui/material";
 
-import SearchResults from "./SearchResults";
 import Chat from "./Chat";
 
 const theme = createTheme({
@@ -28,8 +26,6 @@ const theme = createTheme({
 });
 
 function App() {
-  const [query, setQuery] = useState("");
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -39,11 +35,7 @@ function App() {
           body: { overflow: "hidden" },
         }}
       ></GlobalStyles>
-      {query ? (
-        <SearchResults query={query} onBack={() => setQuery("")} />
-      ) : (
-        <Chat onSearch={(query) => setQuery(query)} />
-      )}
+      <Chat />
     </ThemeProvider>
   );
 }
