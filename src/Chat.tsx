@@ -115,22 +115,34 @@ function Chat() {
       dispatch(addMessageThunk(newMessage));
       requestAssistant([...Object.values(messages), newMessage as ChatMessage]);
     },
-    search: (query: string) => {
+    search: async (query: string) => {
       const newMessage = {
         type: "message",
         role: "user",
         content: [{ type: "input_text", text: query }],
       } as ResponseInputItem.Message;
-      dispatch(addMessageThunk(newMessage));
+      await dispatch(addMessageThunk(newMessage));
       requestSearch([...Object.values(messages), newMessage as ChatMessage]);
     },
-    createResearch: (task: string) => {
+    searchImage: async (query: string) => {
+      const newMessage = {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: query }],
+      } as ResponseInputItem.Message;
+      await dispatch(addMessageThunk(newMessage));
+      requestSearchImage([
+        ...Object.values(messages),
+        newMessage as ChatMessage,
+      ]);
+    },
+    createResearch: async (task: string) => {
       const newMessage = {
         type: "message",
         role: "user",
         content: [{ type: "input_text", text: task }],
       } as ResponseInputItem.Message;
-      dispatch(addMessageThunk(newMessage));
+      await dispatch(addMessageThunk(newMessage));
       requestCreateResearch(task);
     },
     generateImage: async (prompt: ResponseInputMessageContentList) => {
@@ -209,9 +221,7 @@ function Chat() {
       type: "function_call",
       call_id: callId,
       name: "search",
-      arguments: JSON.stringify({
-        query,
-      }),
+      arguments: JSON.stringify({ query }),
       status: "completed",
     };
     dispatch(addMessage(toolCallMessage));
@@ -219,6 +229,45 @@ function Chat() {
     try {
       const response = await fetch(
         `/api/search?${new URLSearchParams({ q: query })}`
+      );
+      const body = await response.json();
+      const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
+        id: crypto.randomUUID(),
+        type: "function_call_output",
+        call_id: callId,
+        output: JSON.stringify(body.items),
+        status: "completed",
+      };
+      dispatch(addMessage(toolCallOutputMessage));
+    } finally {
+      setStopController(undefined);
+    }
+  }, []);
+
+  const requestSearchImage = useCallback(async (messages: ChatMessage[]) => {
+    const abortController = new AbortController();
+    setStopController(abortController);
+
+    const lastMessage = messages[
+      messages.length - 1
+    ] as ResponseInputItem.Message;
+    const part = lastMessage.content[0] as ResponseInputText;
+    const query = part.text;
+
+    const callId = crypto.randomUUID();
+    const toolCallMessage: ResponseFunctionToolCall = {
+      id: crypto.randomUUID(),
+      type: "function_call",
+      call_id: callId,
+      name: "search_image",
+      arguments: JSON.stringify({ query }),
+      status: "completed",
+    };
+    dispatch(addMessage(toolCallMessage));
+
+    try {
+      const response = await fetch(
+        `/api/search?${new URLSearchParams({ q: query, searchType: "image" })}`
       );
       const body = await response.json();
       const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
@@ -343,6 +392,9 @@ function Chat() {
       stopController={stopController}
       onSearch={(query) => {
         methods.search(query);
+      }}
+      onSearchImage={(query) => {
+        methods.searchImage(query);
       }}
       onChat={(message) => {
         methods.sendMessage(message);

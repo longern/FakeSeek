@@ -4,7 +4,6 @@ import {
   Camera as CameraIcon,
   Close as CloseIcon,
   Image as ImageIcon,
-  Search as SearchIcon,
   Stop as StopIcon,
 } from "@mui/icons-material";
 import BrushIcon from "@mui/icons-material/Brush";
@@ -26,6 +25,7 @@ import {
 import { ResponseInputMessageContentList } from "openai/resources/responses/responses.mjs";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import SearchModeChip from "./SearchModeChip";
 
 function urlBase64ToUint8Array(base64String: string) {
   return new Uint8Array(
@@ -55,16 +55,20 @@ function InputArea({
   stopController,
   onResearch,
   onSearch,
+  onSearchImage,
   onGenerateImage,
   onChat,
 }: {
   stopController?: AbortController;
   onResearch: (task: string) => void;
   onSearch: (query: string) => void;
+  onSearchImage: (query: string) => void;
   onGenerateImage: (prompt: ResponseInputMessageContentList) => void;
   onChat: (message: ResponseInputMessageContentList) => void;
 }) {
-  const [enableSearch, setEnableSearch] = useState(false);
+  const [searchMode, setSearchMode] = useState<
+    "webpage" | "image" | "deep-research" | undefined
+  >(undefined);
   const [enableResearch, setEnableResearch] = useState(false);
   const [enableGenerateImage, setEnableGenerateImage] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
@@ -78,9 +82,11 @@ function InputArea({
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       setMessage("");
-      if (enableSearch) {
+      if (searchMode === "webpage") {
         onSearch(message);
-      } else if (enableResearch) {
+      } else if (searchMode === "image") {
+        onSearchImage(message);
+      } else if (searchMode === "deep-research") {
         onResearch(message);
       } else if (enableGenerateImage) {
         readImages(images).then((base64Images) => {
@@ -112,7 +118,7 @@ function InputArea({
         }
       }
     },
-    [enableSearch, enableResearch, enableGenerateImage, message]
+    [searchMode, enableResearch, enableGenerateImage, message]
   );
 
   return (
@@ -203,52 +209,39 @@ function InputArea({
           gap={1}
           sx={{ padding: 1.5 }}
         >
-          <Chip
-            label={t("Research")}
-            color={enableResearch ? "primary" : "default"}
-            onClick={() => {
-              if (!enableResearch) Notification.requestPermission();
-              navigator.serviceWorker
-                .getRegistration()
-                .then(async (registration) => {
-                  if (!registration) return;
-                  const subscription =
-                    await registration.pushManager.getSubscription();
-                  if (subscription) return;
-                  const SERVER_PUBLIC_KEY =
-                    "BGQRGebCwAzQGNxKag65PqQdQSE4wOlPLN36wpyVIMFzXKg58AgsoSVFiBi9IJrRNqHBxsftMNvwAN5Ki5AOe8A";
-                  await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey:
-                      urlBase64ToUint8Array(SERVER_PUBLIC_KEY),
+          <SearchModeChip
+            value={searchMode}
+            onChange={(mode) => {
+              setSearchMode(mode);
+              setEnableGenerateImage(false);
+
+              if (mode === "deep-research") {
+                navigator.serviceWorker
+                  .getRegistration()
+                  .then(async (registration) => {
+                    if (!registration) return;
+                    const subscription =
+                      await registration.pushManager.getSubscription();
+                    if (subscription) return;
+                    const SERVER_PUBLIC_KEY =
+                      "BGQRGebCwAzQGNxKag65PqQdQSE4wOlPLN36wpyVIMFzXKg58AgsoSVFiBi9IJrRNqHBxsftMNvwAN5Ki5AOe8A";
+                    await registration.pushManager.subscribe({
+                      userVisibleOnly: true,
+                      applicationServerKey:
+                        urlBase64ToUint8Array(SERVER_PUBLIC_KEY),
+                    });
                   });
-                });
-              setEnableResearch(!enableResearch);
-              setEnableSearch(false);
-              setEnableGenerateImage(false);
-              navigator.vibrate?.(1);
-              inputRef.current?.focus();
-            }}
-          />
-          <Chip
-            label={t("Search")}
-            color={enableSearch ? "primary" : "default"}
-            icon={<SearchIcon />}
-            onClick={() => {
-              setEnableSearch(!enableSearch);
-              setEnableResearch(false);
-              setEnableGenerateImage(false);
-              navigator.vibrate?.(1);
+              }
               inputRef.current?.focus();
             }}
           />
           <Chip
             label={t("Generate Image")}
             color={enableGenerateImage ? "primary" : "default"}
-            icon={<BrushIcon />}
+            icon={<BrushIcon fontSize="small" />}
             onClick={() => {
               setEnableGenerateImage(!enableGenerateImage);
-              setEnableSearch(false);
+              setSearchMode(undefined);
               setEnableResearch(false);
               navigator.vibrate?.(1);
               inputRef.current?.focus();

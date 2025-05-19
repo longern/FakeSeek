@@ -12,6 +12,7 @@ const resources = {
       "Generate Image": "Generate Image",
       Image: "Image",
       "Image Quality": "Image Quality",
+      "Image Search": "Image Search",
       "In 7 days": "In 7 days",
       "In 30 days": "In 30 days",
       "New Chat": "New Chat",
@@ -27,6 +28,7 @@ const resources = {
       "Thinking...": "Thinking...",
       "Thinking finished": "Thinking finished",
       Today: "Today",
+      "Webpage Search": "Webpage Search",
       "What can I help with?": "What can I help with?",
       Yesterday: "Yesterday",
 
@@ -45,6 +47,7 @@ const resources = {
       "Generate Image": "生图",
       Image: "图片",
       "Image Quality": "图片质量",
+      "Image Search": "图片搜索",
       "In 7 days": "7天内",
       "In 30 days": "30天内",
       "New Chat": "开启新对话",
@@ -61,6 +64,7 @@ const resources = {
       "Thinking finished": "思考完成",
       Today: "今天",
       "What can I help with?": "有什么可以帮忙的？",
+      "Webpage Search": "网页搜索",
       Yesterday: "昨天",
 
       "quality.low": "低",

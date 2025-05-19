@@ -423,6 +423,56 @@ function SearchResultsContent({
   );
 }
 
+interface SearchImageResults {
+  items: Array<{
+    title: string;
+    htmlTitle: string;
+    link: string;
+    displayLink: string;
+    image: {
+      contextLink: string;
+      thumbnailLink: string;
+      thumbnailHeight: number;
+      thumbnailWidth: number;
+    };
+  }>;
+}
+
+function SearchImageResultsContent({
+  message,
+}: {
+  message: ResponseInputItem.FunctionCallOutput;
+}) {
+  const results = useMemo(() => {
+    return JSON.parse(message.output) as SearchImageResults["items"];
+  }, [message]);
+
+  return (
+    <Stack gap={0.5} sx={{ flexDirection: "row", flexWrap: "wrap" }}>
+      {results.map((result, index) => (
+        <Box key={index}>
+          <Link
+            href={result.image.contextLink}
+            underline="hover"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src={result.image.thumbnailLink}
+              alt={result.title}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "200px",
+                borderRadius: "8px",
+              }}
+            />
+          </Link>
+        </Box>
+      ))}
+    </Stack>
+  );
+}
+
 export function FunctionCallOutput({
   message,
   toolCall,
@@ -459,6 +509,12 @@ export function FunctionCallOutput({
       return (
         <Box sx={{ marginRight: "64px" }}>
           <SearchResultsContent message={message} />
+        </Box>
+      );
+    case "search_image":
+      return (
+        <Box sx={{ marginRight: "64px" }}>
+          <SearchImageResultsContent message={message} />
         </Box>
       );
   }

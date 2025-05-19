@@ -21,7 +21,26 @@ app.get("/search", (c) => {
   if (!query)
     return Response.json({ error: "Missing query parameter" }, { status: 400 });
 
-  return search(query, c.env);
+  const searchType = c.req.query("searchType") as "image" | undefined;
+
+  return search(query, c.env, { searchType }).then<Response>(async (res) => {
+    if (!res.ok) return res;
+    const body = await res.json<any>();
+    if (Array.isArray(body?.items)) {
+      body.items.forEach((item: any) => {
+        if (typeof item?.image?.thumbnailLink !== "string") return;
+        const thumbnailUrl = new URL(item.image.thumbnailLink);
+        const newLink = `/api/images?${thumbnailUrl.searchParams.toString()}`;
+        item.image.thumbnailLink = newLink;
+      });
+    }
+    return Response.json(body);
+  });
+});
+
+app.get("/images", async (c) => {
+  const url = new URL(c.req.url);
+  return fetch(`https://encrypted-tbn0.gstatic.com/images${url.search}`);
 });
 
 app.get("/tasks/:id", async (c) => {
