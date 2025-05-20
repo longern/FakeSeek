@@ -2,6 +2,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import LinkIcon from "@mui/icons-material/Link";
 import ReplayIcon from "@mui/icons-material/Replay";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
@@ -448,28 +449,37 @@ function SearchImageResultsContent({
   }, [message]);
 
   return (
-    <Stack gap={0.5} sx={{ flexDirection: "row", flexWrap: "wrap" }}>
-      {results.map((result, index) => (
-        <Link
-          key={index}
-          href={result.image.contextLink}
-          underline="hover"
+    <PhotoProvider
+      toolbarRender={({ index }) => (
+        <IconButton
+          href={results[index].image.contextLink}
           target="_blank"
           rel="noopener noreferrer"
+          sx={{ color: "white", opacity: 0.75 }}
         >
-          <Box
-            sx={{ "&>img": { objectFit: "contain", backgroundColor: "black" } }}
-          >
-            <img
-              src={result.image.thumbnailLink}
-              alt={result.title}
-              width="150"
-              height="150"
-            />
-          </Box>
-        </Link>
-      ))}
-    </Stack>
+          <LinkIcon />
+        </IconButton>
+      )}
+    >
+      <Stack gap={0.5} sx={{ flexDirection: "row", flexWrap: "wrap" }}>
+        {results.map((result) => (
+          <PhotoView key={result.link} src={result.link}>
+            <Box
+              sx={{
+                "&>img": { objectFit: "contain", backgroundColor: "black" },
+              }}
+            >
+              <img
+                src={result.image.thumbnailLink}
+                alt={result.title}
+                width="150"
+                height="150"
+              />
+            </Box>
+          </PhotoView>
+        ))}
+      </Stack>
+    </PhotoProvider>
   );
 }
 

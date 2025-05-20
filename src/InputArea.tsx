@@ -234,6 +234,9 @@ function InputArea({
               }
               inputRef.current?.focus();
             }}
+            onMenuClose={() => {
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }}
           />
           <Chip
             label={t("Generate Image")}

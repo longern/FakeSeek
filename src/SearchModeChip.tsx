@@ -11,15 +11,17 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 function SearchModeChip({
   value,
   onChange,
+  onMenuClose,
 }: {
   value: "webpage" | "image" | "deep-research" | undefined;
   onChange: (value: "webpage" | "image" | "deep-research" | undefined) => void;
+  onMenuClose?: () => void;
 }) {
   const [savedValue, setSavedValue] = useState<
     "webpage" | "image" | "deep-research"
@@ -27,6 +29,11 @@ function SearchModeChip({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation();
+
+  const handleMenuClose = useCallback(() => {
+    setAnchorEl(null);
+    onMenuClose?.();
+  }, [onMenuClose]);
 
   useEffect(() => {
     if (value) {
@@ -56,22 +63,35 @@ function SearchModeChip({
         }
         color={value ? "primary" : "default"}
         onClick={() => onChange(value === undefined ? savedValue : undefined)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowUp") setAnchorEl(ref.current!);
+        }}
         onDelete={() => setAnchorEl(ref.current!)}
         deleteIcon={<ExpandLessIcon />}
+        sx={{
+          "&>.MuiChip-deleteIcon": {
+            fontSize: "32px",
+            padding: "5px",
+            marginRight: 0,
+            borderLeft: "1px solid rgba(0, 0, 0, 0.12)",
+            borderTopRightRadius: "9999px",
+            borderBottomRightRadius: "9999px",
+          },
+        }}
       />
 
       <Menu
         anchorOrigin={{ vertical: "top", horizontal: "left" }}
         transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
+        onClose={handleMenuClose}
         anchorEl={anchorEl}
       >
         <MenuItem
           selected={value === "webpage"}
           onClick={() => {
             onChange("webpage");
-            setAnchorEl(null);
+            handleMenuClose();
           }}
         >
           <ListItemIcon>
@@ -83,7 +103,7 @@ function SearchModeChip({
           selected={value === "image"}
           onClick={() => {
             onChange("image");
-            setAnchorEl(null);
+            handleMenuClose();
           }}
         >
           <ListItemIcon>
@@ -95,7 +115,7 @@ function SearchModeChip({
           selected={value === "deep-research"}
           onClick={() => {
             onChange("deep-research");
-            setAnchorEl(null);
+            handleMenuClose();
           }}
         >
           <ListItemIcon>
