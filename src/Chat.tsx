@@ -10,400 +10,121 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import OpenAI from "openai";
-import { ImagesResponse } from "openai/resources.mjs";
 import {
-  ResponseFunctionToolCall,
-  ResponseFunctionWebSearch,
   ResponseInputItem,
   ResponseInputMessageContentList,
-  ResponseInputText,
-  ResponseOutputItem,
-  ResponseStreamEvent,
 } from "openai/resources/responses/responses.mjs";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
 import { change as changeConversation } from "./app/conversations";
-import {
-  useAppDispatch,
-  useAppSelector,
-  useMessageDispatch,
-} from "./app/hooks";
-import {
-  add as addMessage,
-  ChatMessage,
-  remove as removeMessage,
-} from "./app/messages";
+import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { ChatMessage, remove as removeMessage } from "./app/messages";
 import AppDrawer from "./AppDrawer";
-import InputArea from "./InputArea";
+import InputArea, { Abortable } from "./InputArea";
 import MessageList from "./MessageList";
 import { addMessageThunk } from "./app/db-middleware";
+import {
+  requestAssistant,
+  requestCreateResearch,
+  requestGenerateImage,
+  requestSearch,
+  requestSearchImage,
+} from "./app/thunks";
 
-async function streamRequestAssistant(
-  messages: ChatMessage[],
-  options?: {
-    apiKey?: string;
-    baseURL?: string;
-    model?: string;
-    signal?: AbortSignal;
-    onStreamEvent?: (event: ResponseStreamEvent) => void;
-  }
-) {
-  const client = new OpenAI({
-    apiKey: options?.apiKey,
-    baseURL:
-      options?.baseURL || new URL("/api/v1", window.location.href).toString(),
-    dangerouslyAllowBrowser: true,
-  });
-  const model =
-    options?.model ?? messages.some((m) => m.type === "reasoning")
-      ? "o4-mini"
-      : "gpt-4.1-nano";
-  const normMessages = messages.map((message) => {
-    if (
-      message.type === "message" &&
-      (message.role === "user" ||
-        message.role === "developer" ||
-        message.role === "system")
-    ) {
-      const { id, ...rest } = message;
-      return rest as ResponseInputItem.Message;
-    }
-    return message;
-  });
-  const response = await client.responses.create(
-    {
-      model: model,
-      input: normMessages,
-      stream: true,
-      reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
+function useAbortablePromise() {
+  const [abortable, setAbortable] = useState<Abortable | undefined>(undefined);
+
+  const setAbortablePromise = useCallback(
+    (promise: (Abortable & Promise<unknown>) | undefined) => {
+      setAbortable(promise);
+      if (!promise) return;
+      promise.finally(() => {
+        setAbortable(undefined);
+      });
     },
-    { signal: options?.signal }
+    []
   );
-  for await (const chunk of response) {
-    options?.onStreamEvent?.(chunk);
-  }
 
-  return response;
+  return [abortable, setAbortablePromise] as const;
+}
+
+function toUserMessage(
+  message: string | ResponseInputMessageContentList
+): ResponseInputItem.Message {
+  const content: ResponseInputMessageContentList =
+    typeof message === "string"
+      ? [{ type: "input_text", text: message }]
+      : message;
+  return { type: "message", role: "user", content };
 }
 
 function Chat() {
   const selectedConversation = useAppSelector(
     (state) => state.conversations.current
   );
-  const messages = useAppSelector((state) => state.messages.messages);
-  const [stopController, setStopController] = useState<
-    AbortController | undefined
-  >(undefined);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [abortable, setAbortable] = useAbortablePromise();
+  const messages = useAppSelector((state) => state.messages.messages);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
-  const provider = useAppSelector((state) => state.provider);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const messageDispatch = useMessageDispatch();
 
-  const methods = {
-    sendMessage: (message: ResponseInputMessageContentList) => {
-      const newMessage = {
-        type: "message",
-        role: "user",
-        content: message,
-      } as ResponseInputItem.Message;
-      dispatch(addMessageThunk(newMessage));
-      requestAssistant([...Object.values(messages), newMessage as ChatMessage]);
-    },
-    search: async (query: string) => {
-      const newMessage = {
-        type: "message",
-        role: "user",
-        content: [{ type: "input_text", text: query }],
-      } as ResponseInputItem.Message;
-      await dispatch(addMessageThunk(newMessage));
-      requestSearch([...Object.values(messages), newMessage as ChatMessage]);
-    },
-    searchImage: async (query: string) => {
-      const newMessage = {
-        type: "message",
-        role: "user",
-        content: [{ type: "input_text", text: query }],
-      } as ResponseInputItem.Message;
-      await dispatch(addMessageThunk(newMessage));
-      requestSearchImage([
-        ...Object.values(messages),
-        newMessage as ChatMessage,
-      ]);
-    },
-    createResearch: async (task: string) => {
-      const newMessage = {
-        type: "message",
-        role: "user",
-        content: [{ type: "input_text", text: task }],
-      } as ResponseInputItem.Message;
-      await dispatch(addMessageThunk(newMessage));
-      requestCreateResearch(task);
-    },
-    generateImage: async (prompt: ResponseInputMessageContentList) => {
-      const newMessage: ResponseInputItem.Message = {
-        type: "message",
-        role: "user",
-        content: prompt,
-      };
-      await dispatch(addMessageThunk(newMessage));
-      requestGenerateImage(newMessage.content);
-    },
+  const handleRetry = (message: ChatMessage, options?: { model?: string }) => {
+    const array = Object.values(messages);
+    const index = array.indexOf(message);
+    const hasReasoning = array[index - 1]?.type === "reasoning";
+    const sliceIndex = hasReasoning ? index - 1 : index;
+    const priorMessages = array.slice(0, sliceIndex);
+    for (let i = sliceIndex; i < array.length; i++) {
+      dispatch(removeMessage(array[i].id!));
+    }
+    setAbortable(
+      dispatch(requestAssistant({ messages: priorMessages, options }))
+    );
   };
-
-  const requestAssistant = useCallback(
-    (messages: ChatMessage[], options?: { model?: string }) => {
-      const abortController = new AbortController();
-      setStopController(abortController);
-      streamRequestAssistant(messages, {
-        apiKey: provider.apiKey,
-        baseURL: provider.baseURL,
-        model: options?.model,
-        signal: abortController.signal,
-        onStreamEvent(event) {
-          messageDispatch(event);
-        },
-      })
-        .catch((error) => {
-          dispatch(
-            addMessage({
-              type: "message",
-              role: "assistant",
-              content: [{ type: "refusal", refusal: (error as Error).message }],
-              status: "incomplete",
-            } as ResponseOutputItem)
-          );
-        })
-        .finally(() => {
-          setStopController(undefined);
-        });
-    },
-    [provider.apiKey, provider.baseURL, dispatch, messageDispatch]
-  );
-
-  const requestCreateResearch = useCallback(
-    async (task: string) => {
-      const response = await fetch("/api/tasks", {
-        method: "PUT",
-        body: JSON.stringify({ instructions: task }),
-      });
-      const { id } = await response.json();
-
-      dispatch(
-        addMessage({
-          type: "web_search_call",
-          id,
-          status: "in_progress",
-        } as ResponseFunctionWebSearch)
-      );
-    },
-    [dispatch]
-  );
-
-  const requestSearch = useCallback(async (messages: ChatMessage[]) => {
-    const abortController = new AbortController();
-    setStopController(abortController);
-
-    const lastMessage = messages[
-      messages.length - 1
-    ] as ResponseInputItem.Message;
-    const part = lastMessage.content[0] as ResponseInputText;
-    const query = part.text;
-
-    const callId = crypto.randomUUID();
-    const toolCallMessage: ResponseFunctionToolCall = {
-      id: crypto.randomUUID(),
-      type: "function_call",
-      call_id: callId,
-      name: "search",
-      arguments: JSON.stringify({ query }),
-      status: "completed",
-    };
-    dispatch(addMessage(toolCallMessage));
-
-    try {
-      const response = await fetch(
-        `/api/search?${new URLSearchParams({ q: query })}`
-      );
-      const body = await response.json();
-      const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
-        id: crypto.randomUUID(),
-        type: "function_call_output",
-        call_id: callId,
-        output: JSON.stringify(body.items),
-        status: "completed",
-      };
-      dispatch(addMessage(toolCallOutputMessage));
-    } finally {
-      setStopController(undefined);
-    }
-  }, []);
-
-  const requestSearchImage = useCallback(async (messages: ChatMessage[]) => {
-    const abortController = new AbortController();
-    setStopController(abortController);
-
-    const lastMessage = messages[
-      messages.length - 1
-    ] as ResponseInputItem.Message;
-    const part = lastMessage.content[0] as ResponseInputText;
-    const query = part.text;
-
-    const callId = crypto.randomUUID();
-    const toolCallMessage: ResponseFunctionToolCall = {
-      id: crypto.randomUUID(),
-      type: "function_call",
-      call_id: callId,
-      name: "search_image",
-      arguments: JSON.stringify({ query }),
-      status: "completed",
-    };
-    dispatch(addMessage(toolCallMessage));
-
-    try {
-      const response = await fetch(
-        `/api/search?${new URLSearchParams({ q: query, searchType: "image" })}`
-      );
-      const body = await response.json();
-      const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
-        id: crypto.randomUUID(),
-        type: "function_call_output",
-        call_id: callId,
-        output: JSON.stringify(body.items),
-        status: "completed",
-      };
-      dispatch(addMessage(toolCallOutputMessage));
-    } finally {
-      setStopController(undefined);
-    }
-  }, []);
-
-  const requestGenerateImage = useCallback(
-    async (content: ResponseInputMessageContentList) => {
-      const abortController = new AbortController();
-      setStopController(abortController);
-
-      const client = new OpenAI({
-        apiKey: provider.apiKey,
-        baseURL: provider.baseURL,
-        dangerouslyAllowBrowser: true,
-      });
-
-      const callId = crypto.randomUUID();
-      const prompt = content
-        .filter((part) => part.type === "input_text")
-        .map((part) => part.text)
-        .join("\n");
-
-      const toolCallMessage: ResponseFunctionToolCall = {
-        id: crypto.randomUUID(),
-        type: "function_call",
-        call_id: callId,
-        name: "generate_image",
-        arguments: JSON.stringify({
-          prompt,
-          model: "gpt-image-1",
-          quality: provider.imageQuality,
-          moderation: "low",
-        }),
-        status: "completed",
-      };
-      dispatch(addMessage(toolCallMessage));
-
-      const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
-        id: crypto.randomUUID(),
-        type: "function_call_output",
-        call_id: callId,
-        output: "",
-        status: "in_progress",
-      };
-      dispatch(addMessage(toolCallOutputMessage));
-
-      try {
-        let response: ImagesResponse;
-
-        if (content.length === 1 && content[0].type === "input_text") {
-          response = await client.images.generate(
-            {
-              prompt: prompt,
-              model: "gpt-image-1",
-              quality: provider.imageQuality,
-              moderation: "low",
-            },
-            { signal: abortController.signal }
-          );
-        } else {
-          const imageResponses = await Promise.all(
-            content
-              .filter((part) => part.type === "input_image")
-              .map(async (part, index) => {
-                const res = await fetch(part.image_url!);
-                const blob = await res.blob();
-                const file = new File([blob], `image_${index + 1}`, {
-                  type: blob.type,
-                });
-                return file;
-              })
-          );
-          response = await client.images.edit(
-            {
-              image: imageResponses,
-              prompt: prompt,
-              model: "gpt-image-1",
-              quality: provider.imageQuality,
-            },
-            { signal: abortController.signal }
-          );
-        }
-
-        messageDispatch({
-          type: "response.functioin_call_output.completed",
-          output_index: 0,
-          item: {
-            ...toolCallOutputMessage,
-            status: "completed",
-            output: JSON.stringify(response.data),
-          },
-        });
-      } catch (error) {
-        messageDispatch({
-          type: "response.functioin_call_output.incomplete",
-          output_index: 0,
-          item: {
-            ...toolCallOutputMessage,
-            status: "incomplete",
-            output: (error as Error).message,
-          },
-        });
-      } finally {
-        setStopController(undefined);
-      }
-    },
-    []
-  );
 
   const inputArea = (
     <InputArea
-      stopController={stopController}
-      onSearch={(query) => {
-        methods.search(query);
+      abortable={abortable}
+      onSearch={async (query) => {
+        const newMessage = toUserMessage(query);
+        await dispatch(addMessageThunk(newMessage));
+        const newMessages = [
+          ...Object.values(messages),
+          newMessage as ChatMessage,
+        ];
+        setAbortable(dispatch(requestSearch(newMessages)));
       }}
-      onSearchImage={(query) => {
-        methods.searchImage(query);
+      onSearchImage={async (query) => {
+        const newMessage = toUserMessage(query);
+        await dispatch(addMessageThunk(newMessage));
+        const newMessages = [
+          ...Object.values(messages),
+          newMessage as ChatMessage,
+        ];
+        setAbortable(dispatch(requestSearchImage(newMessages)));
       }}
       onChat={(message) => {
-        methods.sendMessage(message);
+        const newMessage = toUserMessage(message);
+        dispatch(addMessageThunk(newMessage));
+        const newMessages = [
+          ...Object.values(messages),
+          newMessage as ChatMessage,
+        ];
+        setAbortable(dispatch(requestAssistant({ messages: newMessages })));
       }}
-      onResearch={(task) => {
-        methods.createResearch(task);
+      onResearch={async (task) => {
+        const newMessage = toUserMessage(task);
+        await dispatch(addMessageThunk(newMessage));
+        setAbortable(dispatch(requestCreateResearch(task)));
       }}
-      onGenerateImage={(prompt) => {
-        methods.generateImage(prompt);
+      onGenerateImage={async (prompt) => {
+        const newMessage = toUserMessage(prompt);
+        await dispatch(addMessageThunk(newMessage));
+        setAbortable(dispatch(requestGenerateImage(newMessage.content)));
       }}
     />
   );
@@ -416,8 +137,8 @@ function Chat() {
         selectedConversation={selectedConversation}
         onConversationChange={(conversation) => {
           dispatch(changeConversation(conversation?.id));
-          stopController?.abort();
-          setStopController(undefined);
+          abortable?.abort();
+          setAbortable(undefined);
           setShowSidebar(false);
         }}
       />
@@ -437,8 +158,8 @@ function Chat() {
               size="large"
               onClick={() => {
                 dispatch(changeConversation(null));
-                stopController?.abort();
-                setStopController(undefined);
+                abortable?.abort();
+                setAbortable(undefined);
               }}
             >
               <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
@@ -497,18 +218,7 @@ function Chat() {
                 ) : (
                   <MessageList
                     messages={Object.values(messages)}
-                    onRetry={(message, options?: { model?: string }) => {
-                      const array = Object.values(messages);
-                      const index = array.indexOf(message);
-                      const hasReasoning =
-                        array[index - 1]?.type === "reasoning";
-                      const sliceIndex = hasReasoning ? index - 1 : index;
-                      const priorMessages = array.slice(0, sliceIndex);
-                      for (let i = sliceIndex; i < array.length; i++) {
-                        dispatch(removeMessage(array[i].id!));
-                      }
-                      requestAssistant(priorMessages, options);
-                    }}
+                    onRetry={handleRetry}
                   />
                 )}
               </Container>

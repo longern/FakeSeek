@@ -27,6 +27,10 @@ import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SearchModeChip from "./SearchModeChip";
 
+export interface Abortable {
+  abort: () => void;
+}
+
 function urlBase64ToUint8Array(base64String: string) {
   return new Uint8Array(
     atob(base64String.replace(/-/g, "+").replace(/_/g, "/"))
@@ -52,14 +56,14 @@ function readImages(images: string[]) {
 }
 
 function InputArea({
-  stopController,
+  abortable,
   onResearch,
   onSearch,
   onSearchImage,
   onGenerateImage,
   onChat,
 }: {
-  stopController?: AbortController;
+  abortable?: Abortable;
   onResearch: (task: string) => void;
   onSearch: (query: string) => void;
   onSearchImage: (query: string) => void;
@@ -268,7 +272,7 @@ function InputArea({
               }}
             />
           </IconButton>
-          {stopController ? (
+          {abortable ? (
             <IconButton
               aria-label={t("Stop")}
               size="small"
@@ -279,7 +283,7 @@ function InputArea({
                   backgroundColor: "primary.dark",
                 },
               }}
-              onClick={() => stopController.abort("User manually stopped")}
+              onClick={() => abortable.abort()}
             >
               <StopIcon />
             </IconButton>

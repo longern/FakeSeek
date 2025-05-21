@@ -2,6 +2,7 @@ import {
   combineReducers,
   configureStore,
   createAction,
+  createAsyncThunk,
 } from "@reduxjs/toolkit";
 
 import conversationsReducer from "./conversations";
@@ -23,6 +24,11 @@ const store = configureStore({
 
 export type AppDispatch = typeof store.dispatch;
 export type AppState = ReturnType<typeof rootReducer>;
+
+export const createAppAsyncThunk = createAsyncThunk.withTypes<{
+  state: AppState;
+  dispatch: AppDispatch;
+}>();
 
 export const initializeAction = createAction("app/initialize");
 
