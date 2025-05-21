@@ -3,6 +3,7 @@ import {
   ResponseComputerToolCall,
   ResponseContentPartAddedEvent,
   ResponseFileSearchToolCall,
+  ResponseFunctionCallArgumentsDeltaEvent,
   ResponseFunctionToolCall,
   ResponseFunctionWebSearch,
   ResponseInputItem,
@@ -122,6 +123,19 @@ export const messagesSlice = createSlice({
       if (!part) return;
       part.text += payload.delta;
     },
+
+    functionCallArgumentsDelta: (
+      state,
+      {
+        payload,
+      }: {
+        payload: ResponseFunctionCallArgumentsDeltaEvent;
+      }
+    ) => {
+      const message = state.messages[payload.item_id];
+      if (message?.type !== "function_call") return;
+      message.arguments += payload.delta;
+    },
   },
 
   extraReducers: (builder) => {
@@ -139,6 +153,7 @@ export const {
   contentPartDelta,
   addReasoningSummaryPart,
   reasoningSummaryTextDelta,
+  functionCallArgumentsDelta,
 } = messagesSlice.actions;
 
 export default messagesSlice.reducer;

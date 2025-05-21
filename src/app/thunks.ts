@@ -1,11 +1,14 @@
 import {
+  Response,
   ResponseFunctionToolCall,
   ResponseFunctionWebSearch,
   ResponseInputItem,
   ResponseInputMessageContentList,
   ResponseInputText,
   ResponseOutputItem,
+  ResponseReasoningItem,
   ResponseStreamEvent,
+  Tool,
 } from "openai/resources/responses/responses.mjs";
 import OpenAI from "openai";
 import { ImagesResponse } from "openai/resources.mjs";
@@ -18,6 +21,7 @@ import {
   contentPartDelta,
   reasoningSummaryTextDelta,
   update as updateMessage,
+  functionCallArgumentsDelta,
 } from "./messages";
 import { createAppAsyncThunk, AppDispatch } from "./store";
 
@@ -58,27 +62,27 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         break;
       }
 
-      case "response.content_part.added": {
+      case "response.content_part.added":
         dispatch(addContentPart(event));
         break;
-      }
 
-      case "response.output_text.delta": {
+      case "response.output_text.delta":
         dispatch(contentPartDelta(event));
         break;
-      }
 
-      case "response.reasoning_summary_part.added": {
+      case "response.reasoning_summary_part.added":
         dispatch(addReasoningSummaryPart(event));
         break;
-      }
 
-      case "response.reasoning_summary_text.delta": {
+      case "response.reasoning_summary_text.delta":
         dispatch(reasoningSummaryTextDelta(event));
         break;
-      }
 
-      case "response.functioin_call_output.completed": {
+      case "response.function_call_arguments.delta":
+        dispatch(functionCallArgumentsDelta(event));
+        break;
+
+      case "response.functioin_call_output.completed":
         dispatch(
           updateMessage({
             id: event.item.id!,
@@ -86,9 +90,8 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
           })
         );
         break;
-      }
 
-      case "response.functioin_call_output.incomplete": {
+      case "response.functioin_call_output.incomplete":
         dispatch(
           updateMessage({
             id: event.item.id!,
@@ -96,22 +99,22 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
           })
         );
         break;
-      }
     }
   };
 
   return messageDispatch;
 }
 
+export type CreateResponseParams = { model?: string; tools?: Tool[] };
+
 async function streamRequestAssistant(
-  messages: ChatMessage[],
+  messages: ResponseInputItem[],
   options?: {
     apiKey?: string;
     baseURL?: string;
-    model?: string;
     signal?: AbortSignal;
     onStreamEvent?: (event: ResponseStreamEvent) => void;
-  }
+  } & CreateResponseParams
 ) {
   const client = new OpenAI({
     apiKey: options?.apiKey,
@@ -123,33 +126,119 @@ async function streamRequestAssistant(
     options?.model ?? messages.some((m) => m.type === "reasoning")
       ? "o4-mini"
       : "gpt-4.1-nano";
-  const normMessages = messages.map((message) => {
-    if (
-      message.type === "message" &&
-      (message.role === "user" ||
-        message.role === "developer" ||
-        message.role === "system")
-    ) {
-      const { id, created_at, ...rest } = message;
-      return rest as ResponseInputItem.Message;
-    }
-    const { created_at, ...rest } = message;
-    return rest as ResponseInputItem;
-  });
   const response = await client.responses.create(
     {
       model: model,
-      input: normMessages,
+      input: messages,
       stream: true,
       reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
+      tools: options?.tools,
     },
     { signal: options?.signal }
   );
+
+  let result: Response;
   for await (const chunk of response) {
     options?.onStreamEvent?.(chunk);
+    if (chunk.type === "response.completed") result = chunk.response;
   }
 
-  return response;
+  return result!;
+}
+
+async function callFunction({
+  name,
+  args,
+  signal,
+}: {
+  name: string;
+  args: string;
+  signal: AbortSignal;
+}) {
+  switch (name) {
+    case "run_python":
+      const pythonCode = JSON.parse(args).code;
+      const res = await fetch("https://emkc.org/api/v2/piston/execute", {
+        method: "POST",
+        body: JSON.stringify({
+          language: "python3",
+          version: "3.10",
+          files: [{ name: "main.py", content: pythonCode }],
+        }),
+        headers: { "Content-Type": "application/json" },
+        signal,
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
+      return res.text();
+
+    default:
+      throw new Error(`Unknown function name: ${name}`);
+  }
+}
+
+async function handleFunctionCall({
+  message,
+  signal,
+}: {
+  message: ResponseFunctionToolCall;
+  signal: AbortSignal;
+}) {
+  try {
+    const output = await callFunction({
+      name: message.name,
+      args: message.arguments,
+      signal,
+    });
+    const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
+      type: "function_call_output",
+      call_id: message.call_id,
+      output: output,
+      status: "completed",
+    };
+    return toolCallOutputMessage;
+  } catch (error) {
+    const toolCallErrorMessage: ResponseInputItem.FunctionCallOutput = {
+      type: "function_call_output",
+      call_id: message.call_id,
+      output: (error as Error).message,
+      status: "incomplete",
+    };
+    return toolCallErrorMessage;
+  }
+}
+
+export const requestFunctionCall = createAppAsyncThunk(
+  "app/requestFunctionCall",
+  async (message: ResponseFunctionToolCall, thunkAPI) => {
+    const { dispatch, signal } = thunkAPI;
+    const outputMessage = await handleFunctionCall({
+      message,
+      signal,
+    });
+    dispatch(addMessage(outputMessage));
+  }
+);
+
+function normMessage(message: ChatMessage): ResponseInputItem {
+  if (!("created_at" in message)) return message;
+  if (
+    (message.type === "message" &&
+      (message.role === "user" ||
+        message.role === "developer" ||
+        message.role === "system")) ||
+    message.type === "function_call_output"
+  ) {
+    const { id, created_at, ...rest } = message;
+    return rest as ResponseInputItem.Message;
+  } else if (message.type === "reasoning") {
+    const { created_at, status, ...rest } = message;
+    return rest as ResponseReasoningItem;
+  }
+  const { created_at, ...rest } = message;
+  return rest as ResponseInputItem;
 }
 
 export const requestAssistant = createAppAsyncThunk(
@@ -158,22 +247,38 @@ export const requestAssistant = createAppAsyncThunk(
     {
       messages,
       options,
-    }: { messages: ChatMessage[]; options?: { model?: string } },
+    }: {
+      messages: ChatMessage[];
+      options?: CreateResponseParams;
+    },
     thunkAPI
   ) => {
     const { dispatch, getState, signal } = thunkAPI;
     const provider = getState().provider;
     const messageDispatch = messageDispatchWrapper(dispatch);
     try {
-      await streamRequestAssistant(messages, {
-        apiKey: provider.apiKey,
-        baseURL: provider.baseURL,
-        model: options?.model,
-        signal,
-        onStreamEvent(event_1) {
-          messageDispatch(event_1);
-        },
-      });
+      const currentMessages = messages.map(normMessage);
+
+      const MAX_TOOL_CALLS = 5;
+      for (let i = 0; i < MAX_TOOL_CALLS; i++) {
+        const response = await streamRequestAssistant(currentMessages, {
+          apiKey: provider.apiKey,
+          baseURL: provider.baseURL,
+          signal,
+          onStreamEvent: messageDispatch,
+          ...options,
+        });
+
+        currentMessages.push(...response.output);
+        const lastMessage = currentMessages[currentMessages.length - 1];
+        if (lastMessage.type !== "function_call") break;
+        const functionCallMessage = await handleFunctionCall({
+          message: lastMessage,
+          signal,
+        });
+        currentMessages.push(functionCallMessage);
+        dispatch(addMessage(functionCallMessage));
+      }
     } catch (error) {
       dispatch(
         addMessage({

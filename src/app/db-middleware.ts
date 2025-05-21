@@ -16,6 +16,7 @@ import {
   messagesSlice,
   reasoningSummaryTextDelta,
   set as setMessages,
+  functionCallArgumentsDelta,
 } from "./messages";
 import { AppState, initializeAction } from "./store";
 
@@ -170,10 +171,11 @@ export const dbMiddleware: Middleware<{}, AppState> =
       case addContentPart.type:
       case contentPartDelta.type:
       case addReasoningSummaryPart.type:
-      case reasoningSummaryTextDelta.type: {
+      case reasoningSummaryTextDelta.type:
+      case functionCallArgumentsDelta.type: {
         const result = next(action);
         const itemId = action.payload.item_id;
-        const message = state.messages.messages[itemId];
+        const message = store.getState().messages.messages[itemId];
         if (!message) {
           console.error("Message not found in state:", itemId);
           return result;

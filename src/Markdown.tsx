@@ -108,6 +108,45 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+export function CodeBox({
+  language,
+  children,
+  ...props
+}: {
+  language: string;
+  children: string;
+  [key: string]: any;
+}) {
+  return (
+    <Box sx={{ borderRadius: "0.3em", overflow: "hidden" }}>
+      <Box
+        sx={{
+          fontSize: "0.8rem",
+          backgroundColor: "#eee",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Box sx={{ paddingLeft: 1.5, userSelect: "none" }}>{language}</Box>
+        <CopyButton text={children} />
+      </Box>
+      <SyntaxHighlighter
+        {...props}
+        children={children}
+        language={language}
+        style={oneLight}
+        customStyle={{
+          margin: 0,
+          borderRadius: 0,
+          fontSize: "0.875rem",
+          overflowX: "auto",
+        }}
+      />
+    </Box>
+  );
+}
+
 function Markdown({ children }: { children: string }) {
   return (
     <ReactMarkdown
@@ -133,33 +172,10 @@ function Markdown({ children }: { children: string }) {
           const language = match ? match[1] : "";
           const code = (children.props.children ?? "").replace(/\n$/, "");
           return (
-            <Box sx={{ marginY: 1, borderRadius: "0.3em", overflow: "hidden" }}>
-              <Box
-                sx={{
-                  fontSize: "0.8rem",
-                  backgroundColor: "#eee",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Box sx={{ paddingLeft: 1.5, userSelect: "none" }}>
-                  {language}
-                </Box>
-                <CopyButton text={code} />
-              </Box>
-              <SyntaxHighlighter
-                {...props}
-                children={code}
-                language={language}
-                style={oneLight}
-                customStyle={{
-                  margin: 0,
-                  borderRadius: 0,
-                  fontSize: "0.875rem",
-                  overflowX: "auto",
-                }}
-              />
+            <Box sx={{ marginY: 1 }}>
+              <CodeBox language={language} {...props}>
+                {code}
+              </CodeBox>
             </Box>
           );
         },

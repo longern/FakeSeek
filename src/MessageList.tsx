@@ -13,13 +13,14 @@ import {
   UserMessage,
 } from "./MessageItem";
 import { useAppDispatch } from "./app/hooks";
+import { CreateResponseParams } from "./app/thunks";
 
 function MessageList({
   messages,
   onRetry,
 }: {
   messages: ChatMessage[];
-  onRetry: (message: ChatMessage, options?: { model?: string }) => void;
+  onRetry: (message: ChatMessage, options?: CreateResponseParams) => void;
 }) {
   const dispatch = useAppDispatch();
 
@@ -46,7 +47,7 @@ function MessageList({
             <AssistantMessage
               key={message?.id}
               message={message}
-              onRetry={(options?: { model?: string }) =>
+              onRetry={(options?: CreateResponseParams) =>
                 onRetry(message, options)
               }
             />

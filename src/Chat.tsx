@@ -26,6 +26,7 @@ import InputArea, { Abortable } from "./InputArea";
 import MessageList from "./MessageList";
 import { addMessageThunk } from "./app/db-middleware";
 import {
+  CreateResponseParams,
   requestAssistant,
   requestCreateResearch,
   requestGenerateImage,
@@ -72,7 +73,10 @@ function Chat() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
-  const handleRetry = (message: ChatMessage, options?: { model?: string }) => {
+  const handleRetry = (
+    message: ChatMessage,
+    options?: CreateResponseParams
+  ) => {
     const array = Object.values(messages);
     const index = array.indexOf(message);
     const hasReasoning = array[index - 1]?.type === "reasoning";

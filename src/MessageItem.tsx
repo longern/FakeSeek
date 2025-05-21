@@ -35,7 +35,9 @@ import { useTranslation } from "react-i18next";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 
-import Markdown from "./Markdown";
+import Markdown, { CodeBox } from "./Markdown";
+import { CreateResponseParams } from "./app/thunks";
+import { TOOL_PYTHON } from "./app/tools-definitions";
 
 export function UserMessage({
   message,
@@ -122,7 +124,7 @@ export function AssistantMessage({
   onRetry,
 }: {
   message: ResponseOutputMessage;
-  onRetry: (options?: { model?: string }) => void;
+  onRetry: (options?: CreateResponseParams) => void;
 }) {
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
@@ -149,7 +151,7 @@ export function AssistantMessage({
         sx={{
           maxWidth: "100%",
           overflowWrap: "break-word",
-          marginRight: 2,
+          marginRight: 4,
         }}
         onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
           const { nativeEvent } = e;
@@ -197,7 +199,7 @@ export function AssistantMessage({
       >
         <MenuItem
           onClick={() => {
-            onRetry({ model: "o4-mini" });
+            onRetry({ model: "o4-mini", tools: [TOOL_PYTHON] });
             setRetryMenuAnchor(null);
           }}
         >
@@ -308,6 +310,8 @@ export function ReasoningContent({
   const [expanded, setExpanded] = useState(false);
 
   const { t } = useTranslation();
+
+  if (!reasoning && content.length === 0) return null;
 
   return (
     <>
@@ -483,6 +487,62 @@ function SearchImageResultsContent({
   );
 }
 
+function RunPythonResultInner({
+  message,
+  toolCall,
+}: {
+  message: ResponseInputItem.FunctionCallOutput;
+  toolCall: ResponseFunctionToolCall;
+}) {
+  const result = useMemo(() => {
+    return JSON.parse(message.output) as {
+      run: { stdout: string; stderr: string };
+    };
+  }, [message]);
+
+  const { code } = useMemo(() => {
+    return JSON.parse(toolCall.arguments) as { code: string };
+  }, [toolCall]);
+
+  return (
+    <>
+      <Box sx={{ marginTop: 1 }}>
+        <CodeBox language="python">{code}</CodeBox>
+      </Box>
+      <Box sx={{ marginTop: 1 }}>
+        <CodeBox language="output">{result.run.stdout}</CodeBox>
+      </Box>
+    </>
+  );
+}
+
+function RunPythonResultContent({
+  message,
+  toolCall,
+}: {
+  message: ResponseInputItem.FunctionCallOutput;
+  toolCall: ResponseFunctionToolCall;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const { t } = useTranslation();
+
+  return (
+    <Box>
+      <Button
+        size="small"
+        sx={{ paddingX: 1.5 }}
+        onClick={() => setExpanded((expanded) => !expanded)}
+      >
+        {t("Execute Code")}
+        {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      </Button>
+      <Collapse in={expanded} unmountOnExit>
+        <RunPythonResultInner message={message} toolCall={toolCall} />
+      </Collapse>
+    </Box>
+  );
+}
+
 export function FunctionCallOutput({
   message,
   toolCall,
@@ -494,7 +554,7 @@ export function FunctionCallOutput({
 
   if (message.status === "in_progress") {
     return (
-      <Box sx={{ marginRight: "64px" }}>
+      <Box sx={{ marginRight: 4 }}>
         <CircularProgress size={24} />
       </Box>
     );
@@ -502,7 +562,7 @@ export function FunctionCallOutput({
 
   if (message.status === "incomplete") {
     return (
-      <Box sx={{ marginRight: "64px" }}>
+      <Box sx={{ marginRight: 4 }}>
         <Alert severity="error">{message.output}</Alert>
       </Box>
     );
@@ -511,20 +571,26 @@ export function FunctionCallOutput({
   switch (toolCall.name) {
     case "generate_image":
       return (
-        <Box sx={{ marginRight: "64px" }}>
+        <Box sx={{ marginRight: 4 }}>
           <GenerateImageContent message={message} />
         </Box>
       );
     case "search":
       return (
-        <Box sx={{ marginRight: "64px" }}>
+        <Box sx={{ marginRight: 4 }}>
           <SearchResultsContent message={message} />
         </Box>
       );
     case "search_image":
       return (
-        <Box sx={{ marginRight: "64px" }}>
+        <Box sx={{ marginRight: 4 }}>
           <SearchImageResultsContent message={message} />
+        </Box>
+      );
+    case "run_python":
+      return (
+        <Box sx={{ marginRight: 4 }}>
+          <RunPythonResultContent message={message} toolCall={toolCall} />
         </Box>
       );
   }
