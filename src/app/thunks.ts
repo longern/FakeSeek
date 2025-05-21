@@ -130,10 +130,11 @@ async function streamRequestAssistant(
         message.role === "developer" ||
         message.role === "system")
     ) {
-      const { id, ...rest } = message;
+      const { id, created_at, ...rest } = message;
       return rest as ResponseInputItem.Message;
     }
-    return message;
+    const { created_at, ...rest } = message;
+    return rest as ResponseInputItem;
   });
   const response = await client.responses.create(
     {
@@ -164,7 +165,7 @@ export const requestAssistant = createAppAsyncThunk(
     const provider = getState().provider;
     const messageDispatch = messageDispatchWrapper(dispatch);
     try {
-      return await streamRequestAssistant(messages, {
+      await streamRequestAssistant(messages, {
         apiKey: provider.apiKey,
         baseURL: provider.baseURL,
         model: options?.model,

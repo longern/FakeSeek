@@ -130,7 +130,7 @@ export const dbMiddleware: Middleware<{}, AppState> =
             .then((messagesArray) => {
               const messages = Object.fromEntries(
                 messagesArray.map((message) => {
-                  const { conversation_id, created_at, ...rest } = message;
+                  const { conversation_id, ...rest } = message;
                   return [message.id, rest];
                 })
               );

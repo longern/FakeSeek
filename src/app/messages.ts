@@ -14,8 +14,8 @@ import {
 } from "openai/resources/responses/responses.mjs";
 
 // Exclude EasyInputMessage
-export type ChatMessage =
-  | (ResponseInputItem.Message & { id: string })
+export type ChatMessage = (
+  | ResponseInputItem.Message
   | ResponseOutputMessage
   | ResponseFileSearchToolCall
   | ResponseComputerToolCall
@@ -24,11 +24,12 @@ export type ChatMessage =
   | ResponseFunctionToolCall
   | ResponseInputItem.FunctionCallOutput
   | ResponseReasoningItem
-  | ResponseInputItem.ItemReference;
+  | ResponseInputItem.ItemReference
+) & { id: string; created_at: number };
 
 export const add = createAction(
   "messages/add",
-  (action: Omit<ChatMessage, "id"> & { id?: string | null }) => {
+  (action: Omit<ChatMessage, "id" | "created_at"> & { id?: string | null }) => {
     const id: string = crypto.randomUUID();
     const created_at = Date.now();
     return {
