@@ -3,7 +3,6 @@ import {
   ResponseFunctionToolCall,
   ResponseFunctionWebSearch,
   ResponseInputItem,
-  ResponseInputMessageContentList,
   ResponseInputText,
   ResponseOutputItem,
   ResponseReasoningItem,
@@ -11,7 +10,6 @@ import {
   Tool,
 } from "openai/resources/responses/responses.mjs";
 import OpenAI from "openai";
-import { ImagesResponse } from "openai/resources.mjs";
 
 import {
   add as addMessage,
@@ -50,6 +48,7 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         break;
 
       case "response.output_item.done": {
+        if (!("status" in event.item)) break;
         const eventStatus = event.item.status as
           | "completed"
           | "in_progress"
@@ -113,7 +112,7 @@ async function streamRequestAssistant(
     apiKey?: string;
     baseURL?: string;
     signal?: AbortSignal;
-    onStreamEvent?: (event: ResponseStreamEvent) => void;
+    onStreamEvent: (event: ResponseStreamEvent) => void;
   } & CreateResponseParams
 ) {
   const client = new OpenAI({
@@ -368,102 +367,34 @@ export const requestSearchImage = createAppAsyncThunk(
 
 export const requestGenerateImage = createAppAsyncThunk(
   "app/requestGenerateImage",
-  async (content: ResponseInputMessageContentList, thunkAPI) => {
+  async (messages: ChatMessage[], thunkAPI) => {
     const { dispatch, getState, signal } = thunkAPI;
     const provider = getState().provider;
 
     const client = new OpenAI({
       apiKey: provider.apiKey,
-      baseURL: provider.baseURL,
+      baseURL:
+        provider?.baseURL ||
+        new URL("/api/v1", window.location.href).toString(),
       dangerouslyAllowBrowser: true,
     });
-
-    const callId = crypto.randomUUID();
-    const prompt = content
-      .filter((part) => part.type === "input_text")
-      .map((part) => part.text)
-      .join("\n");
-    const toolCallMessage: ResponseFunctionToolCall = {
-      id: crypto.randomUUID(),
-      type: "function_call",
-      call_id: callId,
-      name: "generate_image",
-      arguments: JSON.stringify({
-        prompt,
-        model: "gpt-image-1",
-        quality: provider.imageQuality,
-        moderation: "low",
-      }),
-      status: "completed",
-    };
-    dispatch(addMessage(toolCallMessage));
-
-    const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
-      id: crypto.randomUUID(),
-      type: "function_call_output",
-      call_id: callId,
-      output: "",
-      status: "in_progress",
-    };
-    dispatch(addMessage(toolCallOutputMessage));
-
-    const messageDispatch = messageDispatchWrapper(dispatch);
-    try {
-      let response: ImagesResponse;
-
-      if (content.length === 1 && content[0].type === "input_text") {
-        response = await client.images.generate(
+    const response = await client.responses.create(
+      {
+        model: "gpt-4.1-nano",
+        input: messages.map(normMessage),
+        tools: [
           {
-            prompt: prompt,
-            model: "gpt-image-1",
-            quality: provider.imageQuality,
+            type: "image_generation",
             moderation: "low",
-          },
-          { signal }
-        );
-      } else {
-        const imageResponses = await Promise.all(
-          content
-            .filter((part) => part.type === "input_image")
-            .map(async (part, index) => {
-              const res = await fetch(part.image_url!);
-              const blob = await res.blob();
-              const file = new File([blob], `image_${index + 1}`, {
-                type: blob.type,
-              });
-              return file;
-            })
-        );
-        response = await client.images.edit(
-          {
-            image: imageResponses,
-            prompt: prompt,
-            model: "gpt-image-1",
             quality: provider.imageQuality,
           },
-          { signal }
-        );
-      }
+        ],
+      },
+      { signal }
+    );
 
-      messageDispatch({
-        type: "response.functioin_call_output.completed",
-        output_index: 0,
-        item: {
-          ...toolCallOutputMessage,
-          status: "completed",
-          output: JSON.stringify(response.data),
-        },
-      });
-    } catch (error) {
-      messageDispatch({
-        type: "response.functioin_call_output.incomplete",
-        output_index: 0,
-        item: {
-          ...toolCallOutputMessage,
-          status: "incomplete",
-          output: (error as Error).message,
-        },
-      });
+    for await (const message of response.output) {
+      dispatch(addMessage(message));
     }
   }
 );

@@ -1,32 +1,22 @@
 import { createAction, createSlice } from "@reduxjs/toolkit";
 import {
-  ResponseComputerToolCall,
   ResponseContentPartAddedEvent,
-  ResponseFileSearchToolCall,
   ResponseFunctionCallArgumentsDeltaEvent,
-  ResponseFunctionToolCall,
-  ResponseFunctionWebSearch,
   ResponseInputItem,
-  ResponseOutputMessage,
-  ResponseReasoningItem,
   ResponseReasoningSummaryPartAddedEvent,
   ResponseReasoningSummaryTextDeltaEvent,
   ResponseTextDeltaEvent,
 } from "openai/resources/responses/responses.mjs";
 
-// Exclude EasyInputMessage
-export type ChatMessage = (
-  | ResponseInputItem.Message
-  | ResponseOutputMessage
-  | ResponseFileSearchToolCall
-  | ResponseComputerToolCall
-  | ResponseInputItem.ComputerCallOutput
-  | ResponseFunctionWebSearch
-  | ResponseFunctionToolCall
-  | ResponseInputItem.FunctionCallOutput
-  | ResponseReasoningItem
-  | ResponseInputItem.ItemReference
-) & { id: string; created_at: number };
+type ExcludeEasy<T> = T extends { content: infer C }
+  ? string extends C
+    ? never
+    : T
+  : T;
+export type ChatMessage = ExcludeEasy<ResponseInputItem> & {
+  id: string;
+  created_at: number;
+};
 
 export const add = createAction(
   "messages/add",

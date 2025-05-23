@@ -79,8 +79,14 @@ function Chat() {
   ) => {
     const array = Object.values(messages);
     const index = array.indexOf(message);
-    const hasReasoning = array[index - 1]?.type === "reasoning";
-    const sliceIndex = hasReasoning ? index - 1 : index;
+
+    let sliceIndex;
+    for (sliceIndex = index; sliceIndex >= 1; sliceIndex--) {
+      const message = array[sliceIndex - 1];
+      if (message.type === "message" && message.role === "user") break;
+    }
+    if (sliceIndex < 1) return;
+
     const priorMessages = array.slice(0, sliceIndex);
     for (let i = sliceIndex; i < array.length; i++) {
       dispatch(removeMessage(array[i].id!));
@@ -128,7 +134,11 @@ function Chat() {
       onGenerateImage={async (prompt) => {
         const newMessage = toUserMessage(prompt);
         await dispatch(addMessageThunk(newMessage));
-        setAbortable(dispatch(requestGenerateImage(newMessage.content)));
+        const newMessages = [
+          ...Object.values(messages),
+          newMessage as ChatMessage,
+        ];
+        setAbortable(dispatch(requestGenerateImage(newMessages)));
       }}
     />
   );
@@ -170,81 +180,59 @@ function Chat() {
             </IconButton>
           </Toolbar>
         ) : null}
-        {!Object.values(messages).length && !isMobile ? (
-          <Container
-            maxWidth="md"
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "100%",
-              gap: 2,
-            }}
-          >
-            <Typography
-              variant="h5"
-              sx={{ textAlign: "center", userSelect: "none" }}
+        <ScrollToBottom
+          className={css`
+            flex-grow: 1;
+            min-height: 0;
+          `}
+        >
+          <Stack sx={{ minHeight: "100%" }}>
+            <Container
+              maxWidth="md"
+              sx={{ flexGrow: 1, padding: 2, overflowX: "hidden" }}
             >
-              {t("What can I help with?")}
-            </Typography>
-            {inputArea}
-          </Container>
-        ) : (
-          <ScrollToBottom
-            className={css`
-              flex-grow: 1;
-              min-height: 0;
-            `}
-          >
-            <Stack sx={{ minHeight: "100%" }}>
-              <Container
-                maxWidth="md"
-                sx={{ flexGrow: 1, padding: 2, overflowX: "hidden" }}
-              >
-                {!Object.values(messages).length ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      marginTop: "35vh",
-                    }}
+              {!Object.values(messages).length ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginTop: "35vh",
+                  }}
+                >
+                  <Typography
+                    variant="h5"
+                    sx={{ textAlign: "center", userSelect: "none" }}
                   >
-                    <Typography
-                      variant="h5"
-                      sx={{ textAlign: "center", userSelect: "none" }}
-                    >
-                      {t("What can I help with?")}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <MessageList
-                    messages={Object.values(messages)}
-                    onRetry={handleRetry}
-                  />
-                )}
+                    {t("What can I help with?")}
+                  </Typography>
+                </Box>
+              ) : (
+                <MessageList
+                  messages={Object.values(messages)}
+                  onRetry={handleRetry}
+                />
+              )}
+            </Container>
+            <Box
+              sx={{
+                position: "sticky",
+                bottom: 0,
+                width: "100%",
+                background: (theme) =>
+                  `linear-gradient(to bottom, transparent 0, ${
+                    theme.palette.background.paper
+                  } ${theme.spacing(1)})`,
+                zIndex: 1,
+              }}
+            >
+              <Container maxWidth="md" disableGutters>
+                {inputArea}
               </Container>
-              <Box
-                sx={{
-                  position: "sticky",
-                  bottom: 0,
-                  width: "100%",
-                  background: (theme) =>
-                    `linear-gradient(to bottom, transparent 0, ${
-                      theme.palette.background.paper
-                    } ${theme.spacing(1)})`,
-                  zIndex: 1,
-                }}
-              >
-                <Container maxWidth="md" disableGutters>
-                  {inputArea}
-                </Container>
-              </Box>
-            </Stack>
-          </ScrollToBottom>
-        )}
+            </Box>
+          </Stack>
+        </ScrollToBottom>
       </Stack>
     </Stack>
   );

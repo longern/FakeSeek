@@ -9,6 +9,7 @@ import { add as addMessage, ChatMessage } from "./app/messages";
 import {
   AssistantMessage,
   FunctionCallOutput,
+  GenerateImageContent,
   ReasoningContent,
   UserMessage,
 } from "./MessageItem";
@@ -71,6 +72,10 @@ function MessageList({
               ) as ResponseFunctionToolCall | undefined
             }
           />
+        ) : message.type === "image_generation_call" ? (
+          <Box key={message.id} sx={{ marginRight: 4 }}>
+            <GenerateImageContent message={message} />
+          </Box>
         ) : message.type === "web_search_call" ? (
           <Box key={message.id}>
             <Button

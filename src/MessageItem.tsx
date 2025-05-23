@@ -23,7 +23,6 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Image } from "openai/resources.mjs";
 import {
   ResponseFunctionToolCall,
   ResponseInputItem,
@@ -62,7 +61,7 @@ export function UserMessage({
           padding: "8px 12px",
           backgroundColor: "#eff6ff",
           borderRadius: "20px",
-          marginLeft: "64px",
+          marginLeft: 4,
           alignSelf: "flex-end",
           whiteSpace: "pre-wrap",
         }}
@@ -342,32 +341,27 @@ export function ReasoningContent({
   );
 }
 
-function GenerateImageContent({
+export function GenerateImageContent({
   message,
 }: {
-  message: ResponseInputItem.FunctionCallOutput;
+  message: ResponseInputItem.ImageGenerationCall;
 }) {
-  const imageURLs = useMemo(() => {
-    const data: Array<Image> = JSON.parse(message.output);
-    return data.map((image) => {
-      const byteCharacters = atob(image.b64_json!);
-      const byteNumbers = new Uint8Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      return URL.createObjectURL(
-        new Blob([byteNumbers], { type: "image/png" })
-      );
-    });
+  const image = useMemo(() => {
+    const byteCharacters = atob(message.result!);
+    const byteNumbers = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    return URL.createObjectURL(new Blob([byteNumbers], { type: "image/png" }));
   }, [message]);
+
+  const alt = (message as any).revised_prompt ?? `Generated Image`;
 
   return (
     <PhotoProvider bannerVisible={false}>
-      {imageURLs.map((image, index) => (
-        <PhotoView key={index} src={image}>
-          <img src={image} alt={`Generated Image ${index + 1}`} />
-        </PhotoView>
-      ))}
+      <PhotoView src={image}>
+        <img src={image} alt={alt} title={alt} />
+      </PhotoView>
     </PhotoProvider>
   );
 }
@@ -569,12 +563,6 @@ export function FunctionCallOutput({
   }
 
   switch (toolCall.name) {
-    case "generate_image":
-      return (
-        <Box sx={{ marginRight: 4 }}>
-          <GenerateImageContent message={message} />
-        </Box>
-      );
     case "search":
       return (
         <Box sx={{ marginRight: 4 }}>
