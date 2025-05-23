@@ -48,7 +48,7 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         break;
 
       case "response.output_item.done": {
-        if (!("status" in event.item)) break;
+        if (!("status" in event.item) && event.item.type !== "reasoning") break;
         const eventStatus = event.item.status as
           | "completed"
           | "in_progress"

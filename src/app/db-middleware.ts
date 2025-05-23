@@ -72,7 +72,7 @@ export const addMessageThunk = createAsyncThunk<
       addConversation({
         title: generateTitle(message as ChatMessage),
       })
-    ).payload;
+    );
   }
   const result = dispatch(addMessage(message));
   return result.payload;
@@ -143,7 +143,7 @@ export const dbMiddleware: Middleware<{}, AppState> =
 
       case "messages/add": {
         const result = next(action);
-        let conversation_id = state.conversations.current;
+        const conversation_id = state.conversations.current;
         if (!conversation_id) {
           console.error("No current conversation set for message addition.");
           break;

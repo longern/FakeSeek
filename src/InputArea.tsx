@@ -122,7 +122,18 @@ function InputArea({
         }
       }
     },
-    [searchMode, enableResearch, enableGenerateImage, message]
+    [
+      searchMode,
+      enableResearch,
+      enableGenerateImage,
+      message,
+      images,
+      onChat,
+      onResearch,
+      onSearch,
+      onSearchImage,
+      onGenerateImage,
+    ]
   );
 
   return (

@@ -144,12 +144,12 @@ function SettingsDialog({
                     backdrop: { invisible: false },
                   }}
                 >
-                  {["low", "medium", "high"].map((quality) => (
+                  {(["low", "medium", "high"] as const).map((quality) => (
                     <ListItem key={quality} disablePadding>
                       <ListItemButton
                         selected={provider.imageQuality === quality}
                         onClick={() => {
-                          dispatch(setImageQuality(quality as any));
+                          dispatch(setImageQuality(quality));
                           setQualitySelectorAnchor(null);
                         }}
                       >
