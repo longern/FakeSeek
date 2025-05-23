@@ -36,7 +36,7 @@ import "react-photo-view/dist/react-photo-view.css";
 
 import Markdown, { CodeBox } from "./Markdown";
 import { CreateResponseParams } from "./app/thunks";
-import { TOOL_PYTHON } from "./app/tools-definitions";
+import { TOOL_GOOGLE_SEARCH, TOOL_PYTHON } from "./app/tools-definitions";
 
 export function UserMessage({
   message,
@@ -198,7 +198,10 @@ export function AssistantMessage({
       >
         <MenuItem
           onClick={() => {
-            onRetry({ model: "o4-mini", tools: [TOOL_PYTHON] });
+            onRetry({
+              model: "o4-mini",
+              tools: [TOOL_PYTHON, TOOL_GOOGLE_SEARCH],
+            });
             setRetryMenuAnchor(null);
           }}
         >
@@ -422,6 +425,40 @@ function SearchResultsContent({
   );
 }
 
+function GoogleSearchResultsContent({
+  message,
+}: {
+  message: ResponseInputItem.FunctionCallOutput;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <Button
+        size="small"
+        sx={{ paddingX: 1.5 }}
+        onClick={() => setExpanded((expanded) => !expanded)}
+      >
+        {t("Web Search")}
+        {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      </Button>
+      <Collapse in={expanded} unmountOnExit>
+        <Box
+          sx={{
+            "& ul": { listStyle: "none", marginY: 0, paddingLeft: 0 },
+            "& li>p": { marginY: 0 },
+            "& li": { marginY: 1 },
+          }}
+        >
+          <Markdown children={message.output} />
+        </Box>
+      </Collapse>
+    </>
+  );
+}
+
 interface SearchImageResults {
   items: Array<{
     title: string;
@@ -567,6 +604,12 @@ export function FunctionCallOutput({
       return (
         <Box sx={{ marginRight: 4 }}>
           <SearchResultsContent message={message} />
+        </Box>
+      );
+    case "google_search":
+      return (
+        <Box sx={{ marginRight: 4 }}>
+          <GoogleSearchResultsContent message={message} />
         </Box>
       );
     case "search_image":

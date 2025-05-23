@@ -17,3 +17,21 @@ export const TOOL_PYTHON: Tool = {
   },
   strict: true,
 };
+
+export const TOOL_GOOGLE_SEARCH: Tool = {
+  type: "function",
+  name: "google_search",
+  description: "Search the web using Google.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "The search query to execute.",
+      },
+    },
+    required: ["query"],
+    additionalProperties: false,
+  },
+  strict: true,
+};

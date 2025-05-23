@@ -145,6 +145,30 @@ async function streamRequestAssistant(
   return result!;
 }
 
+export interface SearchResults {
+  items: Array<{
+    title: string;
+    htmlTitle: string;
+    link: string;
+    formattedUrl: string;
+    htmlFormattedUrl: string;
+    snippet: string;
+  }>;
+}
+
+function formatSearchResults(items: SearchResults) {
+  // Markdown format
+  return items.items
+    .map(
+      (item) =>
+        `- [${item.title}](${item.link})\n\n  ${item.snippet.replace(
+          /<[^>]+>/g,
+          ""
+        )}`
+    )
+    .join("\n");
+}
+
 async function callFunction({
   name,
   args,
@@ -172,6 +196,19 @@ async function callFunction({
         throw new Error(errorText);
       }
       return res.text();
+
+    case "google_search":
+      const query = JSON.parse(args).query;
+      const searchRes = await fetch(
+        `/api/search?${new URLSearchParams({ q: query })}`,
+        { signal }
+      );
+      if (!searchRes.ok) {
+        const errorText = await searchRes.text();
+        throw new Error(errorText);
+      }
+      const searchBody: SearchResults = await searchRes.json();
+      return formatSearchResults(searchBody);
 
     default:
       throw new Error(`Unknown function name: ${name}`);
