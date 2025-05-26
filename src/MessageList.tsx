@@ -1,11 +1,12 @@
-import { Box, Button, Stack } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import {
   ResponseFunctionToolCall,
   ResponseInputItem,
-  ResponseOutputMessage,
 } from "openai/resources/responses/responses.mjs";
+import { Search } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 
-import { add as addMessage, ChatMessage } from "./app/messages";
+import { ChatMessage } from "./app/messages";
 import {
   AssistantMessage,
   FunctionCallOutput,
@@ -13,7 +14,6 @@ import {
   ReasoningContent,
   UserMessage,
 } from "./MessageItem";
-import { useAppDispatch } from "./app/hooks";
 import { CreateResponseParams } from "./app/thunks";
 
 function MessageList({
@@ -23,7 +23,7 @@ function MessageList({
   messages: ChatMessage[];
   onRetry: (message: ChatMessage, options?: CreateResponseParams) => void;
 }) {
-  const dispatch = useAppDispatch();
+  const { t } = useTranslation();
 
   return (
     <Stack
@@ -77,58 +77,18 @@ function MessageList({
             <GenerateImageContent message={message} />
           </Box>
         ) : message.type === "web_search_call" ? (
-          <Box key={message.id}>
-            <Button
-              onClick={async () => {
-                const researchId = message.id;
-                const res = await fetch(`/api/tasks/${researchId}`);
-                const data = await res.json();
-                if (
-                  ["terminated", "errored", "complete"].includes(data.status)
-                ) {
-                  const result: ResponseOutputMessage[] = data.output
-                    ? [
-                        {
-                          type: "message",
-                          role: "assistant",
-                          content: [
-                            {
-                              type: "output_text",
-                              text: `(Researched for ${
-                                (data.output.finish_time -
-                                  data.output.create_time) /
-                                1000
-                              } seconds)`,
-                            },
-                          ],
-                        },
-                        ...data.output.messages,
-                      ]
-                    : [
-                        {
-                          type: "message",
-                          role: "assistant",
-                          content: [
-                            { type: "refusal", refusal: data.error ?? "Error" },
-                          ],
-                        },
-                      ];
-                  for (const item of result) {
-                    dispatch(
-                      addMessage({
-                        id: message.id,
-                        type: "message",
-                        role: "assistant",
-                        content: item.content,
-                        status: "completed",
-                      } as ResponseOutputMessage)
-                    );
-                  }
-                }
-              }}
+          <Box key={message.id} sx={{ marginRight: 4, marginBottom: -1 }}>
+            <Typography
+              variant="body2"
+              sx={{ color: "text.secondary", userSelect: "none" }}
             >
-              Load Result
-            </Button>
+              <Stack direction="row" gap={0.5} sx={{ alignItems: "center" }}>
+                <Search />
+                {message.status === "completed"
+                  ? t("Search completed")
+                  : t("Searching...")}
+              </Stack>
+            </Typography>
           </Box>
         ) : null
       )}

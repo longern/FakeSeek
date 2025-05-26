@@ -5,6 +5,7 @@ const resources = {
   en: {
     translation: {
       "API Key": "API Key",
+      "Auto Search": "Auto Search",
       "Base URL": "Base URL",
       Camera: "Camera",
       Copy: "Copy",
@@ -22,6 +23,8 @@ const resources = {
       Research: "Research",
       Retry: "Retry",
       Search: "Search",
+      "Search completed": "Search completed",
+      "Searching...": "Searching...",
       "Select Text": "Select Text",
       Send: "Send",
       "Send message...": "Send message...",
@@ -41,6 +44,7 @@ const resources = {
   "zh-CN": {
     translation: {
       "API Key": "API 密钥",
+      "Auto Search": "自动搜索",
       "Base URL": "API 地址",
       Camera: "相机",
       Copy: "复制",
@@ -58,6 +62,8 @@ const resources = {
       Research: "研究",
       Retry: "重试",
       Search: "搜索",
+      "Search completed": "搜索完成",
+      "Searching...": "搜索中...",
       "Select Text": "选择文本",
       Send: "发送",
       "Send message...": "发送消息...",

@@ -117,14 +117,16 @@ function Chat() {
         ];
         setAbortable(dispatch(requestSearchImage(newMessages)));
       }}
-      onChat={(message) => {
+      onChat={(message, options) => {
         const newMessage = toUserMessage(message);
         dispatch(addMessageThunk(newMessage));
         const newMessages = [
           ...Object.values(messages),
           newMessage as ChatMessage,
         ];
-        setAbortable(dispatch(requestAssistant({ messages: newMessages })));
+        setAbortable(
+          dispatch(requestAssistant({ messages: newMessages, options }))
+        );
       }}
       onResearch={async (task) => {
         const newMessage = toUserMessage(task);

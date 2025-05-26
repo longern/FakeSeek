@@ -122,9 +122,8 @@ async function streamRequestAssistant(
     dangerouslyAllowBrowser: true,
   });
   const model =
-    options?.model ?? messages.some((m) => m.type === "reasoning")
-      ? "o4-mini"
-      : "gpt-4.1-nano";
+    options?.model ??
+    (messages.some((m) => m.type === "reasoning") ? "o4-mini" : "gpt-4.1-nano");
   const response = await client.responses.create(
     {
       model: model,

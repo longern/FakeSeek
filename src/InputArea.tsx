@@ -25,7 +25,9 @@ import {
 import { ResponseInputMessageContentList } from "openai/resources/responses/responses.mjs";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import SearchModeChip from "./SearchModeChip";
+import { CreateResponseParams } from "./app/thunks";
 
 export interface Abortable {
   abort: () => void;
@@ -68,10 +70,13 @@ function InputArea({
   onSearch: (query: string) => void;
   onSearchImage: (query: string) => void;
   onGenerateImage: (prompt: ResponseInputMessageContentList) => void;
-  onChat: (message: ResponseInputMessageContentList) => void;
+  onChat: (
+    message: ResponseInputMessageContentList,
+    options?: CreateResponseParams
+  ) => void;
 }) {
   const [searchMode, setSearchMode] = useState<
-    "webpage" | "image" | "deep-research" | undefined
+    "auto" | "webpage" | "image" | "deep-research" | undefined
   >(undefined);
   const [enableResearch, setEnableResearch] = useState(false);
   const [enableGenerateImage, setEnableGenerateImage] = useState(false);
@@ -118,7 +123,13 @@ function InputArea({
           setImages([]);
           return;
         } else {
-          onChat([{ type: "input_text", text: message }]);
+          onChat([{ type: "input_text", text: message }], {
+            tools:
+              searchMode === "auto"
+                ? [{ type: "web_search_preview" }]
+                : undefined,
+            model: searchMode === "auto" ? "gpt-4.1-mini" : undefined,
+          });
         }
       }
     },
@@ -308,9 +319,7 @@ function InputArea({
               sx={{
                 backgroundColor: "primary.main",
                 color: "primary.contrastText",
-                "&:hover": {
-                  backgroundColor: "primary.dark",
-                },
+                "&:hover": { backgroundColor: "primary.dark" },
                 "&:disabled": {
                   backgroundColor: "action.disabled",
                   color: "primary.contrastText",

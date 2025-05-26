@@ -19,12 +19,14 @@ function SearchModeChip({
   onChange,
   onMenuClose,
 }: {
-  value: "webpage" | "image" | "deep-research" | undefined;
-  onChange: (value: "webpage" | "image" | "deep-research" | undefined) => void;
+  value: "auto" | "webpage" | "image" | "deep-research" | undefined;
+  onChange: (
+    value: "auto" | "webpage" | "image" | "deep-research" | undefined
+  ) => void;
   onMenuClose?: () => void;
 }) {
   const [savedValue, setSavedValue] = useState<
-    "webpage" | "image" | "deep-research"
+    "auto" | "webpage" | "image" | "deep-research"
   >("webpage");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -50,7 +52,9 @@ function SearchModeChip({
             ? t("Image Search")
             : savedValue === "deep-research"
             ? t("Deep Research")
-            : t("Webpage Search")
+            : savedValue === "webpage"
+            ? t("Webpage Search")
+            : t("Auto Search")
         }
         icon={
           savedValue === "image" ? (
@@ -87,6 +91,18 @@ function SearchModeChip({
         onClose={handleMenuClose}
         anchorEl={anchorEl}
       >
+        <MenuItem
+          selected={value === "auto"}
+          onClick={() => {
+            onChange("auto");
+            handleMenuClose();
+          }}
+        >
+          <ListItemIcon>
+            <SearchIcon />
+          </ListItemIcon>
+          <ListItemText primary={t("Auto Search")}></ListItemText>
+        </MenuItem>
         <MenuItem
           selected={value === "webpage"}
           onClick={() => {
