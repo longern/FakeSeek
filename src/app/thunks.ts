@@ -20,6 +20,7 @@ import {
   reasoningSummaryTextDelta,
   update as updateMessage,
   functionCallArgumentsDelta,
+  codeInterpreterCallCodeDelta,
 } from "./messages";
 import { createAppAsyncThunk, AppDispatch } from "./store";
 
@@ -97,6 +98,10 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
             patch: { status: "incomplete", output: event.item.output },
           })
         );
+        break;
+
+      case "response.code_interpreter_call_code.delta":
+        dispatch(codeInterpreterCallCodeDelta(event));
         break;
     }
   };

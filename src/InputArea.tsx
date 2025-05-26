@@ -126,7 +126,10 @@ function InputArea({
           onChat([{ type: "input_text", text: message }], {
             tools:
               searchMode === "auto"
-                ? [{ type: "web_search_preview" }]
+                ? [
+                    { type: "web_search_preview" },
+                    { type: "code_interpreter", container: { type: "auto" } },
+                  ]
                 : undefined,
             model: searchMode === "auto" ? "gpt-4.1-mini" : undefined,
           });

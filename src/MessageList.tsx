@@ -1,12 +1,14 @@
+import SearchIcon from "@mui/icons-material/Search";
 import { Box, Stack, Typography } from "@mui/material";
 import {
   ResponseFunctionToolCall,
   ResponseInputItem,
 } from "openai/resources/responses/responses.mjs";
-import { Search } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 
 import { ChatMessage } from "./app/messages";
+import { CreateResponseParams } from "./app/thunks";
+import { CodeBox } from "./Markdown";
 import {
   AssistantMessage,
   FunctionCallOutput,
@@ -14,7 +16,6 @@ import {
   ReasoningContent,
   UserMessage,
 } from "./MessageItem";
-import { CreateResponseParams } from "./app/thunks";
 
 function MessageList({
   messages,
@@ -83,12 +84,16 @@ function MessageList({
               sx={{ color: "text.secondary", userSelect: "none" }}
             >
               <Stack direction="row" gap={0.5} sx={{ alignItems: "center" }}>
-                <Search />
+                <SearchIcon />
                 {message.status === "completed"
                   ? t("Search completed")
                   : t("Searching...")}
               </Stack>
             </Typography>
+          </Box>
+        ) : message.type === "code_interpreter_call" ? (
+          <Box key={message.id} sx={{ marginRight: 4 }}>
+            <CodeBox language="python">{message.code}</CodeBox>
           </Box>
         ) : null
       )}

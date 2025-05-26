@@ -1,5 +1,6 @@
 import { createAction, createSlice } from "@reduxjs/toolkit";
 import {
+  ResponseCodeInterpreterCallCodeDeltaEvent,
   ResponseContentPartAddedEvent,
   ResponseFunctionCallArgumentsDeltaEvent,
   ResponseInputItem,
@@ -126,6 +127,19 @@ export const messagesSlice = createSlice({
       if (message?.type !== "function_call") return;
       message.arguments += payload.delta;
     },
+
+    codeInterpreterCallCodeDelta: (
+      state,
+      {
+        payload,
+      }: {
+        payload: ResponseCodeInterpreterCallCodeDeltaEvent;
+      }
+    ) => {
+      const message = state.messages[payload.item_id];
+      if (message?.type !== "code_interpreter_call") return;
+      message.code += payload.delta;
+    },
   },
 
   extraReducers: (builder) => {
@@ -144,6 +158,7 @@ export const {
   addReasoningSummaryPart,
   reasoningSummaryTextDelta,
   functionCallArgumentsDelta,
+  codeInterpreterCallCodeDelta,
 } = messagesSlice.actions;
 
 export default messagesSlice.reducer;

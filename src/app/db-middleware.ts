@@ -17,6 +17,7 @@ import {
   reasoningSummaryTextDelta,
   set as setMessages,
   functionCallArgumentsDelta,
+  codeInterpreterCallCodeDelta,
 } from "./messages";
 import { AppState, initializeAction } from "./store";
 
@@ -172,7 +173,8 @@ export const dbMiddleware: Middleware<{}, AppState> =
       case contentPartDelta.type:
       case addReasoningSummaryPart.type:
       case reasoningSummaryTextDelta.type:
-      case functionCallArgumentsDelta.type: {
+      case functionCallArgumentsDelta.type:
+      case codeInterpreterCallCodeDelta.type: {
         const result = next(action);
         const itemId = action.payload.item_id;
         const message = store.getState().messages.messages[itemId];
