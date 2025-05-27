@@ -2,15 +2,21 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LinkIcon from "@mui/icons-material/Link";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
   Collapse,
+  Dialog,
   IconButton,
   Link,
+  List,
+  ListItem,
+  ListItemButton,
   ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
   Stack,
@@ -20,6 +26,7 @@ import {
   ResponseFunctionToolCall,
   ResponseInputItem,
   ResponseOutputMessage,
+  ResponseOutputText,
   ResponseReasoningItem,
 } from "openai/resources/responses/responses.mjs";
 import { Fragment, useMemo, useState } from "react";
@@ -109,6 +116,66 @@ export function UserMessage({
   ));
 }
 
+function AnnotationList({
+  annotations,
+}: {
+  annotations: ResponseOutputText["annotations"];
+}) {
+  const [showAnnotations, setShowAnnotations] = useState(false);
+
+  const { t } = useTranslation();
+
+  if (annotations.length === 0) return null;
+
+  return (
+    <>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={() => setShowAnnotations((prev) => !prev)}
+      >
+        {t("Found {{count}} results", {
+          count: annotations.length,
+        })}
+        <NavigateNextIcon fontSize="small" />
+      </Button>
+
+      <Dialog open={showAnnotations} onClose={() => setShowAnnotations(false)}>
+        <List disablePadding>
+          {annotations.map(
+            (annotation, index) =>
+              annotation.type === "url_citation" && (
+                <ListItem key={index} disablePadding>
+                  <ListItemButton
+                    component="a"
+                    href={annotation.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ListItemText
+                      primary={
+                        <Typography noWrap>{annotation.title}</Typography>
+                      }
+                      secondary={
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          color="text.secondary"
+                        >
+                          {annotation.url}
+                        </Typography>
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              )
+          )}
+        </List>
+      </Dialog>
+    </>
+  );
+}
+
 export function AssistantMessage({
   message,
   onContextMenu,
@@ -125,7 +192,10 @@ export function AssistantMessage({
         {message.content.map((part, index) => (
           <Box key={index}>
             {part.type === "output_text" ? (
-              <Markdown>{part.text}</Markdown>
+              <>
+                <Markdown>{part.text}</Markdown>
+                <AnnotationList annotations={part.annotations} />
+              </>
             ) : part.type === "refusal" ? (
               <Alert severity="error">{part.refusal}</Alert>
             ) : null}

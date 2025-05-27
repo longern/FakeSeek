@@ -3,6 +3,7 @@ import {
   Response,
   ResponseCodeInterpreterCallCodeDeltaEvent,
   ResponseContentPartAddedEvent,
+  ResponseContentPartDoneEvent,
   ResponseFunctionCallArgumentsDeltaEvent,
   ResponseInputItem,
   ResponseOutputItem,
@@ -111,7 +112,7 @@ export const messagesSlice = createSlice({
       } as ResponseOutputItem;
     },
 
-    addContentPart: (
+    contentPartAdded: (
       state,
       {
         payload,
@@ -147,6 +148,24 @@ export const messagesSlice = createSlice({
       const part = message.content[payload.event.content_index];
       if (part?.type !== "output_text") return;
       part.text += payload.event.delta;
+    },
+
+    contentPartDone: (
+      state,
+      {
+        payload,
+      }: {
+        payload: {
+          responseId: string;
+          event: ResponseContentPartDoneEvent;
+        };
+      }
+    ) => {
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
+      if (message.type !== "message") return;
+      message.content[payload.event.content_index] = payload.event.part;
     },
 
     addReasoningSummaryPart: (
@@ -238,8 +257,9 @@ export const {
   addResponse,
   outputItemAdded,
   outputItemUpdated,
-  addContentPart,
+  contentPartAdded,
   contentPartDelta,
+  contentPartDone,
   addReasoningSummaryPart,
   reasoningSummaryTextDelta,
   functionCallArgumentsDelta,

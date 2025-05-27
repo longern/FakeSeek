@@ -11,6 +11,7 @@ import {
   ListSubheader,
   Menu,
   MenuItem,
+  Typography,
   useMediaQuery,
 } from "@mui/material";
 import { useState } from "react";
@@ -140,13 +141,7 @@ function ConversationGroup({
             }}
           >
             <ListItemText
-              primary={conversation.title}
-              sx={{
-                display: "inline",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
+              primary={<Typography noWrap>{conversation.title}</Typography>}
               slotProps={{
                 primary: { fontSize: isMobile ? undefined : "14px" },
               }}

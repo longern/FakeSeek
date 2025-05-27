@@ -9,7 +9,7 @@ import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
 import { add as addConversation, conversationsSlice } from "./conversations";
 import { db } from "./db";
 import {
-  addContentPart,
+  contentPartAdded,
   add as addMessage,
   addReasoningSummaryPart,
   addResponse,
@@ -20,6 +20,9 @@ import {
   messagesSlice,
   reasoningSummaryTextDelta,
   set as setMessages,
+  contentPartDone,
+  outputItemUpdated,
+  outputItemAdded,
 } from "./messages";
 import { AppState, initializeAction } from "./store";
 
@@ -164,8 +167,11 @@ export const dbMiddleware: Middleware<{}, AppState> =
         break;
       }
 
-      case addContentPart.type:
+      case outputItemAdded.type:
+      case outputItemUpdated.type:
+      case contentPartAdded.type:
       case contentPartDelta.type:
+      case contentPartDone.type:
       case addReasoningSummaryPart.type:
       case reasoningSummaryTextDelta.type:
       case functionCallArgumentsDelta.type:

@@ -10,13 +10,14 @@ import {
 } from "openai/resources/responses/responses.mjs";
 
 import {
-  addContentPart,
+  contentPartAdded,
   add as addMessage,
   addReasoningSummaryPart,
   addResponse,
   ChatMessage,
   codeInterpreterCallCodeDelta,
   contentPartDelta,
+  contentPartDone,
   functionCallArgumentsDelta,
   outputItemAdded,
   outputItemUpdated,
@@ -84,7 +85,11 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
       }
 
       case "response.content_part.added":
-        dispatch(addContentPart({ responseId, event }));
+        dispatch(contentPartAdded({ responseId, event }));
+        break;
+
+      case "response.content_part.done":
+        dispatch(contentPartDone({ responseId, event }));
         break;
 
       case "response.output_text.delta":
