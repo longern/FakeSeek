@@ -83,7 +83,7 @@ function Chat() {
     let sliceIndex;
     for (sliceIndex = index; sliceIndex >= 1; sliceIndex--) {
       const message = array[sliceIndex - 1];
-      if (message.type === "message" && message.role === "user") break;
+      if (message.object === "message" && message.role === "user") break;
     }
     if (sliceIndex < 1) return;
 
@@ -117,13 +117,10 @@ function Chat() {
         ];
         setAbortable(dispatch(requestSearchImage(newMessages)));
       }}
-      onChat={(message, options) => {
+      onChat={async (message, options) => {
         const newMessage = toUserMessage(message);
-        dispatch(addMessageThunk(newMessage));
-        const newMessages = [
-          ...Object.values(messages),
-          newMessage as ChatMessage,
-        ];
+        const result = await dispatch(addMessageThunk(newMessage)).unwrap();
+        const newMessages = [...Object.values(messages), result.payload];
         setAbortable(
           dispatch(requestAssistant({ messages: newMessages, options }))
         );

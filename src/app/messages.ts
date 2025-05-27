@@ -1,33 +1,40 @@
 import { createAction, createSlice } from "@reduxjs/toolkit";
 import {
+  Response,
   ResponseCodeInterpreterCallCodeDeltaEvent,
   ResponseContentPartAddedEvent,
   ResponseFunctionCallArgumentsDeltaEvent,
   ResponseInputItem,
+  ResponseOutputItemAddedEvent,
   ResponseReasoningSummaryPartAddedEvent,
   ResponseReasoningSummaryTextDeltaEvent,
   ResponseTextDeltaEvent,
 } from "openai/resources/responses/responses.mjs";
 
-type ExcludeEasy<T> = T extends { content: infer C }
-  ? string extends C
-    ? never
-    : T
-  : T;
-export type ChatMessage = ExcludeEasy<ResponseInputItem> & {
-  id: string;
-  created_at: number;
-};
+export type ChatMessage = (
+  | (ResponseInputItem.Message & {
+      id: string;
+      object: "message";
+    })
+  | (ResponseInputItem.FunctionCallOutput & {
+      id: string;
+      object: "function_call_output";
+    })
+  | Response
+) & { timestamp: number };
 
 export const add = createAction(
   "messages/add",
-  (action: Omit<ChatMessage, "id" | "created_at"> & { id?: string | null }) => {
+  (
+    action: ResponseInputItem.Message | ResponseInputItem.FunctionCallOutput
+  ) => {
     const id: string = crypto.randomUUID();
-    const created_at = Date.now();
+    const timestamp = Date.now();
     return {
       payload: {
         id,
-        created_at,
+        timestamp,
+        object: action.type ?? "message",
         ...action,
       } as ChatMessage,
     };
@@ -57,17 +64,46 @@ export const messagesSlice = createSlice({
       } as ChatMessage;
     },
 
+    addResponse: (
+      state,
+      { payload }: { payload: Response & { timestamp: number } }
+    ) => {
+      if (payload.object !== "response") return;
+      state.messages[payload.id] = payload;
+    },
+
+    outputItemAdded: (
+      state,
+      {
+        payload,
+      }: {
+        payload: {
+          responseId: string;
+          event: ResponseOutputItemAddedEvent;
+        };
+      }
+    ) => {
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      response.output.push(payload.event.item);
+    },
+
     addContentPart: (
       state,
       {
         payload,
       }: {
-        payload: ResponseContentPartAddedEvent;
+        payload: {
+          responseId: string;
+          event: ResponseContentPartAddedEvent;
+        };
       }
     ) => {
-      const message = state.messages[payload.item_id];
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
       if (message?.type !== "message" || message.role !== "assistant") return;
-      message.content.push(payload.part);
+      message.content.push(payload.event.part);
     },
 
     contentPartDelta: (
@@ -75,14 +111,19 @@ export const messagesSlice = createSlice({
       {
         payload,
       }: {
-        payload: ResponseTextDeltaEvent;
+        payload: {
+          responseId: string;
+          event: ResponseTextDeltaEvent;
+        };
       }
     ) => {
-      const message = state.messages[payload.item_id];
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
       if (message?.type !== "message" || message.role !== "assistant") return;
-      const part = message.content[payload.content_index];
+      const part = message.content[payload.event.content_index];
       if (part?.type !== "output_text") return;
-      part.text += payload.delta;
+      part.text += payload.event.delta;
     },
 
     addReasoningSummaryPart: (
@@ -90,12 +131,17 @@ export const messagesSlice = createSlice({
       {
         payload,
       }: {
-        payload: ResponseReasoningSummaryPartAddedEvent;
+        payload: {
+          responseId: string;
+          event: ResponseReasoningSummaryPartAddedEvent;
+        };
       }
     ) => {
-      const message = state.messages[payload.item_id];
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
       if (message?.type !== "reasoning") return;
-      message.summary.push(payload.part);
+      message.summary.push(payload.event.part);
     },
 
     reasoningSummaryTextDelta: (
@@ -103,16 +149,19 @@ export const messagesSlice = createSlice({
       {
         payload,
       }: {
-        payload: ResponseReasoningSummaryTextDeltaEvent;
+        payload: {
+          responseId: string;
+          event: ResponseReasoningSummaryTextDeltaEvent;
+        };
       }
     ) => {
-      const id = payload.item_id;
-      if (!state.messages[id]) return;
-      const message = state.messages[id];
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
       if (message.type !== "reasoning") return;
-      const part = message.summary[payload.summary_index];
+      const part = message.summary[payload.event.summary_index];
       if (!part) return;
-      part.text += payload.delta;
+      part.text += payload.event.delta;
     },
 
     functionCallArgumentsDelta: (
@@ -120,12 +169,17 @@ export const messagesSlice = createSlice({
       {
         payload,
       }: {
-        payload: ResponseFunctionCallArgumentsDeltaEvent;
+        payload: {
+          responseId: string;
+          event: ResponseFunctionCallArgumentsDeltaEvent;
+        };
       }
     ) => {
-      const message = state.messages[payload.item_id];
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
       if (message?.type !== "function_call") return;
-      message.arguments += payload.delta;
+      message.arguments += payload.event.delta;
     },
 
     codeInterpreterCallCodeDelta: (
@@ -133,12 +187,17 @@ export const messagesSlice = createSlice({
       {
         payload,
       }: {
-        payload: ResponseCodeInterpreterCallCodeDeltaEvent;
+        payload: {
+          responseId: string;
+          event: ResponseCodeInterpreterCallCodeDeltaEvent;
+        };
       }
     ) => {
-      const message = state.messages[payload.item_id];
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
       if (message?.type !== "code_interpreter_call") return;
-      message.code += payload.delta;
+      message.code += payload.event.delta;
     },
   },
 
@@ -153,6 +212,8 @@ export const {
   remove,
   set,
   update,
+  addResponse,
+  outputItemAdded,
   addContentPart,
   contentPartDelta,
   addReasoningSummaryPart,

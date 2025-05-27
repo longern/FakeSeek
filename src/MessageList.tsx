@@ -1,21 +1,13 @@
-import SearchIcon from "@mui/icons-material/Search";
-import { Box, Stack, Typography } from "@mui/material";
+import { Stack } from "@mui/material";
 import {
   ResponseFunctionToolCall,
   ResponseInputItem,
 } from "openai/resources/responses/responses.mjs";
-import { useTranslation } from "react-i18next";
 
 import { ChatMessage } from "./app/messages";
 import { CreateResponseParams } from "./app/thunks";
-import { CodeBox } from "./Markdown";
-import {
-  AssistantMessage,
-  FunctionCallOutput,
-  GenerateImageContent,
-  ReasoningContent,
-  UserMessage,
-} from "./MessageItem";
+import { FunctionCallOutput, UserMessage } from "./MessageItem";
+import ResponseItem from "./ResponseItem";
 
 function MessageList({
   messages,
@@ -24,7 +16,18 @@ function MessageList({
   messages: ChatMessage[];
   onRetry: (message: ChatMessage, options?: CreateResponseParams) => void;
 }) {
-  const { t } = useTranslation();
+  function findToolCall(
+    message: ResponseInputItem.FunctionCallOutput
+  ): ResponseFunctionToolCall | undefined {
+    for (const response of messages) {
+      if (response.object !== "response") continue;
+      for (const item of response.output) {
+        if (item.type === "function_call" && item.call_id === message.call_id) {
+          return item as ResponseFunctionToolCall;
+        }
+      }
+    }
+  }
 
   return (
     <Stack
@@ -38,63 +41,23 @@ function MessageList({
         },
       }}
     >
-      {messages.map((message, index) =>
-        message.type === "message" ? (
-          message.role === "user" ? (
-            <UserMessage
-              key={index}
-              message={message as ResponseInputItem.Message}
-            />
-          ) : message.role === "assistant" ? (
-            <AssistantMessage
-              key={message?.id}
-              message={message}
-              onRetry={(options?: CreateResponseParams) =>
-                onRetry(message, options)
-              }
-            />
-          ) : null
-        ) : message.type === "reasoning" ? (
-          <Box key={message.id} sx={{ marginBottom: -1 }}>
-            <ReasoningContent
-              key={message.id}
-              content={message.summary}
-              reasoning={message.status !== "completed"}
-            />
-          </Box>
-        ) : message.type === "function_call_output" ? (
+      {messages.map((response, index) =>
+        response.object === "message" ? (
+          <UserMessage key={index} message={response} />
+        ) : response.object === "function_call_output" ? (
           <FunctionCallOutput
-            key={message.id || `out_${message.call_id}`}
-            message={message}
-            toolCall={
-              messages.find(
-                (m) =>
-                  m.type === "function_call" && m.call_id === message.call_id
-              ) as ResponseFunctionToolCall | undefined
+            key={response.id || `out_${response.call_id}`}
+            message={response}
+            toolCall={findToolCall(response)}
+          />
+        ) : response.object === "response" ? (
+          <ResponseItem
+            key={response.id}
+            response={response}
+            onRetry={(options?: CreateResponseParams) =>
+              onRetry(response, options)
             }
           />
-        ) : message.type === "image_generation_call" ? (
-          <Box key={message.id} sx={{ marginRight: 4 }}>
-            <GenerateImageContent message={message} />
-          </Box>
-        ) : message.type === "web_search_call" ? (
-          <Box key={message.id} sx={{ marginRight: 4, marginBottom: -1 }}>
-            <Typography
-              variant="body2"
-              sx={{ color: "text.secondary", userSelect: "none" }}
-            >
-              <Stack direction="row" gap={0.5} sx={{ alignItems: "center" }}>
-                <SearchIcon />
-                {message.status === "completed"
-                  ? t("Search completed")
-                  : t("Searching...")}
-              </Stack>
-            </Typography>
-          </Box>
-        ) : message.type === "code_interpreter_call" ? (
-          <Box key={message.id} sx={{ marginRight: 4 }}>
-            <CodeBox language="python">{message.code}</CodeBox>
-          </Box>
         ) : null
       )}
     </Stack>

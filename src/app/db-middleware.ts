@@ -4,20 +4,22 @@ import {
   Middleware,
   PayloadAction,
 } from "@reduxjs/toolkit";
+import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
 
 import { add as addConversation, conversationsSlice } from "./conversations";
 import { db } from "./db";
 import {
-  add as addMessage,
   addContentPart,
+  add as addMessage,
   addReasoningSummaryPart,
+  addResponse,
   ChatMessage,
+  codeInterpreterCallCodeDelta,
   contentPartDelta,
+  functionCallArgumentsDelta,
   messagesSlice,
   reasoningSummaryTextDelta,
   set as setMessages,
-  functionCallArgumentsDelta,
-  codeInterpreterCallCodeDelta,
 } from "./messages";
 import { AppState, initializeAction } from "./store";
 
@@ -36,7 +38,7 @@ const debounce = <T extends (...args: any[]) => void>(
 
 const debouncedSave = debounce((message: ChatMessage) => {
   if (!message.id) return;
-  db.messages.update(message.id, message as any);
+  db.messages.update(message.id, message);
 }, 50);
 
 type ValueOf<T> = T[keyof T];
@@ -53,10 +55,8 @@ const isAppAction = (
   return isAction(action);
 };
 
-function generateTitle(message: ChatMessage): string {
+function generateTitle(message: ResponseInputItem.Message): string {
   const DEFAULT_TITLE = "New Chat";
-  if (message.type !== "message" || message.role === "assistant")
-    return DEFAULT_TITLE;
   const textContent = message.content.find(
     (part) => part.type === "input_text"
   )?.text;
@@ -64,19 +64,18 @@ function generateTitle(message: ChatMessage): string {
 }
 
 export const addMessageThunk = createAsyncThunk<
-  ChatMessage,
-  Omit<ChatMessage, "id" | "created_at">,
+  PayloadAction<ChatMessage>,
+  ResponseInputItem.Message,
   { state: AppState }
 >("messages/add", async (message, { dispatch, getState }) => {
   if (!getState().conversations.current) {
     dispatch(
       addConversation({
-        title: generateTitle(message as ChatMessage),
+        title: generateTitle(message),
       })
     );
   }
-  const result = dispatch(addMessage(message));
-  return result.payload;
+  return dispatch(addMessage(message));
 });
 
 export const dbMiddleware: Middleware<{}, AppState> =
@@ -128,7 +127,7 @@ export const dbMiddleware: Middleware<{}, AppState> =
           db.messages
             .where("conversation_id")
             .equals(id)
-            .sortBy("created_at")
+            .sortBy("timestamp")
             .then((messagesArray) => {
               const messages = Object.fromEntries(
                 messagesArray.map((message) => {
@@ -142,19 +141,15 @@ export const dbMiddleware: Middleware<{}, AppState> =
         break;
       }
 
-      case "messages/add": {
+      case "messages/add":
+      case addResponse.type: {
         const result = next(action);
         const conversation_id = state.conversations.current;
         if (!conversation_id) {
           console.error("No current conversation set for message addition.");
           break;
         }
-        db.messages.add({
-          ...action.payload,
-          id: action.payload.id || crypto.randomUUID(),
-          created_at: Date.now(),
-          conversation_id,
-        });
+        db.messages.add({ ...action.payload, conversation_id });
         return result;
       }
 
@@ -176,10 +171,10 @@ export const dbMiddleware: Middleware<{}, AppState> =
       case functionCallArgumentsDelta.type:
       case codeInterpreterCallCodeDelta.type: {
         const result = next(action);
-        const itemId = action.payload.item_id;
-        const message = store.getState().messages.messages[itemId];
+        const responseId = action.payload.responseId;
+        const message = store.getState().messages.messages[responseId];
         if (!message) {
-          console.error("Message not found in state:", itemId);
+          console.error("Message not found in state:", responseId);
           return result;
         }
         debouncedSave(message);

@@ -1,28 +1,28 @@
+import OpenAI from "openai";
 import {
   Response,
   ResponseFunctionToolCall,
   ResponseFunctionWebSearch,
   ResponseInputItem,
   ResponseInputText,
-  ResponseOutputItem,
-  ResponseReasoningItem,
   ResponseStreamEvent,
   Tool,
 } from "openai/resources/responses/responses.mjs";
-import OpenAI from "openai";
 
 import {
-  add as addMessage,
-  ChatMessage,
   addContentPart,
+  add as addMessage,
   addReasoningSummaryPart,
+  addResponse,
+  ChatMessage,
+  codeInterpreterCallCodeDelta,
   contentPartDelta,
+  functionCallArgumentsDelta,
+  outputItemAdded,
   reasoningSummaryTextDelta,
   update as updateMessage,
-  functionCallArgumentsDelta,
-  codeInterpreterCallCodeDelta,
 } from "./messages";
-import { createAppAsyncThunk, AppDispatch } from "./store";
+import { AppDispatch, createAppAsyncThunk } from "./store";
 
 interface FunctionCallOutputCompletedEvent {
   item: ResponseInputItem.FunctionCallOutput;
@@ -38,14 +38,28 @@ interface FunctionCallOutputIncompleteEvent {
 
 export function messageDispatchWrapper(dispatch: AppDispatch) {
   const messageDispatch = (
+    responseId: string,
     event:
       | ResponseStreamEvent
       | FunctionCallOutputCompletedEvent
       | FunctionCallOutputIncompleteEvent
   ) => {
     switch (event.type) {
+      case "response.created":
+        dispatch(addResponse({ ...event.response, timestamp: Date.now() }));
+        break;
+
+      case "response.completed":
+        dispatch(
+          updateMessage({
+            id: event.response.id,
+            patch: { status: event.response.status },
+          })
+        );
+        break;
+
       case "response.output_item.added":
-        dispatch(addMessage(event.item));
+        dispatch(outputItemAdded({ responseId, event }));
         break;
 
       case "response.output_item.done": {
@@ -63,23 +77,23 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
       }
 
       case "response.content_part.added":
-        dispatch(addContentPart(event));
+        dispatch(addContentPart({ responseId, event }));
         break;
 
       case "response.output_text.delta":
-        dispatch(contentPartDelta(event));
+        dispatch(contentPartDelta({ responseId, event }));
         break;
 
       case "response.reasoning_summary_part.added":
-        dispatch(addReasoningSummaryPart(event));
+        dispatch(addReasoningSummaryPart({ responseId, event }));
         break;
 
       case "response.reasoning_summary_text.delta":
-        dispatch(reasoningSummaryTextDelta(event));
+        dispatch(reasoningSummaryTextDelta({ responseId, event }));
         break;
 
       case "response.function_call_arguments.delta":
-        dispatch(functionCallArgumentsDelta(event));
+        dispatch(functionCallArgumentsDelta({ responseId, event }));
         break;
 
       case "response.functioin_call_output.completed":
@@ -101,7 +115,7 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         break;
 
       case "response.code_interpreter_call_code.delta":
-        dispatch(codeInterpreterCallCodeDelta(event));
+        dispatch(codeInterpreterCallCodeDelta({ responseId, event }));
         break;
     }
   };
@@ -117,7 +131,7 @@ async function streamRequestAssistant(
     apiKey?: string;
     baseURL?: string;
     signal?: AbortSignal;
-    onStreamEvent: (event: ResponseStreamEvent) => void;
+    onStreamEvent: (responseId: string, event: ResponseStreamEvent) => void;
   } & CreateResponseParams
 ) {
   const client = new OpenAI({
@@ -142,7 +156,8 @@ async function streamRequestAssistant(
 
   let result: Response;
   for await (const chunk of response) {
-    options?.onStreamEvent?.(chunk);
+    if (chunk.type === "response.created") result = chunk.response;
+    options?.onStreamEvent?.(result!.id, chunk);
     if (chunk.type === "response.completed") result = chunk.response;
   }
 
@@ -262,23 +277,15 @@ export const requestFunctionCall = createAppAsyncThunk(
   }
 );
 
-function normMessage(message: ChatMessage): ResponseInputItem {
-  if (!("created_at" in message)) return message;
+function normMessage(message: ChatMessage): ResponseInputItem[] {
   if (
-    (message.type === "message" &&
-      (message.role === "user" ||
-        message.role === "developer" ||
-        message.role === "system")) ||
-    message.type === "function_call_output"
+    message.object === "message" ||
+    message.object === "function_call_output"
   ) {
-    const { id, created_at, ...rest } = message;
-    return rest as ResponseInputItem.Message;
-  } else if (message.type === "reasoning") {
-    const { created_at, status, ...rest } = message;
-    return rest as ResponseReasoningItem;
+    const { id, timestamp, object, ...rest } = message;
+    return [rest as ResponseInputItem];
   }
-  const { created_at, ...rest } = message;
-  return rest as ResponseInputItem;
+  return message.output;
 }
 
 export const requestAssistant = createAppAsyncThunk(
@@ -297,36 +304,43 @@ export const requestAssistant = createAppAsyncThunk(
     const provider = getState().provider;
     const messageDispatch = messageDispatchWrapper(dispatch);
     try {
-      const currentMessages = messages.map(normMessage);
+      const currentMessages = messages;
 
       const MAX_TOOL_CALLS = 5;
       for (let i = 0; i < MAX_TOOL_CALLS; i++) {
-        const response = await streamRequestAssistant(currentMessages, {
-          apiKey: provider.apiKey,
-          baseURL: provider.baseURL,
-          signal,
-          onStreamEvent: messageDispatch,
-          ...options,
-        });
+        const response = await streamRequestAssistant(
+          currentMessages.flatMap(normMessage),
+          {
+            apiKey: provider.apiKey,
+            baseURL: provider.baseURL,
+            signal,
+            onStreamEvent: messageDispatch,
+            ...options,
+          }
+        );
 
-        currentMessages.push(...response.output);
-        const lastMessage = currentMessages[currentMessages.length - 1];
+        currentMessages.push({ ...response, timestamp: Date.now() });
+        const lastMessage = response.output[response.output.length - 1];
         if (lastMessage.type !== "function_call") break;
         const functionCallMessage = await handleFunctionCall({
           message: lastMessage,
           signal,
         });
-        currentMessages.push(functionCallMessage);
-        dispatch(addMessage(functionCallMessage));
+        const newMessage = dispatch(addMessage(functionCallMessage));
+        currentMessages.push(newMessage.payload);
       }
     } catch (error) {
       dispatch(
-        addMessage({
-          type: "message",
-          role: "assistant",
-          content: [{ type: "refusal", refusal: (error as Error).message }],
-          status: "incomplete",
-        } as ResponseOutputItem)
+        addResponse({
+          object: "response",
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          error: {
+            code: "server_error",
+            message: (error as Error).message,
+          },
+          output: [],
+        } as unknown as Response & { timestamp: number })
       );
     }
   }
@@ -351,21 +365,40 @@ export const requestSearch = createAppAsyncThunk(
       arguments: JSON.stringify({ query }),
       status: "completed",
     };
-    dispatch(addMessage(toolCallMessage));
-
-    const response = await fetch(
-      `/api/search?${new URLSearchParams({ q: query })}`,
-      { signal }
+    dispatch(
+      addResponse({
+        object: "response",
+        id: crypto.randomUUID(),
+        created_at: Math.floor(Date.now() / 1000),
+        error: null,
+        output: [toolCallMessage],
+      } as Response & { timestamp: number })
     );
-    const body = await response.json();
-    const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
-      id: crypto.randomUUID(),
-      type: "function_call_output",
-      call_id: callId,
-      output: JSON.stringify(body.items),
-      status: "completed",
-    };
-    dispatch(addMessage(toolCallOutputMessage));
+
+    try {
+      const response = await fetch(
+        `/api/search?${new URLSearchParams({ q: query })}`,
+        { signal }
+      );
+      const body = await response.json();
+      const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
+        id: crypto.randomUUID(),
+        type: "function_call_output",
+        call_id: callId,
+        output: JSON.stringify(body.items),
+        status: "completed",
+      };
+      dispatch(addMessage(toolCallOutputMessage));
+    } catch (error) {
+      const toolCallErrorMessage: ResponseInputItem.FunctionCallOutput = {
+        id: crypto.randomUUID(),
+        type: "function_call_output",
+        call_id: callId,
+        output: (error as Error).message,
+        status: "incomplete",
+      };
+      dispatch(addMessage(toolCallErrorMessage));
+    }
   }
 );
 
@@ -389,20 +422,39 @@ export const requestSearchImage = createAppAsyncThunk(
       arguments: JSON.stringify({ query }),
       status: "completed",
     };
-    dispatch(addMessage(toolCallMessage));
-
-    const response = await fetch(
-      `/api/search?${new URLSearchParams({ q: query, searchType: "image" })}`
+    dispatch(
+      addResponse({
+        object: "response",
+        id: crypto.randomUUID(),
+        created_at: Math.floor(Date.now() / 1000),
+        error: null,
+        output: [toolCallMessage],
+      } as Response & { timestamp: number })
     );
-    const body = await response.json();
-    const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
-      id: crypto.randomUUID(),
-      type: "function_call_output",
-      call_id: callId,
-      output: JSON.stringify(body.items),
-      status: "completed",
-    };
-    dispatch(addMessage(toolCallOutputMessage));
+
+    try {
+      const response = await fetch(
+        `/api/search?${new URLSearchParams({ q: query, searchType: "image" })}`
+      );
+      const body = await response.json();
+      const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
+        id: crypto.randomUUID(),
+        type: "function_call_output",
+        call_id: callId,
+        output: JSON.stringify(body.items),
+        status: "completed",
+      };
+      dispatch(addMessage(toolCallOutputMessage));
+    } catch (error) {
+      const toolCallErrorMessage: ResponseInputItem.FunctionCallOutput = {
+        id: crypto.randomUUID(),
+        type: "function_call_output",
+        call_id: callId,
+        output: (error as Error).message,
+        status: "incomplete",
+      };
+      dispatch(addMessage(toolCallErrorMessage));
+    }
   }
 );
 
@@ -422,7 +474,7 @@ export const requestGenerateImage = createAppAsyncThunk(
     const response = await client.responses.create(
       {
         model: "gpt-4.1-nano",
-        input: messages.map(normMessage),
+        input: messages.flatMap(normMessage),
         tools: [
           {
             type: "image_generation",
@@ -430,13 +482,12 @@ export const requestGenerateImage = createAppAsyncThunk(
             quality: provider.imageQuality,
           },
         ],
+        tool_choice: "required",
       },
       { signal }
     );
 
-    for await (const message of response.output) {
-      dispatch(addMessage(message));
-    }
+    dispatch(addResponse({ ...response, timestamp: Date.now() }));
   }
 );
 

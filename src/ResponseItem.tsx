@@ -1,0 +1,254 @@
+import CloseIcon from "@mui/icons-material/Close";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ReplayIcon from "@mui/icons-material/Replay";
+import SearchIcon from "@mui/icons-material/Search";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  Divider,
+  IconButton,
+  InputBase,
+  ListItemIcon,
+  Menu,
+  MenuItem,
+  Stack,
+  Toolbar,
+  Typography,
+} from "@mui/material";
+import { Response } from "openai/resources/responses/responses.mjs";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
+import "react-photo-view/dist/react-photo-view.css";
+
+import { CreateResponseParams } from "./app/thunks";
+import { TOOL_GOOGLE_SEARCH, TOOL_PYTHON } from "./app/tools-definitions";
+import { CodeBox } from "./Markdown";
+import {
+  AssistantMessage,
+  GenerateImageContent,
+  ReasoningContent,
+} from "./MessageItem";
+
+function ResponseItem({
+  response,
+  onRetry,
+}: {
+  response: Response;
+  onRetry: (options?: CreateResponseParams) => void;
+}) {
+  const [retryMenuAnchor, setRetryMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [contextMenu, setContextMenu] = useState<{
+    mouseX: number;
+    mouseY: number;
+  } | null>(null);
+  const [showSelection, setShowSelection] = useState(false);
+  const { t } = useTranslation();
+
+  const handleCopy = useCallback(() => {
+    const content = response.output
+      .flatMap((message) =>
+        message.type !== "message"
+          ? []
+          : message.content.map((part) =>
+              part.type === "output_text" ? part.text : part.refusal
+            )
+      )
+      .join("\n");
+    navigator.clipboard.writeText(content);
+    setContextMenu(null);
+  }, [response.output]);
+
+  return (
+    <Box key={response.id} sx={{ marginRight: 4 }}>
+      {response.error ? (
+        <Alert severity="error">{response.error.message}</Alert>
+      ) : (
+        response.output.map((message) =>
+          message.type === "message" ? (
+            message.role === "assistant" ? (
+              <AssistantMessage
+                key={message?.id}
+                message={message}
+                onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
+                  const { nativeEvent } = e;
+                  if (nativeEvent.pointerType === "mouse") return;
+                  nativeEvent.preventDefault();
+                  window.getSelection()?.removeAllRanges();
+                  setContextMenu({ mouseX: e.clientX, mouseY: e.clientY });
+                }}
+              />
+            ) : null
+          ) : message.type === "reasoning" ? (
+            <Box key={message.id} sx={{ marginBottom: -1 }}>
+              <ReasoningContent
+                key={message.id}
+                content={message.summary}
+                reasoning={message.status !== "completed"}
+              />
+            </Box>
+          ) : message.type === "image_generation_call" ? (
+            <GenerateImageContent key={message.id} message={message} />
+          ) : message.type === "web_search_call" ? (
+            <Box key={message.id} sx={{ marginBottom: -1 }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", userSelect: "none" }}
+              >
+                <Stack direction="row" gap={0.5} sx={{ alignItems: "center" }}>
+                  <SearchIcon />
+                  {message.status === "completed"
+                    ? t("Search completed")
+                    : t("Searching...")}
+                </Stack>
+              </Typography>
+            </Box>
+          ) : message.type === "code_interpreter_call" ? (
+            <CodeBox key={message.id} language="python">
+              {message.code}
+            </CodeBox>
+          ) : null
+        )
+      )}
+
+      <Stack direction="row" gap={1} sx={{ marginTop: 1 }}>
+        <IconButton
+          sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+          onClick={handleCopy}
+        >
+          <ContentCopyIcon fontSize="small" />
+        </IconButton>
+        <Button
+          size="small"
+          sx={{ minWidth: 0, color: "text.secondary" }}
+          onClick={(e) => {
+            setRetryMenuAnchor(e.currentTarget);
+          }}
+        >
+          <ReplayIcon fontSize="small" />
+          <ExpandMoreIcon fontSize="small" />
+        </Button>
+      </Stack>
+
+      <Menu
+        anchorEl={retryMenuAnchor}
+        open={Boolean(retryMenuAnchor)}
+        onClose={() => setRetryMenuAnchor(null)}
+        slotProps={{ list: { sx: { minWidth: "160px" } } }}
+      >
+        <MenuItem
+          onClick={() => {
+            onRetry({
+              model: "o4-mini",
+              tools: [TOOL_PYTHON, TOOL_GOOGLE_SEARCH],
+            });
+            setRetryMenuAnchor(null);
+          }}
+        >
+          o4-mini
+        </MenuItem>
+        <Divider component="li" />
+        <MenuItem
+          onClick={() => {
+            onRetry();
+            setRetryMenuAnchor(null);
+          }}
+        >
+          {t("Retry")}
+        </MenuItem>
+      </Menu>
+
+      <Menu
+        open={Boolean(contextMenu)}
+        onClose={() => setContextMenu(null)}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+        slotProps={{ list: { sx: { minWidth: "160px" } } }}
+      >
+        <MenuItem onClick={handleCopy}>
+          <ListItemIcon>
+            <ContentCopyIcon />
+          </ListItemIcon>
+          {t("Copy")}
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setShowSelection(true);
+            setContextMenu(null);
+          }}
+        >
+          <ListItemIcon>
+            <SelectAllIcon />
+          </ListItemIcon>
+          {t("Select Text")}
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onRetry();
+            setContextMenu(null);
+          }}
+        >
+          <ListItemIcon>
+            <ReplayIcon />
+          </ListItemIcon>
+          {t("Retry")}
+        </MenuItem>
+      </Menu>
+
+      <Dialog
+        fullScreen
+        open={showSelection}
+        onClose={() => setShowSelection(false)}
+      >
+        <Toolbar
+          disableGutters
+          sx={{
+            position: "sticky",
+            top: 0,
+            backgroundColor: "background.paper",
+            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+            zIndex: 1,
+          }}
+        >
+          <IconButton
+            aria-label="Close"
+            size="large"
+            onClick={() => setShowSelection(false)}
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
+            {t("Select Text")}
+          </Typography>
+          <Box sx={{ width: "48px" }} />
+        </Toolbar>
+        <InputBase
+          multiline
+          fullWidth
+          value={response.output
+            .flatMap((message) =>
+              message.type !== "message"
+                ? []
+                : message.content.map((part) =>
+                    part.type === "output_text" ? part.text : part.refusal
+                  )
+            )
+            .join("\n")}
+          slotProps={{ input: { readOnly: true } }}
+          sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
+        />
+      </Dialog>
+    </Box>
+  );
+}
+
+export default ResponseItem;
