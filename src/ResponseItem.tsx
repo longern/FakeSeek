@@ -100,7 +100,12 @@ function ResponseItem({
                 variant="body2"
                 sx={{ color: "text.secondary", userSelect: "none" }}
               >
-                <Stack direction="row" gap={0.5} sx={{ alignItems: "center" }}>
+                <Stack
+                  component="span"
+                  direction="row"
+                  gap={0.5}
+                  sx={{ alignItems: "center" }}
+                >
                   <SearchIcon />
                   {message.status === "completed"
                     ? t("Search completed")

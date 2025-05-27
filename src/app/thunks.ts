@@ -19,6 +19,7 @@ import {
   contentPartDelta,
   functionCallArgumentsDelta,
   outputItemAdded,
+  outputItemUpdated,
   reasoningSummaryTextDelta,
   update as updateMessage,
 } from "./messages";
@@ -72,7 +73,13 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         const isReasoningCompleted =
           event.item.type === "reasoning" && eventStatus === undefined;
         const status = isReasoningCompleted ? "completed" : eventStatus;
-        dispatch(updateMessage({ id: event.item.id!, patch: { status } }));
+        dispatch(
+          outputItemUpdated({
+            responseId,
+            outputIndex: event.output_index,
+            patch: { status },
+          })
+        );
         break;
       }
 
