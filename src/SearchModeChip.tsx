@@ -1,4 +1,5 @@
 import {
+  AutoAwesome as AutoAwesomeIcon,
   ExpandLess as ExpandLessIcon,
   ImageSearch as ImageSearchIcon,
   QueryStats as QueryStatsIcon,
@@ -27,7 +28,7 @@ function SearchModeChip({
 }) {
   const [savedValue, setSavedValue] = useState<
     "auto" | "webpage" | "image" | "deep-research"
-  >("webpage");
+  >("auto");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation();
@@ -61,8 +62,10 @@ function SearchModeChip({
             <ImageSearchIcon fontSize="small" />
           ) : savedValue === "deep-research" ? (
             <QueryStatsIcon fontSize="small" />
-          ) : (
+          ) : savedValue === "webpage" ? (
             <SearchIcon fontSize="small" />
+          ) : (
+            <AutoAwesomeIcon fontSize="small" />
           )
         }
         color={value ? "primary" : "default"}
@@ -99,7 +102,7 @@ function SearchModeChip({
           }}
         >
           <ListItemIcon>
-            <SearchIcon />
+            <AutoAwesomeIcon />
           </ListItemIcon>
           <ListItemText primary={t("Auto Search")}></ListItemText>
         </MenuItem>

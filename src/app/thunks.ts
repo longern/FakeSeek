@@ -55,7 +55,10 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         dispatch(
           updateMessage({
             id: event.response.id,
-            patch: { status: event.response.status },
+            patch: {
+              status: event.response.status,
+              usage: event.response.usage,
+            },
           })
         );
         break;
