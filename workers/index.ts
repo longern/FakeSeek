@@ -2,11 +2,13 @@ import { Hono } from "hono";
 
 import type { DigestWorkflowParams } from "./workflow";
 import { search } from "./search";
+import mcpApp from "./mcp";
 import openaiApp from "./openai";
 
+export { ChatToolsMcp } from "./mcp";
 export { DigestWorkflow } from "./workflow";
 
-const app = new Hono<{
+const apiApp = new Hono<{
   Bindings: {
     GOOGLE_API_KEY: string;
     GOOGLE_CSE_CX: string;
@@ -14,9 +16,9 @@ const app = new Hono<{
     OPENAI_API_KEY?: string;
     OPENAI_BASE_URL?: string;
   };
-}>().basePath("/api");
+}>();
 
-app.get("/search", (c) => {
+apiApp.get("/search", (c) => {
   const query = c.req.query("q");
   if (!query)
     return Response.json({ error: "Missing query parameter" }, { status: 400 });
@@ -38,12 +40,12 @@ app.get("/search", (c) => {
   });
 });
 
-app.get("/images", async (c) => {
+apiApp.get("/images", async (c) => {
   const url = new URL(c.req.url);
   return fetch(`https://encrypted-tbn0.gstatic.com/images${url.search}`);
 });
 
-app.get("/tasks/:id", async (c) => {
+apiApp.get("/tasks/:id", async (c) => {
   const workflowId = c.req.param("id");
   const workflow = await c.env.DIGEST_WORKFLOW.get(workflowId);
   if (!workflow)
@@ -52,7 +54,7 @@ app.get("/tasks/:id", async (c) => {
   return Response.json(status);
 });
 
-app.put("/tasks", async (c) => {
+apiApp.put("/tasks", async (c) => {
   const task = await c.req.json();
   if (!task)
     return Response.json(
@@ -65,6 +67,11 @@ app.put("/tasks", async (c) => {
   return Response.json({ id: workflow.id });
 });
 
-app.route("/v1", openaiApp);
+apiApp.route("/v1", openaiApp);
 
-export default app;
+const root = new Hono();
+
+root.route("/api", apiApp);
+root.route("/mcp", mcpApp);
+
+export default root;

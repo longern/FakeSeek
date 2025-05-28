@@ -129,6 +129,15 @@ function InputArea({
                 ? [
                     { type: "web_search_preview" },
                     { type: "code_interpreter", container: { type: "auto" } },
+                    {
+                      type: "mcp",
+                      server_url:
+                        import.meta.env.VITE_MCP_SERVER ||
+                        new URL("/mcp", window.location.href).toString(),
+                      server_label: "chat-tools-mcp",
+                      require_approval: "never",
+                      allowed_tools: [],
+                    },
                   ]
                 : undefined,
             model: searchMode === "auto" ? "gpt-4.1-mini" : undefined,
