@@ -85,7 +85,7 @@ function ResponseItem({
               />
             ) : null
           ) : message.type === "reasoning" ? (
-            <Box key={message.id} sx={{ marginBottom: -1 }}>
+            <Box key={message.id}>
               <ReasoningContent
                 key={message.id}
                 content={message.summary}
@@ -95,7 +95,7 @@ function ResponseItem({
           ) : message.type === "image_generation_call" ? (
             <GenerateImageContent key={message.id} message={message} />
           ) : message.type === "web_search_call" ? (
-            <Box key={message.id} sx={{ marginBottom: -1 }}>
+            <Box key={message.id} sx={{ marginY: 1 }}>
               <Typography
                 variant="body2"
                 sx={{ color: "text.secondary", userSelect: "none" }}
@@ -121,38 +121,40 @@ function ResponseItem({
         )
       )}
 
-      <Stack
-        direction="row"
-        gap={1}
-        sx={{ marginTop: 1, alignItems: "center" }}
-      >
-        <IconButton
-          sx={{ width: "28px", height: "28px", borderRadius: 1 }}
-          onClick={handleCopy}
+      {response.status !== "in_progress" && (
+        <Stack
+          direction="row"
+          gap={1}
+          sx={{ marginTop: 2, alignItems: "center" }}
         >
-          <ContentCopyIcon fontSize="small" />
-        </IconButton>
-        <Button
-          size="small"
-          sx={{ minWidth: 0, color: "text.secondary" }}
-          onClick={(e) => {
-            setRetryMenuAnchor(e.currentTarget);
-          }}
-        >
-          <ReplayIcon fontSize="small" />
-          <ExpandMoreIcon fontSize="small" />
-        </Button>
-        {response.usage && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ userSelect: "none" }}
+          <IconButton
+            sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+            onClick={handleCopy}
           >
-            <span>{response.usage.total_tokens}</span>
-            {" tokens"}
-          </Typography>
-        )}
-      </Stack>
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+          <Button
+            size="small"
+            sx={{ minWidth: 0, color: "text.secondary" }}
+            onClick={(e) => {
+              setRetryMenuAnchor(e.currentTarget);
+            }}
+          >
+            <ReplayIcon fontSize="small" />
+            <ExpandMoreIcon fontSize="small" />
+          </Button>
+          {response.usage && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ userSelect: "none" }}
+            >
+              <span>{response.usage.total_tokens}</span>
+              {" tokens"}
+            </Typography>
+          )}
+        </Stack>
+      )}
 
       <Menu
         anchorEl={retryMenuAnchor}

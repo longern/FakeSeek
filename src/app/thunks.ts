@@ -369,6 +369,7 @@ export const requestSearch = createAppAsyncThunk(
       addResponse({
         object: "response",
         id: crypto.randomUUID(),
+        timestamp: Date.now(),
         created_at: Math.floor(Date.now() / 1000),
         error: null,
         output: [toolCallMessage],
@@ -426,6 +427,7 @@ export const requestSearchImage = createAppAsyncThunk(
       addResponse({
         object: "response",
         id: crypto.randomUUID(),
+        timestamp: Date.now(),
         created_at: Math.floor(Date.now() / 1000),
         error: null,
         output: [toolCallMessage],

@@ -129,16 +129,18 @@ function AnnotationList({
 
   return (
     <>
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={() => setShowAnnotations((prev) => !prev)}
-      >
-        {t("Found {{count}} results", {
-          count: annotations.length,
-        })}
-        <NavigateNextIcon fontSize="small" />
-      </Button>
+      <Box>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => setShowAnnotations((prev) => !prev)}
+        >
+          {t("Found {{count}} results", {
+            count: annotations.length,
+          })}
+          <NavigateNextIcon fontSize="small" />
+        </Button>
+      </Box>
 
       <Dialog open={showAnnotations} onClose={() => setShowAnnotations(false)}>
         <List disablePadding>
