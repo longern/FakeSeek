@@ -121,7 +121,11 @@ function ResponseItem({
         )
       )}
 
-      <Stack direction="row" gap={1} sx={{ marginTop: 1 }}>
+      <Stack
+        direction="row"
+        gap={1}
+        sx={{ marginTop: 1, alignItems: "center" }}
+      >
         <IconButton
           sx={{ width: "28px", height: "28px", borderRadius: 1 }}
           onClick={handleCopy}
@@ -138,6 +142,16 @@ function ResponseItem({
           <ReplayIcon fontSize="small" />
           <ExpandMoreIcon fontSize="small" />
         </Button>
+        {response.usage && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ userSelect: "none" }}
+          >
+            <span>{response.usage.total_tokens}</span>
+            {" tokens"}
+          </Typography>
+        )}
       </Stack>
 
       <Menu

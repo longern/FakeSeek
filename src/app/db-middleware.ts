@@ -21,8 +21,8 @@ import {
   reasoningSummaryTextDelta,
   set as setMessages,
   contentPartDone,
-  outputItemUpdated,
   outputItemAdded,
+  outputItemDone,
 } from "./messages";
 import { AppState, initializeAction } from "./store";
 
@@ -156,19 +156,15 @@ export const dbMiddleware: Middleware<{}, AppState> =
         return result;
       }
 
-      case "messages/update": {
-        const { id, patch } = (
-          action as PayloadAction<{
-            id: string;
-            patch: Partial<ChatMessage>;
-          }>
-        ).payload;
-        db.messages.update(id, patch as any);
+      case "messages/update":
+        setTimeout(() => {
+          const { id, patch } = action.payload;
+          db.messages.update(id, patch);
+        }, 50);
         break;
-      }
 
       case outputItemAdded.type:
-      case outputItemUpdated.type:
+      case outputItemDone.type:
       case contentPartAdded.type:
       case contentPartDelta.type:
       case contentPartDone.type:

@@ -6,8 +6,8 @@ import {
   ResponseContentPartDoneEvent,
   ResponseFunctionCallArgumentsDeltaEvent,
   ResponseInputItem,
-  ResponseOutputItem,
   ResponseOutputItemAddedEvent,
+  ResponseOutputItemDoneEvent,
   ResponseReasoningSummaryPartAddedEvent,
   ResponseReasoningSummaryTextDeltaEvent,
   ResponseTextDeltaEvent,
@@ -90,26 +90,25 @@ export const messagesSlice = createSlice({
       response.output.push(payload.event.item);
     },
 
-    outputItemUpdated: (
+    outputItemDone: (
       state,
       {
         payload,
       }: {
         payload: {
           responseId: string;
-          outputIndex: number;
-          patch: Partial<ResponseOutputItem>;
+          event: ResponseOutputItemDoneEvent;
         };
       }
     ) => {
-      const { responseId, outputIndex, patch } = payload;
-      const response = state.messages[responseId];
+      const response = state.messages[payload.responseId];
       if (response.object !== "response") return;
-      const oldItem = response.output[outputIndex];
-      response.output[outputIndex] = {
-        ...oldItem,
-        ...patch,
-      } as ResponseOutputItem;
+      const outputIndex = payload.event.output_index;
+      const item = structuredClone(payload.event.item);
+
+      if (item.type === "reasoning") item.status ??= "completed";
+
+      response.output[outputIndex] = item;
     },
 
     contentPartAdded: (
@@ -256,7 +255,7 @@ export const {
   update,
   addResponse,
   outputItemAdded,
-  outputItemUpdated,
+  outputItemDone,
   contentPartAdded,
   contentPartDelta,
   contentPartDone,

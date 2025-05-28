@@ -20,9 +20,9 @@ import {
   contentPartDone,
   functionCallArgumentsDelta,
   outputItemAdded,
-  outputItemUpdated,
   reasoningSummaryTextDelta,
   update as updateMessage,
+  outputItemDone,
 } from "./messages";
 import { AppDispatch, createAppAsyncThunk } from "./store";
 
@@ -68,22 +68,7 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         break;
 
       case "response.output_item.done": {
-        if (!("status" in event.item) && event.item.type !== "reasoning") break;
-        const eventStatus = event.item.status as
-          | "completed"
-          | "in_progress"
-          | "incomplete"
-          | undefined;
-        const isReasoningCompleted =
-          event.item.type === "reasoning" && eventStatus === undefined;
-        const status = isReasoningCompleted ? "completed" : eventStatus;
-        dispatch(
-          outputItemUpdated({
-            responseId,
-            outputIndex: event.output_index,
-            patch: { status },
-          })
-        );
+        dispatch(outputItemDone({ responseId, event }));
         break;
       }
 
