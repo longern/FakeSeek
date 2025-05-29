@@ -35,7 +35,11 @@ async function transformCompletion(
     encoder.encode(
       `event: response.created\ndata: ${JSON.stringify({
         type: "response.created",
-        item_id: `resp_${id}`,
+        response: {
+          id: `resp_${id}`,
+          status: "in_progress",
+          output: [],
+        },
       })}\n\n`
     )
   );

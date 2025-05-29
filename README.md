@@ -1,4 +1,4 @@
-# Research Workflow
+# FakeSeek
 
 Serverless multi-step research agent powered by DeepSeek-R1 and Cloudflare Workflows.
 

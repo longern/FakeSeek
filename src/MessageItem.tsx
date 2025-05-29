@@ -22,6 +22,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import OpenAI from "openai";
 import {
   ResponseFunctionToolCall,
   ResponseInputItem,
@@ -29,12 +30,13 @@ import {
   ResponseOutputText,
   ResponseReasoningItem,
 } from "openai/resources/responses/responses.mjs";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 
 import Markdown, { CodeBox } from "./Markdown";
+import { useAppSelector } from "./app/hooks";
 
 export function UserMessage({
   message,
@@ -116,10 +118,107 @@ export function UserMessage({
   ));
 }
 
-function AnnotationList({
+function ImageAnnotation({
+  annotation,
+}: {
+  annotation: ResponseOutputText.FileCitation & { filename: string };
+}) {
+  const [imageDateUrl, setImageDateUrl] = useState<string | null>(null);
+  const apiKey = useAppSelector((state) => state.provider.apiKey);
+  const baseURL = useAppSelector((state) => state.provider.baseURL);
+
+  useEffect(() => {
+    const client = new OpenAI({
+      apiKey,
+      baseURL,
+      dangerouslyAllowBrowser: true,
+    });
+    client.files.content(annotation.file_id).then(async (response) => {
+      const blob = await response.blob();
+      setImageDateUrl(URL.createObjectURL(blob));
+    });
+  }, [annotation.file_id, apiKey, baseURL]);
+
+  if (!imageDateUrl) return;
+
+  return (
+    <PhotoView key={annotation.file_id} src={imageDateUrl}>
+      <Box
+        sx={{
+          "&>img": { objectFit: "contain", backgroundColor: "black" },
+        }}
+      >
+        <img
+          src={imageDateUrl}
+          alt={annotation.filename}
+          width="150"
+          height="150"
+        />
+      </Box>
+    </PhotoView>
+  );
+}
+
+function ImageAnnotationList({
   annotations,
 }: {
-  annotations: ResponseOutputText["annotations"];
+  annotations: (ResponseOutputText.FileCitation & { filename: string })[];
+}) {
+  return (
+    <PhotoProvider>
+      <Stack gap={0.5} sx={{ flexDirection: "row", flexWrap: "wrap" }}>
+        {annotations.map((annotation) => (
+          <ImageAnnotation key={annotation.file_id} annotation={annotation} />
+        ))}
+      </Stack>
+    </PhotoProvider>
+  );
+}
+
+function FileAnnotationList({
+  annotations,
+}: {
+  annotations: (ResponseOutputText.FileCitation & { filename?: string })[];
+}) {
+  const imageFilter = (annotation: (typeof annotations)[number]) => {
+    if (!annotation.filename) return false;
+    const ext = annotation.filename.split(".").pop()?.toLowerCase();
+    if (!ext) return false;
+    return ["png", "jpg", "jpeg", "gif"].includes(ext);
+  };
+  const imageAnnotations = annotations.filter(
+    imageFilter
+  ) as (ResponseOutputText.FileCitation & { filename: string })[];
+  const nonImageAnnotations = annotations.filter(
+    (annotation) => !imageFilter(annotation)
+  );
+
+  return (
+    <>
+      {imageAnnotations.length > 0 && (
+        <ImageAnnotationList annotations={imageAnnotations} />
+      )}
+      {nonImageAnnotations.length > 0 && (
+        <Box
+          sx={{ marginY: 2, display: "flex", flexDirection: "column", gap: 1 }}
+        >
+          {nonImageAnnotations.map((annotation) => (
+            <Box key={annotation.file_id}>
+              <Typography variant="body2" color="text.secondary">
+                {annotation.filename || annotation.file_id}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </>
+  );
+}
+
+function UrlAnnotationList({
+  annotations,
+}: {
+  annotations: Array<ResponseOutputText.URLCitation>;
 }) {
   const [showAnnotations, setShowAnnotations] = useState(false);
 
@@ -144,36 +243,52 @@ function AnnotationList({
 
       <Dialog open={showAnnotations} onClose={() => setShowAnnotations(false)}>
         <List disablePadding>
-          {annotations.map(
-            (annotation, index) =>
-              annotation.type === "url_citation" && (
-                <ListItem key={index} disablePadding>
-                  <ListItemButton
-                    component="a"
-                    href={annotation.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ListItemText
-                      primary={
-                        <Typography noWrap>{annotation.title}</Typography>
-                      }
-                      secondary={
-                        <Typography
-                          variant="body2"
-                          noWrap
-                          color="text.secondary"
-                        >
-                          {annotation.url}
-                        </Typography>
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-              )
-          )}
+          {annotations.map((annotation, index) => (
+            <ListItem key={index} disablePadding>
+              <ListItemButton
+                component="a"
+                href={annotation.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ListItemText
+                  primary={<Typography noWrap>{annotation.title}</Typography>}
+                  secondary={
+                    <Typography variant="body2" noWrap color="text.secondary">
+                      {annotation.url}
+                    </Typography>
+                  }
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
         </List>
       </Dialog>
+    </>
+  );
+}
+function AnnotationList({
+  annotations,
+}: {
+  annotations: ResponseOutputText["annotations"];
+}) {
+  const fileAnnotations = annotations.filter(
+    (annotation) =>
+      annotation.type === "file_citation" ||
+      (annotation.type as any) === "container_file_citation"
+  ) as ResponseOutputText.FileCitation[];
+  const urlAnnotations = annotations.filter(
+    (annotation) => annotation.type === "url_citation"
+  );
+
+  return (
+    <>
+      {fileAnnotations.length > 0 && (
+        <FileAnnotationList annotations={fileAnnotations} />
+      )}
+      {urlAnnotations.length > 0 && (
+        <UrlAnnotationList annotations={urlAnnotations} />
+      )}
     </>
   );
 }
