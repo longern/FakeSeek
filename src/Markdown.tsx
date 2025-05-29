@@ -1,6 +1,7 @@
 import { css } from "@emotion/css";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import { Box, IconButton, Link } from "@mui/material";
 import "katex/dist/katex.min.css";
 import { useState } from "react";
@@ -92,7 +93,6 @@ function CopyButton({ text }: { text: string }) {
   return (
     <IconButton
       aria-label="Copy"
-      size="small"
       onClick={() => {
         navigator.clipboard.writeText(text);
         clearTimeout(copiedTimeout);
@@ -124,12 +124,24 @@ export function CodeBox({
           fontSize: "0.8rem",
           backgroundColor: "#eee",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
         }}
       >
         <Box sx={{ paddingLeft: 1.5, userSelect: "none" }}>{language}</Box>
+        <Box sx={{ flexGrow: 1 }} />
         <CopyButton text={children} />
+        {language === "html" && (
+          <IconButton
+            aria-label="Run"
+            onClick={() => {
+              const blob = new Blob([children], { type: "text/html" });
+              const url = URL.createObjectURL(blob);
+              window.open(url, "_blank");
+            }}
+          >
+            <PlayCircleIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
       <SyntaxHighlighter
         {...props}
