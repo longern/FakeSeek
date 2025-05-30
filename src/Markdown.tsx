@@ -4,13 +4,15 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import { Box, IconButton, Link } from "@mui/material";
 import "katex/dist/katex.min.css";
-import { useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 
 /**
  * Preprocesses LaTeX content by replacing delimiters and escaping certain characters.
@@ -159,13 +161,17 @@ export function CodeBox({
   );
 }
 
-function Markdown({ children }: { children: string }) {
+const Markdown = memo(({ children }: { children: string }) => {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[rehypeKatex]}
       className={css`
-        & .katex {
+        & .katex-display {
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+          padding-top: 0.5em;
+          padding-bottom: 0.5em;
           overflow-x: auto;
         }
       `}
@@ -196,6 +202,50 @@ function Markdown({ children }: { children: string }) {
       {preprocessLaTeX(children)}
     </ReactMarkdown>
   );
+});
+
+function useDebounce<T>(value: T) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  const valueToUpdate = useRef(value);
+  const timeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (!timeoutRef.current) return;
+      cancelAnimationFrame(timeoutRef.current);
+      timeoutRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    valueToUpdate.current = value;
+    if (timeoutRef.current) return;
+    timeoutRef.current = requestAnimationFrame(() => {
+      setDebouncedValue(valueToUpdate.current);
+      timeoutRef.current = null;
+    });
+  }, [value]);
+
+  return debouncedValue;
 }
 
-export default Markdown;
+function ChunkedMarkdown({ children: bouncingChildren }: { children: string }) {
+  const children = useDebounce(bouncingChildren);
+
+  const chunks = useMemo(() => {
+    const ast = unified().use(remarkParse).parse(children);
+    return ast.children.map((child) =>
+      children.slice(child.position!.start.offset, child.position!.end.offset)
+    );
+  }, [children]);
+
+  return (
+    <>
+      {chunks.map((chunk, index) => (
+        <Markdown key={index}>{chunk}</Markdown>
+      ))}
+    </>
+  );
+}
+
+export default ChunkedMarkdown;
