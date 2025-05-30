@@ -104,7 +104,7 @@ function SettingsDialog({
                       t("Enter new base URL"),
                       provider.baseURL
                     );
-                    if (!newBaseURL) return;
+                    if (newBaseURL === null) return;
                     dispatch(setBaseURL(newBaseURL));
                   }}
                 >

@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import OpenAI from "openai";
 import type { ChatCompletionChunk } from "openai/resources/index.mjs";
-import { Stream } from "openai/streaming.mjs";
+import type { ResponseStreamEvent } from "openai/resources/responses/responses.mjs";
+import type { Stream } from "openai/streaming.mjs";
 
 const app = new Hono<{
   Bindings: {
@@ -12,7 +13,7 @@ const app = new Hono<{
 app.post("/chat/completions", async (c) => {
   const baseURL = "https://openrouter.ai/api/v1";
   const body = await c.req.json();
-  body.model = "deepseek/deepseek-chat-v3-0324:free";
+  body.model = "deepseek/deepseek-r1-0528:free";
   return fetch(baseURL + "/chat/completions", {
     method: "POST",
     headers: {
@@ -30,138 +31,139 @@ async function transformCompletion(
   let writer = writable.getWriter();
   let encoder = new TextEncoder();
 
-  const id = crypto.randomUUID();
-  writer.write(
-    encoder.encode(
-      `event: response.created\ndata: ${JSON.stringify({
-        type: "response.created",
-        response: {
-          id: `resp_${id}`,
-          status: "in_progress",
-          output: [],
-        },
-      })}\n\n`
-    )
-  );
+  async function writeEvent(
+    eventType: ResponseStreamEvent["type"],
+    data: Record<string, any>
+  ) {
+    const dataBody = JSON.stringify({ type: eventType, ...data });
+    const message = `event: ${eventType}\ndata: ${dataBody}\n\n`;
+    await writer.write(encoder.encode(message));
+  }
 
-  let outputIndex = -1;
-  let lastMessageId: string | undefined = undefined;
+  const id = crypto.randomUUID();
+  const response = {
+    object: "response",
+    id: `resp_${id}`,
+    created_at: Math.floor(Date.now() / 1000),
+    status: "in_progress",
+    output: [] as any[],
+    usage: null as Record<string, any> | null,
+  };
+
+  await writeEvent("response.created", { response });
+
   for await (const event of completion) {
+    if (event.usage) response.usage = event.usage;
+    if (event.choices.length === 0) continue;
+
     const delta = event.choices[0].delta;
-    if (
+    const reasoningContent =
       "reasoning_content" in delta &&
       typeof delta.reasoning_content === "string"
-    ) {
-      if (lastMessageId !== `rs_${id}`) {
-        outputIndex += 1;
-        lastMessageId = `rs_${id}`;
+        ? delta.reasoning_content
+        : undefined;
+    const reasoning =
+      "reasoning" in delta && typeof delta.reasoning === "string"
+        ? delta.reasoning
+        : reasoningContent;
+    if (reasoning !== undefined) {
+      if (
+        response.output.length === 0 ||
+        response.output[response.output.length - 1].type !== "reasoning"
+      ) {
+        const outputIndex = response.output.length;
+        const messageId = `rs_${crypto.randomUUID()}`;
+        const reasoningMessage = {
+          type: "reasoning",
+          id: messageId,
+          status: "in_progress",
+          summary: [],
+        };
+        response.output.push(reasoningMessage);
+        await writeEvent("response.output_item.added", {
+          output_index: outputIndex,
+          item: reasoningMessage,
+        });
 
-        writer.write(
-          encoder.encode(
-            `event: response.output_item.added\ndata: ${JSON.stringify({
-              type: "response.output_item.added",
-              output_index: outputIndex,
-              item: {
-                type: "reasoning",
-                id: `rs_${id}`,
-                status: "in_progress",
-                summary: [],
-              },
-            })}\n\n`
-          )
-        );
-
-        writer.write(
-          encoder.encode(
-            `event: response.reasoning_summary_part.added\ndata: ${JSON.stringify(
-              {
-                type: "response.reasoning_summary_part.added",
-                item_id: `rs_${id}`,
-                output_index: outputIndex,
-                summary_index: 0,
-                part: { type: "summary_text", text: "" },
-              }
-            )}\n\n`
-          )
-        );
+        const part = { type: "summary_text", text: "" };
+        response.output[outputIndex].summary.push(part);
+        await writeEvent("response.reasoning_summary_part.added", {
+          item_id: messageId,
+          output_index: outputIndex,
+          summary_index: 0,
+          part,
+        });
       }
 
-      writer.write(
-        encoder.encode(
-          `event: response.reasoning_summary_text.delta\ndata: ${JSON.stringify(
-            {
-              type: "response.reasoning_summary_text.delta",
-              item_id: `rs_${id}`,
-              output_index: outputIndex,
-              summary_index: 0,
-              delta: delta.reasoning_content,
-            }
-          )}\n\n`
-        )
-      );
+      const outputIndex = response.output.length - 1;
+      response.output[outputIndex].summary[0].text += reasoning;
+      await writeEvent("response.reasoning_summary_text.delta", {
+        item_id: response.output[outputIndex].id,
+        output_index: outputIndex,
+        summary_index: 0,
+        delta: reasoning,
+      });
     } else {
-      if (lastMessageId !== `msg_${id}`) {
-        if (lastMessageId) {
-          writer.write(
-            encoder.encode(
-              `event: response.output_item.done\ndata: ${JSON.stringify({
-                type: "response.output_item.done",
-                output_index: outputIndex,
-                item: { id: lastMessageId, status: "completed" },
-              })}\n\n`
-            )
-          );
+      if (
+        response.output.length === 0 ||
+        response.output[response.output.length - 1].type !== "message"
+      ) {
+        const prevIndex = response.output.length - 1;
+
+        if (response.output.length > 0) {
+          response.output[prevIndex].status = "completed";
+          await writeEvent("response.output_item.done", {
+            output_index: prevIndex,
+            item: response.output[prevIndex],
+          });
         }
 
-        outputIndex += 1;
-        lastMessageId = `msg_${id}`;
+        const newMessage = {
+          type: "message",
+          id: `msg_${crypto.randomUUID()}`,
+          status: "in_progress",
+          role: "assistant",
+          content: [] as any[],
+        };
+        response.output.push(newMessage);
+        const outputIndex = response.output.length - 1;
+        await writeEvent("response.output_item.added", {
+          output_index: outputIndex,
+          item: newMessage,
+        });
 
-        writer.write(
-          encoder.encode(
-            `event: response.output_item.added\ndata: ${JSON.stringify({
-              type: "response.output_item.added",
-              output_index: outputIndex,
-              item: {
-                type: "message",
-                id: `msg_${id}`,
-                status: "in_progress",
-                role: "assistant",
-                content: [],
-              },
-            })}\n\n`
-          )
-        );
-
-        writer.write(
-          encoder.encode(
-            `event: response.content_part.added\ndata: ${JSON.stringify({
-              type: "response.content_part.added",
-              item_id: `msg_${id}`,
-              output_index: outputIndex,
-              content_index: 0,
-              part: {
-                type: "output_text",
-                text: "",
-                annotations: [],
-              },
-            })}\n\n`
-          )
-        );
+        const newPart = { type: "output_text", text: "", annotations: [] };
+        response.output[outputIndex].content.push(newPart);
+        await writeEvent("response.content_part.added", {
+          item_id: newMessage.id,
+          output_index: outputIndex,
+          content_index: 0,
+          part: newPart,
+        });
       }
 
-      writer.write(
-        encoder.encode(
-          `event: response.output_text.delta\ndata: ${JSON.stringify({
-            type: "response.output_text.delta",
-            item_id: `msg_${id}`,
-            output_index: 0,
-            content_index: 0,
-            delta: delta.content,
-          })}\n\n`
-        )
-      );
+      const outputIndex = response.output.length - 1;
+      response.output[outputIndex].content[0].text += delta.content;
+      await writeEvent("response.output_text.delta", {
+        item_id: response.output[outputIndex].id,
+        output_index: outputIndex,
+        content_index: 0,
+        delta: delta.content,
+      });
     }
   }
+
+  const outputIndex = response.output.length - 1;
+  response.output[outputIndex].status = "completed";
+  await writeEvent("response.output_item.done", {
+    output_index: outputIndex,
+    item: response.output[outputIndex],
+  });
+
+  response.status = "completed";
+  await writeEvent("response.completed", { response });
+
+  await writer.close();
 }
 
 app.post("/responses", async (c) => {
@@ -174,15 +176,10 @@ app.post("/responses", async (c) => {
   });
 
   const input: any = body.input;
-  const model: string = "deepseek/deepseek-chat-v3-0324:free";
+  const model: string = "deepseek/deepseek-r1-0528:free";
   const messages = Array.isArray(input)
     ? input
-    : [
-        {
-          role: "user",
-          content: [{ type: "text", text: input }],
-        },
-      ];
+    : [{ role: "user", content: [{ type: "text", text: input }] }];
 
   if (body.instuctions) {
     messages.unshift({
@@ -205,10 +202,7 @@ app.post("/responses", async (c) => {
           content[j].type === "input_text" ||
           content[j].type === "output_text"
         ) {
-          content[j] = {
-            type: "text",
-            text: content[j].text,
-          };
+          content[j] = { type: "text", text: content[j].text };
         }
       }
     }
@@ -225,11 +219,12 @@ app.post("/responses", async (c) => {
     messages,
     max_tokens: body.max_output_tokens,
     stream: true,
+    stream_options: { include_usage: true },
   });
 
   let { readable, writable } = new TransformStream();
 
-  transformCompletion(completion, writable);
+  c.executionCtx.waitUntil(transformCompletion(completion, writable));
 
   return new Response(readable, {
     headers: {

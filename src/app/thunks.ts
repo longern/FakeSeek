@@ -321,7 +321,7 @@ export const requestAssistant = createAppAsyncThunk(
 
         currentMessages.push({ ...response, timestamp: Date.now() });
         const lastMessage = response.output[response.output.length - 1];
-        if (lastMessage.type !== "function_call") break;
+        if (lastMessage?.type !== "function_call") break;
         const functionCallMessage = await handleFunctionCall({
           message: lastMessage,
           signal,
