@@ -320,14 +320,23 @@ export const requestAssistant = createAppAsyncThunk(
         );
 
         currentMessages.push({ ...response, timestamp: Date.now() });
-        const lastMessage = response.output[response.output.length - 1];
-        if (lastMessage?.type !== "function_call") break;
-        const functionCallMessage = await handleFunctionCall({
-          message: lastMessage,
-          signal,
-        });
-        const newMessage = dispatch(addMessage(functionCallMessage));
-        currentMessages.push(newMessage.payload);
+
+        let hasNewFunctionCall = false;
+        for (const item of response.output) {
+          switch (item.type) {
+            case "function_call":
+              const functionCallMessage = await handleFunctionCall({
+                message: item,
+                signal,
+              });
+              const newMessage = dispatch(addMessage(functionCallMessage));
+              currentMessages.push(newMessage.payload);
+              hasNewFunctionCall = true;
+              break;
+          }
+        }
+
+        if (!hasNewFunctionCall) break;
       }
     } catch (error) {
       dispatch(
