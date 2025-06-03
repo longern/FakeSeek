@@ -33,11 +33,30 @@ import {
   ReasoningContent,
 } from "./MessageItem";
 
+function formatTimestamp(timestamp: number) {
+  const date = new Date(timestamp);
+  const now = new Date();
+
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+
+  if (year !== now.getFullYear()) {
+    return `${year}/${month}/${day} ${hours}:${minutes}`;
+  } else if (month === now.getMonth() + 1 && day === now.getDate()) {
+    return `${hours}:${minutes}`;
+  } else {
+    return `${month}/${day} ${hours}:${minutes}`;
+  }
+}
+
 function ResponseItem({
   response,
   onRetry,
 }: {
-  response: Response;
+  response: Response & { timestamp: number };
   onRetry: (options?: CreateResponseParams) => void;
 }) {
   const [retryMenuAnchor, setRetryMenuAnchor] = useState<null | HTMLElement>(
@@ -143,6 +162,13 @@ function ResponseItem({
             <ReplayIcon fontSize="small" />
             <ExpandMoreIcon fontSize="small" />
           </Button>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ userSelect: "none" }}
+          >
+            {formatTimestamp(response.timestamp)}
+          </Typography>
           {response.usage && (
             <Typography
               variant="body2"
