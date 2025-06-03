@@ -475,30 +475,45 @@ export const requestGenerateImage = createAppAsyncThunk(
     const { dispatch, getState, signal } = thunkAPI;
     const provider = getState().provider;
 
-    const client = new OpenAI({
-      apiKey: provider.apiKey,
-      baseURL:
-        provider?.baseURL ||
-        new URL("/api/v1", window.location.href).toString(),
-      dangerouslyAllowBrowser: true,
-    });
-    const response = await client.responses.create(
-      {
-        model: "gpt-4.1-nano",
-        input: messages.flatMap(normMessage),
-        tools: [
-          {
-            type: "image_generation",
-            moderation: "low",
-            quality: provider.imageQuality,
-          },
-        ],
-        tool_choice: "required",
-      },
-      { signal }
-    );
+    try {
+      const client = new OpenAI({
+        apiKey: provider.apiKey,
+        baseURL:
+          provider?.baseURL ||
+          new URL("/api/v1", window.location.href).toString(),
+        dangerouslyAllowBrowser: true,
+      });
+      const response = await client.responses.create(
+        {
+          model: "gpt-4.1-nano",
+          input: messages.flatMap(normMessage),
+          tools: [
+            {
+              type: "image_generation",
+              moderation: "low",
+              quality: provider.imageQuality,
+            },
+          ],
+          tool_choice: "required",
+        },
+        { signal }
+      );
 
-    dispatch(addResponse({ ...response, timestamp: Date.now() }));
+      dispatch(addResponse({ ...response, timestamp: Date.now() }));
+    } catch (error) {
+      dispatch(
+        addResponse({
+          object: "response",
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          error: {
+            code: "server_error",
+            message: (error as Error).message,
+          },
+          output: [],
+        } as unknown as Response & { timestamp: number })
+      );
+    }
   }
 );
 

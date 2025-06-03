@@ -100,21 +100,19 @@ function Chat() {
     <InputArea
       abortable={abortable}
       onSearch={async (query) => {
-        const newMessage = toUserMessage(query);
-        await dispatch(addMessageThunk(newMessage));
-        const newMessages = [
-          ...Object.values(messages),
-          newMessage as ChatMessage,
-        ];
+        const userMessage = toUserMessage(query);
+        const { payload: newMessage } = await dispatch(
+          addMessageThunk(userMessage)
+        ).unwrap();
+        const newMessages = [...Object.values(messages), newMessage];
         setAbortable(dispatch(requestSearch(newMessages)));
       }}
       onSearchImage={async (query) => {
-        const newMessage = toUserMessage(query);
-        await dispatch(addMessageThunk(newMessage));
-        const newMessages = [
-          ...Object.values(messages),
-          newMessage as ChatMessage,
-        ];
+        const userMessage = toUserMessage(query);
+        const { payload: newMessage } = await dispatch(
+          addMessageThunk(userMessage)
+        ).unwrap();
+        const newMessages = [...Object.values(messages), newMessage];
         setAbortable(dispatch(requestSearchImage(newMessages)));
       }}
       onChat={async (message, options) => {
@@ -131,12 +129,11 @@ function Chat() {
         setAbortable(dispatch(requestCreateResearch(task)));
       }}
       onGenerateImage={async (prompt) => {
-        const newMessage = toUserMessage(prompt);
-        await dispatch(addMessageThunk(newMessage));
-        const newMessages = [
-          ...Object.values(messages),
-          newMessage as ChatMessage,
-        ];
+        const userMessage = toUserMessage(prompt);
+        const { payload: newMessage } = await dispatch(
+          addMessageThunk(userMessage)
+        ).unwrap();
+        const newMessages = [...Object.values(messages), newMessage];
         setAbortable(dispatch(requestGenerateImage(newMessages)));
       }}
     />
