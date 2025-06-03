@@ -185,22 +185,28 @@ function Chat() {
           <Stack sx={{ minHeight: "100%" }}>
             <Container
               maxWidth="md"
-              sx={{ flexGrow: 1, padding: 2, overflowX: "hidden" }}
+              sx={{
+                flexGrow: 1,
+                padding: 2,
+                overflowX: "hidden",
+                position: "relative",
+              }}
             >
               {!Object.values(messages).length ? (
                 <Box
                   sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "center",
                     alignItems: "center",
-                    marginTop: "35vh",
                   }}
                 >
-                  <Typography
-                    variant="h5"
-                    sx={{ textAlign: "center", userSelect: "none" }}
-                  >
+                  <Typography variant="h5" sx={{ userSelect: "none" }}>
                     {t("What can I help with?")}
                   </Typography>
                 </Box>

@@ -141,10 +141,16 @@ function ConversationGroup({
             }}
           >
             <ListItemText
-              primary={<Typography noWrap>{conversation.title}</Typography>}
-              slotProps={{
-                primary: { fontSize: isMobile ? undefined : "14px" },
-              }}
+              primary={
+                <Typography
+                  noWrap
+                  sx={(theme) => ({
+                    [theme.breakpoints.up("sm")]: { fontSize: "14px" },
+                  })}
+                >
+                  {conversation.title}
+                </Typography>
+              }
             />
           </ListItemButton>
         </ListItem>

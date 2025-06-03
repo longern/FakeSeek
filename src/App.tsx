@@ -8,19 +8,11 @@ import {
 import Chat from "./Chat";
 
 const theme = createTheme({
-  palette: {
-    background: {
-      default: "#f5f5f5",
-      paper: "#fff",
-    },
-  },
+  palette: { background: { default: "#f5f5f5", paper: "#fff" } },
   components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: "none",
-        },
-      },
+    MuiButton: { styleOverrides: { root: { textTransform: "none" } } },
+    MuiCssBaseline: {
+      styleOverrides: { html: { WebkitFontSmoothing: "auto" } },
     },
   },
 });
