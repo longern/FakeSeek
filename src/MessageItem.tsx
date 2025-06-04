@@ -368,6 +368,17 @@ export function ReasoningContent({
   );
 }
 
+function formatMcpError(
+  error:
+    | string
+    | { type: string; content: Array<{ type: string; text: string }> }
+) {
+  if (typeof error === "string") return error;
+  return error.content
+    .map((part) => (part.type === "text" ? part.text : ""))
+    .join("");
+}
+
 export function McpCallContent({
   message,
 }: {
@@ -390,7 +401,11 @@ export function McpCallContent({
               sx={{ alignItems: "center" }}
             >
               <SearchIcon />
-              {message.output ? t("Search completed") : t("Searching...")}
+              {message.output
+                ? t("Search completed")
+                : message.error
+                ? formatMcpError(message.error)
+                : t("Searching...")}
             </Stack>
           </Typography>
         </Box>
@@ -493,15 +508,17 @@ function GoogleSearchResultsContent({
 
   return (
     <>
-      <Button
-        variant="outlined"
-        size="small"
-        sx={{ paddingX: 1.5 }}
-        onClick={() => setExpanded((expanded) => !expanded)}
-      >
-        {t("Web Search")}
-        {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-      </Button>
+      <Box>
+        <Button
+          variant="outlined"
+          size="small"
+          sx={{ paddingX: 1.5 }}
+          onClick={() => setExpanded((expanded) => !expanded)}
+        >
+          {t("Web Search")}
+          {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </Button>
+      </Box>
       <Collapse in={expanded} unmountOnExit>
         <Box
           sx={{

@@ -2,14 +2,16 @@ const MARKDOWN_SEARCH_ITEM = `- [{{title}}]({{link}})
   {{snippet}}
 `;
 
-export function formatSearchResults(data: any) {
+export function formatSearchResults(data: {
+  items: {
+    title: string;
+    link: string;
+    snippet: string;
+  }[];
+}) {
   const dataItems = data.items;
-  if (!dataItems || !Array.isArray(dataItems)) {
-    throw new Error("Invalid search results format");
-  }
-
   const markdown = dataItems
-    .map((item: any) => {
+    .map((item) => {
       return MARKDOWN_SEARCH_ITEM.replace("{{title}}", item.title)
         .replace("{{link}}", item.link)
         .replace("{{snippet}}", item.snippet);
