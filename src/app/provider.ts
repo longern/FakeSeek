@@ -3,7 +3,8 @@ import { createSlice } from "@reduxjs/toolkit";
 const settings = JSON.parse(
   window.localStorage.getItem("settings") || "{}"
 ) as {
-  imageQuality: "low" | "medium" | "high";
+  toolsProvider?: "openai-builtin";
+  imageQuality?: "low" | "medium" | "high";
 };
 
 export const providerSlice = createSlice({
@@ -11,6 +12,7 @@ export const providerSlice = createSlice({
   initialState: {
     apiKey: window.localStorage.getItem("OPENAI_API_KEY") || "",
     baseURL: window.localStorage.getItem("OPENAI_BASE_URL") || "",
+    toolsProvider: settings.toolsProvider,
     imageQuality: settings.imageQuality || "medium",
   },
   reducers: {
@@ -19,6 +21,12 @@ export const providerSlice = createSlice({
     },
     setBaseURL: (state, { payload }: { payload: string }) => {
       state.baseURL = payload;
+    },
+    setToolsProvider: (
+      state,
+      { payload }: { payload: typeof state.toolsProvider }
+    ) => {
+      state.toolsProvider = payload;
     },
     setImageQuality: (
       state,
@@ -29,6 +37,7 @@ export const providerSlice = createSlice({
   },
 });
 
-export const { setApiKey, setBaseURL, setImageQuality } = providerSlice.actions;
+export const { setApiKey, setBaseURL, setToolsProvider, setImageQuality } =
+  providerSlice.actions;
 
 export default providerSlice.reducer;

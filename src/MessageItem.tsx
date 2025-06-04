@@ -3,6 +3,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LinkIcon from "@mui/icons-material/Link";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
   Box,
@@ -267,6 +268,7 @@ function UrlAnnotationList({
     </>
   );
 }
+
 function AnnotationList({
   annotations,
 }: {
@@ -339,6 +341,7 @@ export function ReasoningContent({
   return (
     <>
       <Button
+        variant="outlined"
         size="small"
         sx={{ paddingX: 1.5 }}
         onClick={() => setExpanded((expanded) => !expanded)}
@@ -363,6 +366,39 @@ export function ReasoningContent({
       </Collapse>
     </>
   );
+}
+
+export function McpCallContent({
+  message,
+}: {
+  message: ResponseInputItem.McpCall;
+}) {
+  const { t } = useTranslation();
+
+  switch (message.name) {
+    case "search_google":
+      return (
+        <Box key={message.id} sx={{ marginY: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary", userSelect: "none" }}
+          >
+            <Stack
+              component="span"
+              direction="row"
+              gap={0.5}
+              sx={{ alignItems: "center" }}
+            >
+              <SearchIcon />
+              {message.output ? t("Search completed") : t("Searching...")}
+            </Stack>
+          </Typography>
+        </Box>
+      );
+
+    default:
+      return null;
+  }
 }
 
 export function GenerateImageContent({
@@ -458,6 +494,7 @@ function GoogleSearchResultsContent({
   return (
     <>
       <Button
+        variant="outlined"
         size="small"
         sx={{ paddingX: 1.5 }}
         onClick={() => setExpanded((expanded) => !expanded)}
@@ -581,6 +618,7 @@ function RunPythonResultContent({
   return (
     <Box>
       <Button
+        variant="outlined"
         size="small"
         sx={{ paddingX: 1.5 }}
         onClick={() => setExpanded((expanded) => !expanded)}

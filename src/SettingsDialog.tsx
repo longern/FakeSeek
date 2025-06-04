@@ -21,7 +21,12 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
 import { useAppDispatch, useAppSelector } from "./app/hooks";
-import { setApiKey, setBaseURL, setImageQuality } from "./app/provider";
+import {
+  setApiKey,
+  setBaseURL,
+  setImageQuality,
+  setToolsProvider,
+} from "./app/provider";
 import { Check } from "@mui/icons-material";
 
 function SettingsDialog({
@@ -31,7 +36,9 @@ function SettingsDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const [showQualitySelector, setQualitySelectorAnchor] =
+  const [toolsProviderAnchor, setToolsProviderAnchor] =
+    useState<HTMLElement | null>(null);
+  const [qualitySelectorAnchor, setQualitySelectorAnchor] =
     useState<HTMLElement | null>(null);
   const provider = useAppSelector((state) => state.provider);
   const { t } = useTranslation();
@@ -124,6 +131,63 @@ function SettingsDialog({
               <ListItem disablePadding>
                 <ListItemButton
                   onClick={(event) =>
+                    setToolsProviderAnchor(event.currentTarget)
+                  }
+                >
+                  <ListItemText primary={t("Tools Provider")} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t(`tools-provider.${provider.toolsProvider ?? "default"}`)}
+                  </Typography>
+                  <UnfoldMoreIcon />
+                </ListItemButton>
+                <Menu
+                  anchorEl={toolsProviderAnchor}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                  open={Boolean(toolsProviderAnchor)}
+                  onClose={() => setToolsProviderAnchor(null)}
+                  slotProps={{
+                    list: { disablePadding: true },
+                    backdrop: { invisible: false },
+                  }}
+                >
+                  {([undefined, "openai-builtin"] as const).map(
+                    (toolsProvider) => (
+                      <ListItem key={toolsProvider ?? "default"} disablePadding>
+                        <ListItemButton
+                          selected={provider.toolsProvider === toolsProvider}
+                          onClick={() => {
+                            dispatch(setToolsProvider(toolsProvider));
+                            setToolsProviderAnchor(null);
+                          }}
+                        >
+                          <ListItemText
+                            primary={t(
+                              `tools-provider.${toolsProvider ?? "default"}`
+                            )}
+                            sx={{ marginRight: 2 }}
+                          />
+                          {provider.toolsProvider === toolsProvider ? (
+                            <Check
+                              color="primary"
+                              sx={{ width: 24, height: 24 }}
+                            />
+                          ) : (
+                            <Box sx={{ width: 24, height: 24 }} />
+                          )}
+                        </ListItemButton>
+                      </ListItem>
+                    )
+                  )}
+                </Menu>
+              </ListItem>
+            </List>
+          </Card>
+          <Card elevation={0} sx={{ borderRadius: 3, marginTop: 2 }}>
+            <List disablePadding>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={(event) =>
                     setQualitySelectorAnchor(event.currentTarget)
                   }
                 >
@@ -134,10 +198,10 @@ function SettingsDialog({
                   <UnfoldMoreIcon />
                 </ListItemButton>
                 <Menu
-                  anchorEl={showQualitySelector}
+                  anchorEl={qualitySelectorAnchor}
                   anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
-                  open={Boolean(showQualitySelector)}
+                  open={Boolean(qualitySelectorAnchor)}
                   onClose={() => setQualitySelectorAnchor(null)}
                   slotProps={{
                     list: { disablePadding: true },

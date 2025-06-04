@@ -3,7 +3,8 @@ import { Tool } from "openai/resources/responses/responses.mjs";
 export const TOOL_PYTHON: Tool = {
   type: "function",
   name: "run_python",
-  description: "Run Python code in Piston, stdout and stderr are returned.",
+  description:
+    "Run Python code in script mode on Piston. Since stdout and stderr are returned, use print() for output.",
   parameters: {
     type: "object",
     properties: {
@@ -34,4 +35,13 @@ export const TOOL_GOOGLE_SEARCH: Tool = {
     additionalProperties: false,
   },
   strict: true,
+};
+
+export const TOOL_DEFAULT_MCP: Tool = {
+  type: "mcp",
+  server_url:
+    import.meta.env.VITE_MCP_SERVER ||
+    new URL("/mcp", window.location.href).toString(),
+  server_label: "chat-tools-mcp",
+  require_approval: "never",
 };

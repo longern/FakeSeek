@@ -28,6 +28,8 @@ import { useTranslation } from "react-i18next";
 
 import SearchModeChip from "./SearchModeChip";
 import { CreateResponseParams } from "./app/thunks";
+import { useAppSelector } from "./app/hooks";
+import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "./app/tools-definitions";
 
 export interface Abortable {
   abort: () => void;
@@ -84,6 +86,7 @@ function InputArea({
   const [message, setMessage] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const toolsProvider = useAppSelector((state) => state.provider.toolsProvider);
 
   const { t } = useTranslation();
 
@@ -126,19 +129,12 @@ function InputArea({
           onChat([{ type: "input_text", text: message }], {
             tools:
               searchMode === "auto"
-                ? [
-                    { type: "web_search_preview" },
-                    { type: "code_interpreter", container: { type: "auto" } },
-                    {
-                      type: "mcp",
-                      server_url:
-                        import.meta.env.VITE_MCP_SERVER ||
-                        new URL("/mcp", window.location.href).toString(),
-                      server_label: "chat-tools-mcp",
-                      require_approval: "never",
-                      allowed_tools: [],
-                    },
-                  ]
+                ? toolsProvider === "openai-builtin"
+                  ? [
+                      { type: "web_search_preview" },
+                      { type: "code_interpreter", container: { type: "auto" } },
+                    ]
+                  : [TOOL_DEFAULT_MCP, TOOL_PYTHON]
                 : undefined,
             model: searchMode === "auto" ? "gpt-4.1-mini" : undefined,
           });

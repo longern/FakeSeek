@@ -30,6 +30,7 @@ import { CodeBox } from "./Markdown";
 import {
   AssistantMessage,
   GenerateImageContent,
+  McpCallContent,
   ReasoningContent,
 } from "./MessageItem";
 
@@ -111,6 +112,17 @@ function ResponseItem({
                 reasoning={message.status !== "completed"}
               />
             </Box>
+          ) : message.type === "mcp_call" ? (
+            <McpCallContent key={message.id} message={message} />
+          ) : message.type === "function_call" ? (
+            <Box key={message.id}>
+              <Typography
+                variant="body2"
+                sx={{ marginY: 1, color: "text.secondary", userSelect: "none" }}
+              >
+                {t("Call tool")}: {message.name}
+              </Typography>
+            </Box>
           ) : message.type === "image_generation_call" ? (
             <GenerateImageContent key={message.id} message={message} />
           ) : message.type === "web_search_call" ? (
@@ -144,7 +156,7 @@ function ResponseItem({
         <Stack
           direction="row"
           gap={1}
-          sx={{ marginTop: 2, alignItems: "center" }}
+          sx={{ marginY: 2, alignItems: "center" }}
         >
           <IconButton
             sx={{ width: "28px", height: "28px", borderRadius: 1 }}
@@ -165,7 +177,7 @@ function ResponseItem({
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ userSelect: "none" }}
+            sx={{ minWidth: "64px", marginRight: 1, userSelect: "none" }}
           >
             {formatTimestamp(response.timestamp)}
           </Typography>
