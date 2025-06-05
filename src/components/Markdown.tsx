@@ -161,7 +161,7 @@ export function CodeBox({
   );
 }
 
-const Markdown = memo(({ children }: { children: string }) => {
+export const Markdown = memo(({ children }: { children: string }) => {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}

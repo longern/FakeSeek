@@ -1,4 +1,5 @@
 const MARKDOWN_SEARCH_ITEM = `- [{{title}}]({{link}})
+
   {{snippet}}
 `;
 

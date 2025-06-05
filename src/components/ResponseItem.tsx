@@ -30,9 +30,9 @@ import { CodeBox } from "./Markdown";
 import {
   AssistantMessage,
   GenerateImageContent,
-  McpCallContent,
   ReasoningContent,
 } from "./MessageItem";
+import { McpCallContent } from "./McpCallMessage";
 
 function formatTimestamp(timestamp: number) {
   const date = new Date(timestamp);

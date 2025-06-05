@@ -3,7 +3,6 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LinkIcon from "@mui/icons-material/Link";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
   Box,
@@ -366,54 +365,6 @@ export function ReasoningContent({
       </Collapse>
     </>
   );
-}
-
-function formatMcpError(
-  error:
-    | string
-    | { type: string; content: Array<{ type: string; text: string }> }
-) {
-  if (typeof error === "string") return error;
-  return error.content
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("");
-}
-
-export function McpCallContent({
-  message,
-}: {
-  message: ResponseInputItem.McpCall;
-}) {
-  const { t } = useTranslation();
-
-  switch (message.name) {
-    case "search_google":
-      return (
-        <Box key={message.id} sx={{ marginY: 1 }}>
-          <Typography
-            variant="body2"
-            sx={{ color: "text.secondary", userSelect: "none" }}
-          >
-            <Stack
-              component="span"
-              direction="row"
-              gap={0.5}
-              sx={{ alignItems: "center" }}
-            >
-              <SearchIcon />
-              {message.output
-                ? t("Search completed")
-                : message.error
-                ? formatMcpError(message.error)
-                : t("Searching...")}
-            </Stack>
-          </Typography>
-        </Box>
-      );
-
-    default:
-      return null;
-  }
 }
 
 export function GenerateImageContent({
