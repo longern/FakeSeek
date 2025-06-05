@@ -6,6 +6,7 @@ import {
   ResponseContentPartDoneEvent,
   ResponseFunctionCallArgumentsDeltaEvent,
   ResponseInputItem,
+  ResponseMcpCallArgumentsDeltaEvent,
   ResponseOutputItemAddedEvent,
   ResponseOutputItemDoneEvent,
   ResponseReasoningSummaryPartAddedEvent,
@@ -223,6 +224,24 @@ export const messagesSlice = createSlice({
       message.arguments += payload.event.delta;
     },
 
+    mcpCallArgumentsDelta: (
+      state,
+      {
+        payload,
+      }: {
+        payload: {
+          responseId: string;
+          event: ResponseMcpCallArgumentsDeltaEvent;
+        };
+      }
+    ) => {
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
+      if (message?.type !== "mcp_call") return;
+      message.arguments += payload.event.delta;
+    },
+
     codeInterpreterCallCodeDelta: (
       state,
       {
@@ -262,6 +281,7 @@ export const {
   addReasoningSummaryPart,
   reasoningSummaryTextDelta,
   functionCallArgumentsDelta,
+  mcpCallArgumentsDelta,
   codeInterpreterCallCodeDelta,
 } = messagesSlice.actions;
 

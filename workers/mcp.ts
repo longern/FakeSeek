@@ -10,7 +10,7 @@ export class ChatToolsMcp extends McpAgent<{
   GOOGLE_API_KEY: string;
   GOOGLE_CSE_CX: string;
 }> {
-  server = new McpServer({ name: "Demo", version: "1.0.0" });
+  server = new McpServer({ name: "Chat Tools", version: "0.1.0" });
   async init() {
     this.server.tool(
       "search_google",

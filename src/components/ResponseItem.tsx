@@ -25,7 +25,7 @@ import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
 
 import { CreateResponseParams } from "../app/thunks";
-import { TOOL_GOOGLE_SEARCH, TOOL_PYTHON } from "../app/tools-definitions";
+import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "../app/tools-definitions";
 import { CodeBox } from "./Markdown";
 import {
   AssistantMessage,
@@ -204,7 +204,7 @@ function ResponseItem({
           onClick={() => {
             onRetry({
               model: "o4-mini",
-              tools: [TOOL_PYTHON, TOOL_GOOGLE_SEARCH],
+              tools: [TOOL_DEFAULT_MCP, TOOL_PYTHON],
             });
             setRetryMenuAnchor(null);
           }}

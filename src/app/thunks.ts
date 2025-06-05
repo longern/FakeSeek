@@ -10,19 +10,20 @@ import {
 } from "openai/resources/responses/responses.mjs";
 
 import {
-  contentPartAdded,
   add as addMessage,
   addReasoningSummaryPart,
   addResponse,
   ChatMessage,
   codeInterpreterCallCodeDelta,
+  contentPartAdded,
   contentPartDelta,
   contentPartDone,
   functionCallArgumentsDelta,
+  mcpCallArgumentsDelta,
   outputItemAdded,
+  outputItemDone,
   reasoningSummaryTextDelta,
   update as updateMessage,
-  outputItemDone,
 } from "./messages";
 import { AppDispatch, createAppAsyncThunk } from "./store";
 
@@ -112,6 +113,10 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
             patch: { status: "incomplete", output: event.item.output },
           })
         );
+        break;
+
+      case "response.mcp_call.arguments_delta":
+        dispatch(mcpCallArgumentsDelta({ responseId, event }));
         break;
 
       case "response.code_interpreter_call_code.delta":

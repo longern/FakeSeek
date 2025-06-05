@@ -9,20 +9,21 @@ import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
 import { add as addConversation, conversationsSlice } from "./conversations";
 import { db } from "./db";
 import {
-  contentPartAdded,
   add as addMessage,
   addReasoningSummaryPart,
   addResponse,
   ChatMessage,
   codeInterpreterCallCodeDelta,
+  contentPartAdded,
   contentPartDelta,
-  functionCallArgumentsDelta,
-  messagesSlice,
-  reasoningSummaryTextDelta,
-  set as setMessages,
   contentPartDone,
+  functionCallArgumentsDelta,
+  mcpCallArgumentsDelta,
+  messagesSlice,
   outputItemAdded,
   outputItemDone,
+  reasoningSummaryTextDelta,
+  set as setMessages,
 } from "./messages";
 import { AppState, initializeAction } from "./store";
 
@@ -171,6 +172,7 @@ export const dbMiddleware: Middleware<{}, AppState> =
       case addReasoningSummaryPart.type:
       case reasoningSummaryTextDelta.type:
       case functionCallArgumentsDelta.type:
+      case mcpCallArgumentsDelta.type:
       case codeInterpreterCallCodeDelta.type: {
         const result = next(action);
         const responseId = action.payload.responseId;
