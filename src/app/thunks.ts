@@ -128,7 +128,11 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
   return messageDispatch;
 }
 
-export type CreateResponseParams = { model?: string; tools?: Tool[] };
+export type CreateResponseParams = {
+  model?: string;
+  instructions?: string;
+  tools?: Tool[];
+};
 
 async function streamRequestAssistant(
   messages: ResponseInputItem[],
@@ -154,6 +158,7 @@ async function streamRequestAssistant(
       input: messages,
       stream: true,
       reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
+      instructions: options?.instructions,
       tools: options?.tools,
     },
     { signal: options?.signal }

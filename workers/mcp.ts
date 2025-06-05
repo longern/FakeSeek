@@ -56,7 +56,7 @@ export class ChatToolsMcp extends McpAgent<{
       }
     );
 
-    this.server.tool("browse_web", { url: z.string() }, async ({ url }) => {
+    this.server.tool("browse_webpage", { url: z.string() }, async ({ url }) => {
       const response = await fetch("https://r.jina.ai/" + url);
       if (!response.ok) {
         return {

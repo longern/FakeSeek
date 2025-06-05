@@ -1,12 +1,14 @@
 import CloseIcon from "@mui/icons-material/Close";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import SearchIcon from "@mui/icons-material/Search";
+import WebIcon from "@mui/icons-material/Web";
 import {
   Box,
   Dialog,
   DialogContent,
   DialogTitle,
   IconButton,
+  Link,
   Stack,
   Toolbar,
   Typography,
@@ -106,6 +108,89 @@ function SearchGoogleContent({
   );
 }
 
+function BrowseWebpageContent({
+  message,
+}: {
+  message: ResponseInputItem.McpCall;
+}) {
+  const [showContent, setShowContent] = useState(false);
+
+  const { t } = useTranslation();
+
+  const url = useMemo(() => {
+    try {
+      const args = JSON.parse(message.arguments);
+      return (args.url as string) ?? null;
+    } catch (e) {
+      return null;
+    }
+  }, [message.arguments]);
+
+  return (
+    <Box key={message.id} sx={{ marginY: 1 }}>
+      <Stack
+        component="span"
+        direction="row"
+        gap={0.5}
+        sx={{ alignItems: "center" }}
+      >
+        <WebIcon sx={{ color: "text.secondary" }} />
+        <Typography variant="body2" sx={{ color: "text.secondary" }} noWrap>
+          <Box component="span" sx={{ userSelect: "none" }}>
+            {t("Browse webpage")}
+            {url ? `: ` : null}
+          </Box>
+          {url ? (
+            <Link
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ textDecoration: "none", color: "text.secondary" }}
+            >
+              {url}
+            </Link>
+          ) : null}
+        </Typography>
+        {message.output && (
+          <IconButton size="small" onClick={() => setShowContent(true)}>
+            <MoreHorizIcon fontSize="small" />
+          </IconButton>
+        )}
+      </Stack>
+
+      <Dialog
+        open={showContent}
+        onClose={() => setShowContent(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <Toolbar>
+          <SearchIcon />
+          <Box sx={{ minWidth: 0, flexGrow: 1, marginLeft: 1 }}>
+            <DialogTitle noWrap sx={{ padding: 0 }}>
+              {url}
+            </DialogTitle>
+          </Box>
+          <IconButton
+            aria-label="Close"
+            size="large"
+            edge="end"
+            onClick={() => setShowContent(false)}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Toolbar>
+        <DialogContent
+          dividers
+          sx={{ paddingY: 0, "& ul": { listStyle: "none", padding: 0 } }}
+        >
+          {message.output ? <Markdown children={message.output} /> : null}
+        </DialogContent>
+      </Dialog>
+    </Box>
+  );
+}
+
 export function McpCallContent({
   message,
 }: {
@@ -114,6 +199,9 @@ export function McpCallContent({
   switch (message.name) {
     case "search_google":
       return <SearchGoogleContent message={message} />;
+
+    case "browse_webpage":
+      return <BrowseWebpageContent message={message} />;
 
     default:
       return (
