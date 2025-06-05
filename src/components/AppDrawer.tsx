@@ -89,7 +89,8 @@ function AppDrawer({
             );
           }}
           onDelete={(conversation) => {
-            if (!window.confirm("Delete this chat?")) return;
+            const message = `${t("delete-chat")}\n${conversation.title}`;
+            if (!window.confirm(message)) return;
             dispatch(removeConversation(conversation.id));
             if (conversation.id === selectedConversation)
               onConversationChange(null);

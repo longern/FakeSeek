@@ -80,7 +80,6 @@ function InputArea({
   const [searchMode, setSearchMode] = useState<
     "auto" | "webpage" | "image" | "deep-research" | undefined
   >(undefined);
-  const [enableResearch, setEnableResearch] = useState(false);
   const [enableGenerateImage, setEnableGenerateImage] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [message, setMessage] = useState("");
@@ -143,7 +142,6 @@ function InputArea({
     },
     [
       searchMode,
-      enableResearch,
       enableGenerateImage,
       message,
       images,
@@ -279,7 +277,6 @@ function InputArea({
             onClick={() => {
               setEnableGenerateImage(!enableGenerateImage);
               setSearchMode(undefined);
-              setEnableResearch(false);
               navigator.vibrate?.(1);
               inputRef.current?.focus();
             }}

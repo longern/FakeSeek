@@ -39,6 +39,7 @@ const resources = {
       "What can I help with?": "What can I help with?",
       Yesterday: "Yesterday",
 
+      "delete-chat": "Delete this chat?",
       "tools-provider.default": "Default",
       "tools-provider.openai-builtin": "OpenAI Built-in",
       "quality.low": "Low",
@@ -83,6 +84,7 @@ const resources = {
       "Webpage Search": "网页搜索",
       Yesterday: "昨天",
 
+      "delete-chat": "删除此对话？",
       "quality.low": "低",
       "quality.medium": "中",
       "quality.high": "高",

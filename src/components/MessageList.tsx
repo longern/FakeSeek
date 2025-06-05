@@ -9,6 +9,20 @@ import { CreateResponseParams } from "../app/thunks";
 import { FunctionCallOutput, UserMessage } from "./MessageItem";
 import ResponseItem from "./ResponseItem";
 
+function findToolCall(
+  messages: ChatMessage[],
+  message: ResponseInputItem.FunctionCallOutput
+): ResponseFunctionToolCall | undefined {
+  for (const response of messages) {
+    if (response.object !== "response") continue;
+    for (const item of response.output) {
+      if (item.type === "function_call" && item.call_id === message.call_id) {
+        return item as ResponseFunctionToolCall;
+      }
+    }
+  }
+}
+
 function MessageList({
   messages,
   onRetry,
@@ -16,19 +30,6 @@ function MessageList({
   messages: ChatMessage[];
   onRetry: (message: ChatMessage, options?: CreateResponseParams) => void;
 }) {
-  function findToolCall(
-    message: ResponseInputItem.FunctionCallOutput
-  ): ResponseFunctionToolCall | undefined {
-    for (const response of messages) {
-      if (response.object !== "response") continue;
-      for (const item of response.output) {
-        if (item.type === "function_call" && item.call_id === message.call_id) {
-          return item as ResponseFunctionToolCall;
-        }
-      }
-    }
-  }
-
   return (
     <Stack
       gap={1}
@@ -48,7 +49,7 @@ function MessageList({
           <FunctionCallOutput
             key={response.id || `out_${response.call_id}`}
             message={response}
-            toolCall={findToolCall(response)}
+            toolCall={findToolCall(messages, response)}
           />
         ) : response.object === "response" ? (
           <ResponseItem

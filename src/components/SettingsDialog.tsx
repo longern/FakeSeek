@@ -204,7 +204,7 @@ function SettingsDialog({
                   open={Boolean(qualitySelectorAnchor)}
                   onClose={() => setQualitySelectorAnchor(null)}
                   slotProps={{
-                    list: { disablePadding: true },
+                    list: { disablePadding: true, sx: { minWidth: "160px" } },
                     backdrop: { invisible: false },
                   }}
                 >

@@ -17,7 +17,7 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Conversation } from "./app/conversations";
+import { Conversation } from "../app/conversations";
 
 function groupedConversations(conversations: Conversation[]) {
   const groups: Conversation[][] = [];
