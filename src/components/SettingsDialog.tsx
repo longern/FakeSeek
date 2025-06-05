@@ -20,13 +20,13 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
-import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
 import {
   setApiKey,
   setBaseURL,
   setImageQuality,
   setToolsProvider,
-} from "./app/provider";
+} from "../app/provider";
 import { Check } from "@mui/icons-material";
 
 function SettingsDialog({

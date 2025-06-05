@@ -37,7 +37,7 @@ import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 
 import Markdown, { CodeBox } from "./Markdown";
-import { useAppSelector } from "./app/hooks";
+import { useAppSelector } from "../app/hooks";
 
 export function UserMessage({
   message,

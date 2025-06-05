@@ -27,9 +27,9 @@ import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import SearchModeChip from "./SearchModeChip";
-import { CreateResponseParams } from "./app/thunks";
-import { useAppSelector } from "./app/hooks";
-import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "./app/tools-definitions";
+import { CreateResponseParams } from "../app/thunks";
+import { useAppSelector } from "../app/hooks";
+import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "../app/tools-definitions";
 
 export interface Abortable {
   abort: () => void;

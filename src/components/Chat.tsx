@@ -18,13 +18,13 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ScrollToBottom from "react-scroll-to-bottom";
 
-import { change as changeConversation } from "./app/conversations";
-import { useAppDispatch, useAppSelector } from "./app/hooks";
-import { ChatMessage, remove as removeMessage } from "./app/messages";
+import { change as changeConversation } from "../app/conversations";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { ChatMessage, remove as removeMessage } from "../app/messages";
 import AppDrawer from "./AppDrawer";
 import InputArea, { Abortable } from "./InputArea";
 import MessageList from "./MessageList";
-import { addMessageThunk } from "./app/db-middleware";
+import { addMessageThunk } from "../app/db-middleware";
 import {
   CreateResponseParams,
   requestAssistant,
@@ -32,7 +32,7 @@ import {
   requestGenerateImage,
   requestSearch,
   requestSearchImage,
-} from "./app/thunks";
+} from "../app/thunks";
 
 function useAbortablePromise() {
   const [abortable, setAbortable] = useState<Abortable | undefined>(undefined);

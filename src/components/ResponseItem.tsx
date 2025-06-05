@@ -24,8 +24,8 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
 
-import { CreateResponseParams } from "./app/thunks";
-import { TOOL_GOOGLE_SEARCH, TOOL_PYTHON } from "./app/tools-definitions";
+import { CreateResponseParams } from "../app/thunks";
+import { TOOL_GOOGLE_SEARCH, TOOL_PYTHON } from "../app/tools-definitions";
 import { CodeBox } from "./Markdown";
 import {
   AssistantMessage,

@@ -15,8 +15,8 @@ import {
   Conversation,
   remove as removeConversation,
   update as updateConversation,
-} from "./app/conversations";
-import { useAppDispatch, useAppSelector } from "./app/hooks";
+} from "../app/conversations";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
 import ConversationList from "./ConversationList";
 import SettingsDialog from "./SettingsDialog";
 

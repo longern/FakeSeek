@@ -4,8 +4,8 @@ import {
   ResponseInputItem,
 } from "openai/resources/responses/responses.mjs";
 
-import { ChatMessage } from "./app/messages";
-import { CreateResponseParams } from "./app/thunks";
+import { ChatMessage } from "../app/messages";
+import { CreateResponseParams } from "../app/thunks";
 import { FunctionCallOutput, UserMessage } from "./MessageItem";
 import ResponseItem from "./ResponseItem";
 
