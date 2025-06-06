@@ -4,6 +4,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import {
   Box,
   Container,
+  Fade,
   IconButton,
   Stack,
   Toolbar,
@@ -16,7 +17,10 @@ import {
 } from "openai/resources/responses/responses.mjs";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import ScrollToBottom from "react-scroll-to-bottom";
+import ScrollToBottom, {
+  useAtBottom,
+  useScrollToBottom,
+} from "react-scroll-to-bottom";
 
 import { change as changeConversation } from "../app/conversations";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
@@ -33,6 +37,7 @@ import {
   requestSearch,
   requestSearchImage,
 } from "../app/thunks";
+import { ArrowDownward } from "@mui/icons-material";
 
 function useAbortablePromise() {
   const [abortable, setAbortable] = useState<Abortable | undefined>(undefined);
@@ -61,17 +66,19 @@ function toUserMessage(
   return { type: "message", role: "user", content };
 }
 
-function Chat() {
-  const selectedConversation = useAppSelector(
-    (state) => state.conversations.current
-  );
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [abortable, setAbortable] = useAbortablePromise();
+function Main({
+  abortable,
+  setAbortable,
+}: {
+  abortable?: Abortable;
+  setAbortable: (promise: Abortable & Promise<unknown>) => void;
+}) {
   const messages = useAppSelector((state) => state.messages.messages);
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+  const dispatch = useAppDispatch();
+  const [atBottom] = useAtBottom();
+  const scrollToBottom = useScrollToBottom();
 
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
 
   const handleRetry = (
     message: ChatMessage,
@@ -140,6 +147,90 @@ function Chat() {
   );
 
   return (
+    <Stack sx={{ minHeight: "100%" }}>
+      <Container
+        component="main"
+        maxWidth="md"
+        sx={{
+          flexGrow: 1,
+          padding: 2,
+          overflowX: "hidden",
+          position: "relative",
+        }}
+      >
+        {!Object.values(messages).length ? (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="h5" sx={{ userSelect: "none" }}>
+              {t("What can I help with?")}
+            </Typography>
+          </Box>
+        ) : (
+          <MessageList
+            messages={Object.values(messages)}
+            onRetry={handleRetry}
+          />
+        )}
+      </Container>
+      <Box
+        sx={{
+          position: "sticky",
+          bottom: 0,
+          width: "100%",
+          background: (theme) =>
+            `linear-gradient(to bottom, transparent 0, ${
+              theme.palette.background.paper
+            } ${theme.spacing(1)})`,
+          zIndex: 1,
+        }}
+      >
+        <Container maxWidth="md" disableGutters sx={{ position: "relative" }}>
+          <Fade in={!atBottom}>
+            <IconButton
+              size="small"
+              sx={{
+                position: "absolute",
+                right: 16,
+                top: -40,
+                width: 32,
+                height: 32,
+                border: "1px solid rgba(0, 0, 0, 0.12)",
+              }}
+              onClick={() => scrollToBottom()}
+            >
+              <ArrowDownward fontSize="small" />
+            </IconButton>
+          </Fade>
+          {inputArea}
+        </Container>
+      </Box>
+    </Stack>
+  );
+}
+
+function Chat() {
+  const [abortable, setAbortable] = useAbortablePromise();
+  const selectedConversation = useAppSelector(
+    (state) => state.conversations.current
+  );
+  const [showSidebar, setShowSidebar] = useState(false);
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+
+  return (
     <Stack direction="row" sx={{ height: "100%" }}>
       <AppDrawer
         open={showSidebar}
@@ -182,58 +273,7 @@ function Chat() {
             min-height: 0;
           `}
         >
-          <Stack sx={{ minHeight: "100%" }}>
-            <Container
-              maxWidth="md"
-              sx={{
-                flexGrow: 1,
-                padding: 2,
-                overflowX: "hidden",
-                position: "relative",
-              }}
-            >
-              {!Object.values(messages).length ? (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Typography variant="h5" sx={{ userSelect: "none" }}>
-                    {t("What can I help with?")}
-                  </Typography>
-                </Box>
-              ) : (
-                <MessageList
-                  messages={Object.values(messages)}
-                  onRetry={handleRetry}
-                />
-              )}
-            </Container>
-            <Box
-              sx={{
-                position: "sticky",
-                bottom: 0,
-                width: "100%",
-                background: (theme) =>
-                  `linear-gradient(to bottom, transparent 0, ${
-                    theme.palette.background.paper
-                  } ${theme.spacing(1)})`,
-                zIndex: 1,
-              }}
-            >
-              <Container maxWidth="md" disableGutters>
-                {inputArea}
-              </Container>
-            </Box>
-          </Stack>
+          <Main abortable={abortable} setAbortable={setAbortable} />
         </ScrollToBottom>
       </Stack>
     </Stack>

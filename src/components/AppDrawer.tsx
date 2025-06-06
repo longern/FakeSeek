@@ -47,6 +47,7 @@ function AppDrawer({
   return (
     <>
       <Drawer
+        component="nav"
         variant={isMobile ? "temporary" : "permanent"}
         open={open}
         anchor="left"
