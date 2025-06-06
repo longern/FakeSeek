@@ -126,6 +126,14 @@ function BrowseWebpageContent({
     }
   }, [message.arguments]);
 
+  const title = useMemo(() => {
+    if (!message.output) return null;
+    const firstLine = message.output.split("\n", 1)[0];
+    const TITLE_PREFIX = "Title: ";
+    if (!firstLine.startsWith(TITLE_PREFIX)) return null;
+    return firstLine.slice(TITLE_PREFIX.length).trim();
+  }, [message.output]);
+
   return (
     <Box key={message.id} sx={{ marginY: 1 }}>
       <Stack
@@ -138,16 +146,16 @@ function BrowseWebpageContent({
         <Typography variant="body2" sx={{ color: "text.secondary" }} noWrap>
           <Box component="span" sx={{ userSelect: "none" }}>
             {t("Browse webpage")}
-            {url ? `: ` : null}
+            {title ?? url ? `: ` : null}
           </Box>
           {url ? (
             <Link
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              sx={{ textDecoration: "none", color: "text.secondary" }}
+              sx={{ color: "text.secondary" }}
             >
-              {url}
+              {title ?? url}
             </Link>
           ) : null}
         </Typography>
