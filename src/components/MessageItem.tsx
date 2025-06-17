@@ -1,3 +1,4 @@
+import CodeIcon from "@mui/icons-material/Code";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -541,6 +542,28 @@ function SearchImageResultsContent({
         ))}
       </Stack>
     </PhotoProvider>
+  );
+}
+
+export function RunPythonContent() {
+  const { t } = useTranslation();
+
+  return (
+    <Box sx={{ marginY: 1 }}>
+      <Stack
+        component="span"
+        direction="row"
+        gap={0.5}
+        sx={{ alignItems: "center" }}
+      >
+        <CodeIcon sx={{ color: "text.secondary" }} />
+        <Typography variant="body2" sx={{ color: "text.secondary" }} noWrap>
+          <Box component="span" sx={{ userSelect: "none" }}>
+            {t("Run Python code")}
+          </Box>
+        </Typography>
+      </Stack>
+    </Box>
   );
 }
 

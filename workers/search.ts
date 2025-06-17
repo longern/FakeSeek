@@ -1,7 +1,4 @@
-const MARKDOWN_SEARCH_ITEM = `- [{{title}}]({{link}})
-
-  {{snippet}}
-`;
+const MARKDOWN_SEARCH_ITEM = "- [{{title}}]({{link}})  \n    {{snippet}}\n";
 
 export function formatSearchResults(data: {
   items: {

@@ -49,7 +49,7 @@ function SearchGoogleContent({
   }, [message.arguments]);
 
   return (
-    <Box key={message.id} sx={{ marginY: 1 }}>
+    <Box sx={{ marginY: 1 }}>
       <Stack
         component="span"
         direction="row"
@@ -99,7 +99,18 @@ function SearchGoogleContent({
         </Toolbar>
         <DialogContent
           dividers
-          sx={{ paddingY: 0, "& ul": { listStyle: "none", padding: 0 } }}
+          sx={{
+            paddingY: 0,
+            overflowWrap: "break-word",
+            "& ul": { listStyle: "none", padding: 0 },
+            "& li>p>a:first-child": {
+              display: "inline-block",
+              maxWidth: "100%",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            },
+          }}
         >
           {message.output ? <Markdown children={message.output} /> : null}
         </DialogContent>
@@ -135,7 +146,7 @@ function BrowseWebpageContent({
   }, [message.output]);
 
   return (
-    <Box key={message.id} sx={{ marginY: 1 }}>
+    <Box sx={{ marginY: 1 }}>
       <Stack
         component="span"
         direction="row"
@@ -213,7 +224,7 @@ export function McpCallContent({
 
     default:
       return (
-        <Box key={message.id} sx={{ marginY: 1 }}>
+        <Box sx={{ marginY: 1 }}>
           <Typography
             variant="body2"
             sx={{ color: "text.secondary", userSelect: "none" }}

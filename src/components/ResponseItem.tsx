@@ -31,6 +31,7 @@ import {
   AssistantMessage,
   GenerateImageContent,
   ReasoningContent,
+  RunPythonContent,
 } from "./MessageItem";
 import { McpCallContent } from "./McpCallMessage";
 
@@ -115,14 +116,22 @@ function ResponseItem({
           ) : message.type === "mcp_call" ? (
             <McpCallContent key={message.id} message={message} />
           ) : message.type === "function_call" ? (
-            <Box key={message.id}>
-              <Typography
-                variant="body2"
-                sx={{ marginY: 1, color: "text.secondary", userSelect: "none" }}
-              >
-                {t("Call tool")}: {message.name}
-              </Typography>
-            </Box>
+            message.name === "run_python" ? (
+              <RunPythonContent />
+            ) : (
+              <Box key={message.id}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    marginY: 1,
+                    color: "text.secondary",
+                    userSelect: "none",
+                  }}
+                >
+                  {t("Call tool")}: {message.name}
+                </Typography>
+              </Box>
+            )
           ) : message.type === "image_generation_call" ? (
             <GenerateImageContent key={message.id} message={message} />
           ) : message.type === "web_search_call" ? (

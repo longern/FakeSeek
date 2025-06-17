@@ -115,7 +115,7 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         );
         break;
 
-      case "response.mcp_call.arguments_delta":
+      case "response.mcp_call_arguments.delta":
         dispatch(mcpCallArgumentsDelta({ responseId, event }));
         break;
 
