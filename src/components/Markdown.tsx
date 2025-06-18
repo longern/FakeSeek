@@ -167,6 +167,22 @@ export const Markdown = memo(({ children }: { children: string }) => {
       remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[rehypeKatex]}
       className={css`
+        line-height: 1.75em;
+        & p,
+        & ul,
+        & ol {
+          margin-top: 0.8em;
+          margin-bottom: 0.8em;
+        }
+        & ul {
+          padding-left: 1.75em;
+        }
+        & li > p,
+        & li > ul,
+        & li > ol {
+          margin-top: 4px;
+          margin-bottom: 4px;
+        }
         & .katex-display {
           margin-top: 0.5em;
           margin-bottom: 0.5em;
