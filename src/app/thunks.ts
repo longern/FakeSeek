@@ -151,7 +151,7 @@ async function streamRequestAssistant(
   });
   const model =
     options?.model ??
-    (messages.some((m) => m.type === "reasoning") ? "o4-mini" : "gpt-4.1-nano");
+    (messages.some((m) => m.type === "reasoning") ? "o4-mini" : "gpt-5-nano");
   const response = await client.responses.create(
     {
       model: model,
@@ -495,7 +495,7 @@ export const requestGenerateImage = createAppAsyncThunk(
       });
       const response = await client.responses.create(
         {
-          model: "gpt-4.1-nano",
+          model: "gpt-5-nano",
           input: messages.flatMap(normMessage),
           tools: [
             {
