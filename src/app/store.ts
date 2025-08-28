@@ -1,14 +1,14 @@
 import {
   combineReducers,
   configureStore,
-  createAction,
   createAsyncThunk,
 } from "@reduxjs/toolkit";
 
+import { initializeAction } from "./actions";
 import conversationsReducer from "./conversations";
+import { dbMiddleware } from "./db-middleware";
 import messagesReducer from "./messages";
 import providerReducer from "./provider";
-import { dbMiddleware } from "./db-middleware";
 
 const rootReducer = combineReducers({
   conversations: conversationsReducer,
@@ -29,8 +29,6 @@ export const createAppAsyncThunk = createAsyncThunk.withTypes<{
   state: AppState;
   dispatch: AppDispatch;
 }>();
-
-export const initializeAction = createAction("app/initialize");
 
 store.dispatch(initializeAction());
 

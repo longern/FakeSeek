@@ -26,9 +26,11 @@ function findToolCall(
 function MessageList({
   messages,
   onRetry,
+  onDislike,
 }: {
   messages: ChatMessage[];
   onRetry: (message: ChatMessage, options?: CreateResponseParams) => void;
+  onDislike: (message: ChatMessage) => void;
 }) {
   return (
     <Stack
@@ -58,6 +60,7 @@ function MessageList({
             onRetry={(options?: CreateResponseParams) =>
               onRetry(response, options)
             }
+            onDislike={() => onDislike?.(response)}
           />
         ) : null
       )}

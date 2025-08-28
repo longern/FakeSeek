@@ -149,9 +149,7 @@ async function streamRequestAssistant(
       options?.baseURL || new URL("/api/v1", window.location.href).toString(),
     dangerouslyAllowBrowser: true,
   });
-  const model =
-    options?.model ??
-    (messages.some((m) => m.type === "reasoning") ? "o4-mini" : "gpt-5-nano");
+  const model = options?.model ?? "gpt-5-nano";
   const response = await client.responses.create(
     {
       model: model,

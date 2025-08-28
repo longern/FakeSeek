@@ -4,6 +4,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReplayIcon from "@mui/icons-material/Replay";
 import SearchIcon from "@mui/icons-material/Search";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
+import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import {
   Alert,
   Box,
@@ -57,9 +58,11 @@ function formatTimestamp(timestamp: number) {
 function ResponseItem({
   response,
   onRetry,
+  onDislike,
 }: {
   response: Response & { timestamp: number };
   onRetry: (options?: CreateResponseParams) => void;
+  onDislike: () => void;
 }) {
   const [retryMenuAnchor, setRetryMenuAnchor] = useState<null | HTMLElement>(
     null
@@ -154,9 +157,11 @@ function ResponseItem({
               </Typography>
             </Box>
           ) : message.type === "code_interpreter_call" ? (
-            <CodeBox key={message.id} language="python">
-              {message.code}
-            </CodeBox>
+            message.code === null ? null : (
+              <CodeBox key={message.id} language="python">
+                {message.code}
+              </CodeBox>
+            )
           ) : null
         )
       )}
@@ -164,16 +169,18 @@ function ResponseItem({
       {response.status !== "in_progress" && (
         <Stack
           direction="row"
-          gap={1}
-          sx={{ marginY: 2, alignItems: "center" }}
+          gap="4px"
+          sx={{ marginTop: 1.5, marginBottom: 2, alignItems: "center" }}
         >
           <IconButton
+            aria-label="Copy"
             sx={{ width: "28px", height: "28px", borderRadius: 1 }}
             onClick={handleCopy}
           >
             <ContentCopyIcon fontSize="small" />
           </IconButton>
           <Button
+            aria-label="Retry"
             size="small"
             sx={{ minWidth: 0, color: "text.secondary" }}
             onClick={(e) => {
@@ -183,6 +190,13 @@ function ResponseItem({
             <ReplayIcon fontSize="small" />
             <ExpandMoreIcon fontSize="small" />
           </Button>
+          <IconButton
+            aria-label="Dislike"
+            onClick={() => onDislike()}
+            sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+          >
+            <ThumbDownOffAltIcon fontSize="small" />
+          </IconButton>
           <Typography
             variant="body2"
             color="text.secondary"
@@ -212,13 +226,13 @@ function ResponseItem({
         <MenuItem
           onClick={() => {
             onRetry({
-              model: "o4-mini",
+              model: "gpt-5",
               tools: [TOOL_DEFAULT_MCP, TOOL_PYTHON],
             });
             setRetryMenuAnchor(null);
           }}
         >
-          o4-mini
+          gpt-5
         </MenuItem>
         <Divider component="li" />
         <MenuItem

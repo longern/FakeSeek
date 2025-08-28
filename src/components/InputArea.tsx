@@ -135,7 +135,7 @@ function InputArea({
                     ]
                   : [TOOL_DEFAULT_MCP, TOOL_PYTHON]
                 : undefined,
-            model: searchMode === "auto" ? "gpt-4.1-mini" : undefined,
+            model: searchMode === "auto" ? "gpt-5-mini" : undefined,
           });
         }
       }

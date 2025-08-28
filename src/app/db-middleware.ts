@@ -6,6 +6,7 @@ import {
 } from "@reduxjs/toolkit";
 import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
 
+import { initializeAction } from "./actions";
 import { add as addConversation, conversationsSlice } from "./conversations";
 import { db } from "./db";
 import {
@@ -25,7 +26,7 @@ import {
   reasoningSummaryTextDelta,
   set as setMessages,
 } from "./messages";
-import { AppState, initializeAction } from "./store";
+import type { AppState } from "./store";
 
 const debounce = <T extends (...args: any[]) => void>(
   func: T,

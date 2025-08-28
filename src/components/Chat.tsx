@@ -1,5 +1,6 @@
 import { css } from "@emotion/css";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
   Box,
@@ -23,12 +24,9 @@ import ScrollToBottom, {
 } from "react-scroll-to-bottom";
 
 import { change as changeConversation } from "../app/conversations";
+import { addMessageThunk } from "../app/db-middleware";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { ChatMessage, remove as removeMessage } from "../app/messages";
-import AppDrawer from "./AppDrawer";
-import InputArea, { Abortable } from "./InputArea";
-import MessageList from "./MessageList";
-import { addMessageThunk } from "../app/db-middleware";
 import {
   CreateResponseParams,
   requestAssistant,
@@ -37,7 +35,10 @@ import {
   requestSearch,
   requestSearchImage,
 } from "../app/thunks";
-import { ArrowDownward } from "@mui/icons-material";
+import AppDrawer from "./AppDrawer";
+import CoachingDialog from "./CoachingDialog";
+import InputArea, { Abortable } from "./InputArea";
+import MessageList from "./MessageList";
 
 function useAbortablePromise() {
   const [abortable, setAbortable] = useState<Abortable | undefined>(undefined);
@@ -73,6 +74,9 @@ function Main({
   abortable?: Abortable;
   setAbortable: (promise: Abortable & Promise<unknown>) => void;
 }) {
+  const [coachingResponse, setCoachingResponse] = useState<ChatMessage | null>(
+    null
+  );
   const messages = useAppSelector((state) => state.messages.messages);
   const dispatch = useAppDispatch();
   const [atBottom] = useAtBottom();
@@ -180,6 +184,9 @@ function Main({
           <MessageList
             messages={Object.values(messages)}
             onRetry={handleRetry}
+            onDislike={(message) => {
+              setCoachingResponse(message);
+            }}
           />
         )}
       </Container>
@@ -209,12 +216,17 @@ function Main({
               }}
               onClick={() => scrollToBottom()}
             >
-              <ArrowDownward fontSize="small" />
+              <ArrowDownwardIcon fontSize="small" />
             </IconButton>
           </Fade>
           {inputArea}
         </Container>
       </Box>
+      <CoachingDialog
+        open={Boolean(coachingResponse)}
+        onClose={() => setCoachingResponse(null)}
+        message={coachingResponse}
+      />
     </Stack>
   );
 }
