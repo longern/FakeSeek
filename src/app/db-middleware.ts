@@ -24,6 +24,7 @@ import {
   outputItemAdded,
   outputItemDone,
   reasoningSummaryTextDelta,
+  reasoningTextDelta,
   set as setMessages,
 } from "./messages";
 import type { AppState } from "./store";
@@ -170,6 +171,7 @@ export const dbMiddleware: Middleware<{}, AppState> =
       case contentPartAdded.type:
       case contentPartDelta.type:
       case contentPartDone.type:
+      case reasoningTextDelta.type:
       case addReasoningSummaryPart.type:
       case reasoningSummaryTextDelta.type:
       case functionCallArgumentsDelta.type:

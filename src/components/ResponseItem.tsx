@@ -110,11 +110,7 @@ function ResponseItem({
             ) : null
           ) : message.type === "reasoning" ? (
             <Box key={message.id}>
-              <ReasoningContent
-                key={message.id}
-                content={message.summary}
-                reasoning={message.status !== "completed"}
-              />
+              <ReasoningContent message={message} />
             </Box>
           ) : message.type === "mcp_call" ? (
             <McpCallContent key={message.id} message={message} />

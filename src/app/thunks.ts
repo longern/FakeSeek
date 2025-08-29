@@ -23,6 +23,7 @@ import {
   outputItemAdded,
   outputItemDone,
   reasoningSummaryTextDelta,
+  reasoningTextDelta,
   update as updateMessage,
 } from "./messages";
 import { AppDispatch, createAppAsyncThunk } from "./store";
@@ -65,6 +66,7 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         break;
 
       case "response.output_item.added":
+        if (!event.item.id) event.item.id = crypto.randomUUID();
         dispatch(outputItemAdded({ responseId, event }));
         break;
 
@@ -83,6 +85,10 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
 
       case "response.output_text.delta":
         dispatch(contentPartDelta({ responseId, event }));
+        break;
+
+      case "response.reasoning_text.delta":
+        dispatch(reasoningTextDelta({ responseId, event }));
         break;
 
       case "response.reasoning_summary_part.added":

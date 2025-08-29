@@ -9,8 +9,10 @@ import {
   ResponseMcpCallArgumentsDeltaEvent,
   ResponseOutputItemAddedEvent,
   ResponseOutputItemDoneEvent,
+  ResponseReasoningItem,
   ResponseReasoningSummaryPartAddedEvent,
   ResponseReasoningSummaryTextDeltaEvent,
+  ResponseReasoningTextDeltaEvent,
   ResponseTextDeltaEvent,
 } from "openai/resources/responses/responses.mjs";
 
@@ -104,9 +106,17 @@ export const messagesSlice = createSlice({
     ) => {
       const response = state.messages[payload.responseId];
       if (response.object !== "response") return;
-      const outputIndex = payload.event.output_index;
+
+      // Hardcord for vLLM
+      const outputIndex = Math.min(
+        payload.event.output_index,
+        response.output.length - 1
+      );
+
       const item = structuredClone(payload.event.item);
 
+      if (!item.id && response.output[outputIndex]?.id)
+        item.id = response.output[outputIndex].id;
       if (item.type === "reasoning") item.status ??= "completed";
 
       response.output[outputIndex] = item;
@@ -126,8 +136,20 @@ export const messagesSlice = createSlice({
       const response = state.messages[payload.responseId];
       if (response.object !== "response") return;
       const message = response.output[payload.event.output_index];
-      if (message?.type !== "message" || message.role !== "assistant") return;
-      message.content.push(payload.event.part);
+      switch (message?.type) {
+        case "message":
+          if (!message.content) message.content = [];
+          message.content.push(payload.event.part);
+          break;
+        case "reasoning":
+          if (!message.content) message.content = [];
+          const part = payload.event
+            .part as unknown as ResponseReasoningItem.Content;
+          message.content.push(part);
+          break;
+        default:
+          return;
+      }
     },
 
     contentPartDelta: (
@@ -163,7 +185,14 @@ export const messagesSlice = createSlice({
     ) => {
       const response = state.messages[payload.responseId];
       if (response.object !== "response") return;
-      const message = response.output[payload.event.output_index];
+
+      // Hardcord for vLLM
+      const outputIndex = Math.min(
+        payload.event.output_index,
+        response.output.length - 1
+      );
+
+      const message = response.output[outputIndex];
       if (message.type !== "message") return;
       message.content[payload.event.content_index] = payload.event.part;
     },
@@ -202,6 +231,26 @@ export const messagesSlice = createSlice({
       const message = response.output[payload.event.output_index];
       if (message.type !== "reasoning") return;
       const part = message.summary[payload.event.summary_index];
+      if (!part) return;
+      part.text += payload.event.delta;
+    },
+
+    reasoningTextDelta: (
+      state,
+      {
+        payload,
+      }: {
+        payload: {
+          responseId: string;
+          event: ResponseReasoningTextDeltaEvent;
+        };
+      }
+    ) => {
+      const response = state.messages[payload.responseId];
+      if (response.object !== "response") return;
+      const message = response.output[payload.event.output_index];
+      if (message.type !== "reasoning") return;
+      const part = message.content?.[payload.event.content_index];
       if (!part) return;
       part.text += payload.event.delta;
     },
@@ -278,6 +327,7 @@ export const {
   contentPartAdded,
   contentPartDelta,
   contentPartDone,
+  reasoningTextDelta,
   addReasoningSummaryPart,
   reasoningSummaryTextDelta,
   functionCallArgumentsDelta,

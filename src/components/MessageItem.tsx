@@ -326,16 +326,16 @@ export function AssistantMessage({
 }
 
 export function ReasoningContent({
-  content,
-  reasoning,
+  message,
 }: {
-  content: ResponseReasoningItem.Summary[];
-  reasoning: boolean;
+  message: ResponseReasoningItem;
 }) {
   const [expanded, setExpanded] = useState(false);
 
   const { t } = useTranslation();
 
+  const reasoning = message.status !== "completed";
+  const content = message.content || message.summary;
   if (!reasoning && content.length === 0) return null;
 
   return (
