@@ -5,14 +5,16 @@ import {
   IconButton,
   Box,
   DialogContent,
-  DialogActions,
-  Button,
   Typography,
-  useMediaQuery,
+  DialogTitle,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
 
 import { ChatMessage } from "../app/messages";
 import { useTranslation } from "react-i18next";
+import { MessageItem } from "./MessageList";
 
 function CoachingDialog({
   open,
@@ -23,8 +25,6 @@ function CoachingDialog({
   onClose: () => void;
   message: ChatMessage | null;
 }) {
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
-
   const { t } = useTranslation();
 
   if (!message) return null;
@@ -33,40 +33,40 @@ function CoachingDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      fullScreen={isMobile}
-      fullWidth
-      maxWidth="sm"
-      slotProps={{ paper: { sx: { backgroundColor: "background.default" } } }}
+      fullScreen
+      slotProps={{
+        paper: {
+          sx: {
+            backgroundColor: "background.default",
+            overflow: "hidden", // KaTeX overflow?
+          },
+        },
+      }}
     >
-      <Toolbar
-        disableGutters
-        sx={{
-          position: "sticky",
-          top: 0,
-          borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-          zIndex: 1,
-        }}
-      >
-        <IconButton aria-label="Close" size="large" onClick={onClose}>
-          <NavigateBeforeIcon />
-        </IconButton>
-        <Typography
-          variant="subtitle1"
-          component="div"
-          sx={{ flexGrow: 1, textAlign: "center", userSelect: "none" }}
-        >
-          {t("Coaching Feedback")}
-        </Typography>
-        <Box sx={{ width: 48 }} />
-      </Toolbar>
-      <DialogContent dividers>
-        <Typography></Typography>
+      <DialogTitle sx={{ padding: 0 }}>
+        <Toolbar disableGutters>
+          <IconButton aria-label="Close" size="large" onClick={onClose}>
+            <NavigateBeforeIcon />
+          </IconButton>
+          <Typography
+            variant="subtitle1"
+            component="div"
+            sx={{ flexGrow: 1, textAlign: "center", userSelect: "none" }}
+          >
+            {t("Coach")}
+          </Typography>
+          <Box sx={{ width: 48 }} />
+        </Toolbar>
+      </DialogTitle>
+      <DialogContent sx={{ paddingX: 2, paddingBottom: 2 }}>
+        <Container sx={{ padding: 0 }}>
+          <Card variant="outlined">
+            <CardContent>
+              <MessageItem message={message} />
+            </CardContent>
+          </Card>
+        </Container>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="primary">
-          Close
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

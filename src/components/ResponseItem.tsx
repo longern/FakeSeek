@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -33,7 +34,7 @@ import {
   GenerateImageContent,
   ReasoningContent,
   RunPythonContent,
-} from "./MessageItem";
+} from "./MessageList";
 import { McpCallContent } from "./McpCallMessage";
 
 function formatTimestamp(timestamp: number) {
@@ -55,7 +56,132 @@ function formatTimestamp(timestamp: number) {
   }
 }
 
-function ResponseItem({
+export function ResponseContextMenu({
+  open,
+  anchorPosition,
+  onClose,
+  payload,
+  onRetryClick,
+}: {
+  open: boolean;
+  anchorPosition: { mouseX: number; mouseY: number } | null;
+  onClose: () => void;
+  payload?: {
+    message: Response & { timestamp: number };
+    selectedPart?: number;
+  };
+  onRetryClick: () => void;
+}) {
+  const [showSelection, setShowSelection] = useState(false);
+
+  const { t } = useTranslation();
+
+  const handleCopy = useCallback(() => {
+    const content = payload!.message.output
+      .flatMap((message) =>
+        message.type !== "message"
+          ? []
+          : message.content.map((part) =>
+              part.type === "output_text" ? part.text : part.refusal
+            )
+      )
+      .join("\n");
+    navigator.clipboard.writeText(content);
+  }, [payload]);
+
+  return (
+    <>
+      <Menu
+        open={open}
+        onClose={onClose}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          anchorPosition
+            ? { top: anchorPosition.mouseY, left: anchorPosition.mouseX }
+            : undefined
+        }
+        slotProps={{ list: { sx: { minWidth: "160px" } } }}
+      >
+        <MenuItem onClick={handleCopy}>
+          <ListItemIcon>
+            <ContentCopyIcon />
+          </ListItemIcon>
+          {t("Copy")}
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setShowSelection(true);
+            onClose();
+          }}
+        >
+          <ListItemIcon>
+            <SelectAllIcon />
+          </ListItemIcon>
+          {t("Select Text")}
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onRetryClick();
+            onClose();
+          }}
+        >
+          <ListItemIcon>
+            <ReplayIcon />
+          </ListItemIcon>
+          {t("Retry")}
+        </MenuItem>
+      </Menu>
+
+      {payload && (
+        <Dialog
+          fullScreen
+          open={showSelection}
+          onClose={() => setShowSelection(false)}
+        >
+          <Toolbar
+            disableGutters
+            sx={{
+              position: "sticky",
+              top: 0,
+              backgroundColor: "background.paper",
+              borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+              zIndex: 1,
+            }}
+          >
+            <IconButton
+              aria-label="Close"
+              size="large"
+              onClick={() => setShowSelection(false)}
+            >
+              <CloseIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
+              {t("Select Text")}
+            </Typography>
+            <Box sx={{ width: "48px" }} />
+          </Toolbar>
+          <InputBase
+            multiline
+            fullWidth
+            value={payload.message.output
+              .flatMap((message) =>
+                message.type !== "message"
+                  ? []
+                  : message.content.map((part) =>
+                      part.type === "output_text" ? part.text : part.refusal
+                    )
+              )
+              .join("\n")}
+            slotProps={{ input: { readOnly: true } }}
+            sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
+          />
+        </Dialog>
+      )}
+    </>
+  );
+}
+
+export function ResponseActions({
   response,
   onRetry,
   onDislike,
@@ -67,6 +193,113 @@ function ResponseItem({
   const [retryMenuAnchor, setRetryMenuAnchor] = useState<null | HTMLElement>(
     null
   );
+
+  const handleCopy = useCallback(() => {
+    const content = response.output
+      .flatMap((message) =>
+        message.type !== "message"
+          ? []
+          : message.content.map((part) =>
+              part.type === "output_text" ? part.text : part.refusal
+            )
+      )
+      .join("\n");
+    navigator.clipboard.writeText(content);
+  }, [response.output]);
+
+  const { t } = useTranslation();
+
+  return (
+    <Stack
+      direction="row"
+      gap="4px"
+      sx={{ marginTop: 1.5, marginBottom: 2, alignItems: "center" }}
+    >
+      <IconButton
+        aria-label="Copy"
+        sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+        onClick={handleCopy}
+      >
+        <ContentCopyIcon fontSize="small" />
+      </IconButton>
+      <Button
+        aria-label="Retry"
+        size="small"
+        sx={{ minWidth: 0, color: "text.secondary" }}
+        onClick={(e) => {
+          setRetryMenuAnchor(e.currentTarget);
+        }}
+      >
+        <ReplayIcon fontSize="small" />
+        <ExpandMoreIcon fontSize="small" />
+      </Button>
+      <IconButton
+        aria-label="Dislike"
+        onClick={() => onDislike()}
+        sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+      >
+        <ThumbDownOffAltIcon fontSize="small" />
+      </IconButton>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ minWidth: "64px", marginRight: 1, userSelect: "none" }}
+      >
+        {formatTimestamp(response.timestamp)}
+      </Typography>
+      {response.usage && (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ userSelect: "none" }}
+        >
+          <span>{response.usage.total_tokens}</span>
+          {" tokens"}
+        </Typography>
+      )}
+
+      <Menu
+        anchorEl={retryMenuAnchor}
+        open={Boolean(retryMenuAnchor)}
+        onClose={() => setRetryMenuAnchor(null)}
+        slotProps={{ list: { sx: { minWidth: "160px" } } }}
+      >
+        <MenuItem
+          onClick={() => {
+            onRetry({
+              model: "gpt-5",
+              tools: [TOOL_DEFAULT_MCP, TOOL_PYTHON],
+            });
+            setRetryMenuAnchor(null);
+          }}
+        >
+          gpt-5
+        </MenuItem>
+        <Divider component="li" />
+        <MenuItem
+          onClick={() => {
+            onRetry();
+            setRetryMenuAnchor(null);
+          }}
+        >
+          {t("Retry")}
+        </MenuItem>
+      </Menu>
+    </Stack>
+  );
+}
+
+function ResponseItem({
+  response,
+  onContextMenu,
+  responseActions,
+  onRetry,
+}: {
+  response: Response & { timestamp: number };
+  onContextMenu?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  responseActions?: (message: Response & { timestamp: number }) => ReactNode;
+  onRetry: (options?: CreateResponseParams) => void;
+}) {
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
@@ -89,7 +322,7 @@ function ResponseItem({
   }, [response.output]);
 
   return (
-    <Box key={response.id} sx={{ marginRight: 4 }}>
+    <Box sx={{ marginRight: 4 }}>
       {response.error ? (
         <Alert severity="error">{response.error.message}</Alert>
       ) : (
@@ -104,6 +337,7 @@ function ResponseItem({
                   if (nativeEvent.pointerType === "mouse") return;
                   nativeEvent.preventDefault();
                   window.getSelection()?.removeAllRanges();
+                  onContextMenu?.(e);
                   setContextMenu({ mouseX: e.clientX, mouseY: e.clientY });
                 }}
               />
@@ -162,84 +396,7 @@ function ResponseItem({
         )
       )}
 
-      {response.status !== "in_progress" && (
-        <Stack
-          direction="row"
-          gap="4px"
-          sx={{ marginTop: 1.5, marginBottom: 2, alignItems: "center" }}
-        >
-          <IconButton
-            aria-label="Copy"
-            sx={{ width: "28px", height: "28px", borderRadius: 1 }}
-            onClick={handleCopy}
-          >
-            <ContentCopyIcon fontSize="small" />
-          </IconButton>
-          <Button
-            aria-label="Retry"
-            size="small"
-            sx={{ minWidth: 0, color: "text.secondary" }}
-            onClick={(e) => {
-              setRetryMenuAnchor(e.currentTarget);
-            }}
-          >
-            <ReplayIcon fontSize="small" />
-            <ExpandMoreIcon fontSize="small" />
-          </Button>
-          <IconButton
-            aria-label="Dislike"
-            onClick={() => onDislike()}
-            sx={{ width: "28px", height: "28px", borderRadius: 1 }}
-          >
-            <ThumbDownOffAltIcon fontSize="small" />
-          </IconButton>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ minWidth: "64px", marginRight: 1, userSelect: "none" }}
-          >
-            {formatTimestamp(response.timestamp)}
-          </Typography>
-          {response.usage && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ userSelect: "none" }}
-            >
-              <span>{response.usage.total_tokens}</span>
-              {" tokens"}
-            </Typography>
-          )}
-        </Stack>
-      )}
-
-      <Menu
-        anchorEl={retryMenuAnchor}
-        open={Boolean(retryMenuAnchor)}
-        onClose={() => setRetryMenuAnchor(null)}
-        slotProps={{ list: { sx: { minWidth: "160px" } } }}
-      >
-        <MenuItem
-          onClick={() => {
-            onRetry({
-              model: "gpt-5",
-              tools: [TOOL_DEFAULT_MCP, TOOL_PYTHON],
-            });
-            setRetryMenuAnchor(null);
-          }}
-        >
-          gpt-5
-        </MenuItem>
-        <Divider component="li" />
-        <MenuItem
-          onClick={() => {
-            onRetry();
-            setRetryMenuAnchor(null);
-          }}
-        >
-          {t("Retry")}
-        </MenuItem>
-      </Menu>
+      {response.status !== "in_progress" && responseActions?.(response)}
 
       <Menu
         open={Boolean(contextMenu)}

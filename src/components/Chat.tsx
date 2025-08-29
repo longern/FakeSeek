@@ -13,6 +13,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import {
+  Response,
   ResponseInputItem,
   ResponseInputMessageContentList,
 } from "openai/resources/responses/responses.mjs";
@@ -38,7 +39,8 @@ import {
 import AppDrawer from "./AppDrawer";
 import CoachingDialog from "./CoachingDialog";
 import InputArea, { Abortable } from "./InputArea";
-import MessageList from "./MessageList";
+import MessageList, { UserMessageContextMenu } from "./MessageList";
+import { ResponseActions, ResponseContextMenu } from "./ResponseItem";
 
 function useAbortablePromise() {
   const [abortable, setAbortable] = useState<Abortable | undefined>(undefined);
@@ -78,6 +80,14 @@ function Main({
     null
   );
   const messages = useAppSelector((state) => state.messages.messages);
+  const [contextMenu, setContextMenu] = useState<{
+    mouseX: number;
+    mouseY: number;
+    payload: {
+      message: ChatMessage;
+      selectedPart?: number;
+    };
+  } | null>(null);
   const dispatch = useAppDispatch();
   const [atBottom] = useAtBottom();
   const scrollToBottom = useScrollToBottom();
@@ -183,10 +193,18 @@ function Main({
         ) : (
           <MessageList
             messages={Object.values(messages)}
-            onRetry={handleRetry}
-            onDislike={(message) => {
-              setCoachingResponse(message);
+            onContextMenu={(e, payload) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, payload });
             }}
+            responseActions={(response) => (
+              <ResponseActions
+                response={response}
+                onRetry={(options) => handleRetry(response, options)}
+                onDislike={() => setCoachingResponse(response)}
+              />
+            )}
           />
         )}
       </Container>
@@ -222,10 +240,40 @@ function Main({
           {inputArea}
         </Container>
       </Box>
+
       <CoachingDialog
         open={Boolean(coachingResponse)}
         onClose={() => setCoachingResponse(null)}
         message={coachingResponse}
+      />
+
+      <UserMessageContextMenu
+        open={
+          contextMenu !== null &&
+          contextMenu.payload.message.object === "message"
+        }
+        onClose={() => setContextMenu(null)}
+        anchorPosition={
+          contextMenu
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+        payload={contextMenu?.payload}
+      />
+
+      <ResponseContextMenu
+        open={
+          contextMenu !== null &&
+          contextMenu.payload.message.object === "response"
+        }
+        onClose={() => setContextMenu(null)}
+        anchorPosition={contextMenu}
+        payload={
+          contextMenu?.payload as
+            | { message: Response & { timestamp: number } }
+            | undefined
+        }
+        onRetryClick={() => handleRetry(contextMenu!.payload.message)}
       />
     </Stack>
   );
