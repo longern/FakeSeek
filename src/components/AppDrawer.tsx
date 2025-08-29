@@ -2,6 +2,7 @@ import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import {
   Box,
   Button,
+  Divider,
   Drawer,
   List,
   ListItem,
@@ -98,6 +99,7 @@ function AppDrawer({
           }}
         />
         <Box sx={{ flexGrow: 1 }} />
+        <Divider />
         <Box sx={{ padding: 1 }}>
           <List disablePadding sx={{ borderRadius: 1, overflow: "hidden" }}>
             <ListItem disablePadding>
@@ -108,6 +110,7 @@ function AppDrawer({
           </List>
         </Box>
       </Drawer>
+
       <SettingsDialog open={showMenu} onClose={() => setShowMenu(false)} />
     </>
   );

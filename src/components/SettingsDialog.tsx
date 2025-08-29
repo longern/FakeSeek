@@ -3,6 +3,7 @@ import {
   Card,
   Dialog,
   DialogContent,
+  Divider,
   IconButton,
   List,
   ListItem,
@@ -104,6 +105,7 @@ function SettingsDialog({
                   </IconButton>
                 </ListItemButton>
               </ListItem>
+              <Divider component="li" />
               <ListItem disablePadding>
                 <ListItemButton
                   onClick={() => {
@@ -118,6 +120,7 @@ function SettingsDialog({
                   <ListItemText
                     primary={t("Base URL")}
                     secondary={provider.baseURL || "-"}
+                    slotProps={{ secondary: { noWrap: true } }}
                   />
                   <IconButton edge="end">
                     <NavigateNextIcon />
