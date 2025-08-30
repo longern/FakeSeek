@@ -199,13 +199,17 @@ function Main({
               e.stopPropagation();
               setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, payload });
             }}
-            responseActions={(response) => (
-              <ResponseActions
-                response={response}
-                onRetry={(options) => handleRetry(response, options)}
-                onDislike={() => setCoachingMessages(structuredClone(messages))}
-              />
-            )}
+            actions={{
+              response: (response) => (
+                <ResponseActions
+                  response={response}
+                  onRetry={(options) => handleRetry(response, options)}
+                  onDislike={() =>
+                    setCoachingMessages(structuredClone(messages))
+                  }
+                />
+              ),
+            }}
           />
         )}
       </Container>
@@ -259,7 +263,12 @@ function Main({
             ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
             : undefined
         }
-        payload={contextMenu?.payload}
+        payload={
+          contextMenu !== null &&
+          contextMenu.payload.message.object === "response"
+            ? contextMenu?.payload
+            : undefined
+        }
       />
 
       <ResponseContextMenu
@@ -270,9 +279,12 @@ function Main({
         onClose={() => setContextMenu(null)}
         anchorPosition={contextMenu}
         payload={
-          contextMenu?.payload as
-            | { message: Response & { timestamp: number } }
-            | undefined
+          contextMenu !== null &&
+          contextMenu.payload.message.object === "response"
+            ? (contextMenu.payload as {
+                message: Response & { timestamp: number };
+              })
+            : undefined
         }
         onRetryClick={() => handleRetry(contextMenu!.payload.message)}
       />

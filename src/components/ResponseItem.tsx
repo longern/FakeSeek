@@ -213,7 +213,7 @@ export function ResponseActions({
     <Stack
       direction="row"
       gap="4px"
-      sx={{ marginTop: 1.5, marginBottom: 2, alignItems: "center" }}
+      sx={{ marginTop: 1, marginBottom: 2, alignItems: "center" }}
     >
       <IconButton
         aria-label="Copy"
@@ -292,11 +292,11 @@ export function ResponseActions({
 function ResponseItem({
   response,
   onContextMenu,
-  responseActions,
+  actions,
 }: {
   response: Response & { timestamp: number };
   onContextMenu?: (e: React.PointerEvent<HTMLDivElement>) => void;
-  responseActions?: (message: Response & { timestamp: number }) => ReactNode;
+  actions?: (message: Response & { timestamp: number }) => ReactNode;
 }) {
   const { t } = useTranslation();
 
@@ -374,7 +374,7 @@ function ResponseItem({
         )
       )}
 
-      {response.status !== "in_progress" && responseActions?.(response)}
+      {response.status !== "in_progress" && actions?.(response)}
     </Box>
   );
 }

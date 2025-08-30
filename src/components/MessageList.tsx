@@ -32,7 +32,7 @@ import {
   ResponseOutputText,
   ResponseReasoningItem,
 } from "openai/resources/responses/responses.mjs";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
@@ -45,51 +45,62 @@ import ResponseItem from "./ResponseItem";
 export function UserMessage({
   message,
   onContextMenu,
+  actions,
 }: {
-  message: ResponseInputItem.Message;
+  message: ResponseInputItem.Message & {
+    id: string;
+    object: "message";
+    timestamp: number;
+  };
   onContextMenu?: (
     e: React.PointerEvent<HTMLDivElement>,
     { selectedPart }: { selectedPart?: number }
   ) => void;
+  actions: MessageItemActions["message"];
 }) {
-  return message.content.map((part, index) => (
-    <Fragment key={index}>
-      <Box
-        sx={{
-          maxWidth: "100%",
-          overflowWrap: "break-word",
-          minWidth: "48px",
-          padding: "8px 12px",
-          backgroundColor: "#eff6ff",
-          borderRadius: "20px",
-          marginLeft: 4,
-          alignSelf: "flex-end",
-          whiteSpace: "pre-wrap",
-        }}
-        onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
-          if (part.type !== "input_text") return;
+  return (
+    <Stack
+      sx={{ marginLeft: 4, alignSelf: "flex-end", alignItems: "flex-end" }}
+    >
+      {message.content.map((part, index) => (
+        <Box
+          key={index}
+          sx={{
+            maxWidth: "100%",
+            overflowWrap: "break-word",
+            minWidth: "48px",
+            padding: "8px 12px",
+            backgroundColor: "#eff6ff",
+            borderRadius: "20px",
+            whiteSpace: "pre-wrap",
+          }}
+          onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
+            if (part.type !== "input_text") return;
 
-          const { nativeEvent } = e;
-          if (nativeEvent.pointerType === "mouse") return;
-          nativeEvent.preventDefault();
-          window.getSelection()?.removeAllRanges();
-          onContextMenu?.(e, { selectedPart: index });
-        }}
-      >
-        <Box key={index}>
-          {part.type === "input_text" ? (
-            part.text
-          ) : part.type === "input_image" ? (
-            <PhotoProvider bannerVisible={false}>
-              <PhotoView src={part.image_url!}>
-                <img src={part.image_url!} alt="Input Image" />
-              </PhotoView>
-            </PhotoProvider>
-          ) : null}
+            const { nativeEvent } = e;
+            if (nativeEvent.pointerType === "mouse") return;
+            nativeEvent.preventDefault();
+            window.getSelection()?.removeAllRanges();
+            onContextMenu?.(e, { selectedPart: index });
+          }}
+        >
+          <Box key={index}>
+            {part.type === "input_text" ? (
+              part.text
+            ) : part.type === "input_image" ? (
+              <PhotoProvider bannerVisible={false}>
+                <PhotoView src={part.image_url!}>
+                  <img src={part.image_url!} alt="Input Image" />
+                </PhotoView>
+              </PhotoProvider>
+            ) : null}
+          </Box>
         </Box>
-      </Box>
-    </Fragment>
-  ));
+      ))}
+
+      {actions?.(message)}
+    </Stack>
+  );
 }
 
 export function UserMessageContextMenu({
@@ -681,11 +692,22 @@ function findToolCall(
   }
 }
 
+type MessageItemActions = {
+  message?: (
+    message: ResponseInputItem.Message & {
+      id: string;
+      object: "message";
+      timestamp: number;
+    }
+  ) => React.ReactNode;
+  response?: (message: Response & { timestamp: number }) => React.ReactNode;
+};
+
 export function MessageItem({
   message,
   toolCall,
   onContextMenu,
-  responseActions,
+  actions,
 }: {
   message: ChatMessage;
   toolCall?: ResponseFunctionToolCall;
@@ -693,9 +715,7 @@ export function MessageItem({
     e: React.PointerEvent<HTMLDivElement>,
     payload: { message: ChatMessage; selectedPart?: number }
   ) => void;
-  responseActions?: (
-    message: Response & { timestamp: number }
-  ) => React.ReactNode;
+  actions?: MessageItemActions;
 }) {
   const itemContextMenu = (
     e: React.PointerEvent<HTMLDivElement>,
@@ -705,7 +725,13 @@ export function MessageItem({
   };
 
   if (message.object === "message") {
-    return <UserMessage message={message} onContextMenu={itemContextMenu} />;
+    return (
+      <UserMessage
+        message={message}
+        onContextMenu={itemContextMenu}
+        actions={actions?.message}
+      />
+    );
   } else if (message.object === "function_call_output") {
     return <FunctionCallOutput message={message} toolCall={toolCall} />;
   } else if (message.object === "response") {
@@ -713,7 +739,7 @@ export function MessageItem({
       <ResponseItem
         response={message}
         onContextMenu={itemContextMenu}
-        responseActions={responseActions}
+        actions={actions?.response}
       />
     );
   } else {
@@ -724,7 +750,7 @@ export function MessageItem({
 function MessageList({
   messages,
   onContextMenu,
-  responseActions,
+  actions,
 }: {
   messages: ChatMessage[];
   onContextMenu?: (
@@ -734,9 +760,7 @@ function MessageList({
       selectedPart?: number;
     }
   ) => void;
-  responseActions?: (
-    message: Response & { timestamp: number }
-  ) => React.ReactNode;
+  actions?: MessageItemActions;
 }) {
   return (
     <Stack
@@ -761,7 +785,7 @@ function MessageList({
             message={response}
             onContextMenu={onContextMenu}
             toolCall={toolCall}
-            responseActions={responseActions}
+            actions={actions}
           />
         );
       })}

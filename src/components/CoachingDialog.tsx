@@ -1,19 +1,22 @@
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import {
-  Dialog,
-  Toolbar,
-  IconButton,
   Box,
-  DialogContent,
-  Typography,
-  DialogTitle,
   Card,
   CardContent,
   Container,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Stack,
+  Toolbar,
+  Typography,
 } from "@mui/material";
+import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ChatMessage } from "../app/messages";
-import { useTranslation } from "react-i18next";
 import MessageList from "./MessageList";
 
 function CoachingDialog({
@@ -26,6 +29,8 @@ function CoachingDialog({
   messages: Record<string, ChatMessage> | null;
 }) {
   const { t } = useTranslation();
+
+  const handleEdit = useCallback((_: ChatMessage) => {}, []);
 
   if (!messages) return null;
 
@@ -62,7 +67,26 @@ function CoachingDialog({
         <Container sx={{ padding: 0 }}>
           <Card variant="outlined">
             <CardContent sx={{ "&:last-child": { paddingBottom: 2 } }}>
-              <MessageList messages={Object.values(messages)} />
+              <MessageList
+                messages={Object.values(messages)}
+                actions={{
+                  message: (message) => (
+                    <Stack
+                      direction="row"
+                      gap="4px"
+                      sx={{ marginTop: 1, alignItems: "center" }}
+                    >
+                      <IconButton
+                        aria-label="Edit"
+                        sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+                        onClick={() => handleEdit(message)}
+                      >
+                        <EditOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  ),
+                }}
+              />
             </CardContent>
           </Card>
         </Container>
