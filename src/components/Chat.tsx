@@ -17,7 +17,7 @@ import {
   ResponseInputItem,
   ResponseInputMessageContentList,
 } from "openai/resources/responses/responses.mjs";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ScrollToBottom, {
   useAtBottom,
@@ -76,9 +76,10 @@ function Main({
   abortable?: Abortable;
   setAbortable: (promise: Abortable & Promise<unknown>) => void;
 }) {
-  const [coachingResponse, setCoachingResponse] = useState<ChatMessage | null>(
-    null
-  );
+  const [coachingMessages, setCoachingMessages] = useState<
+    ChatMessage[] | null
+  >(null);
+  const [badResponse, setBadResponse] = useState<ChatMessage | null>(null);
   const messages = useAppSelector((state) => state.messages.messages);
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
@@ -160,6 +161,29 @@ function Main({
     />
   );
 
+  const ResponseActionsBind = useMemo(
+    () =>
+      ({ message }: { message: Response & { timestamp: number } }) =>
+        (
+          <ResponseActions
+            response={message}
+            onRetry={(options) => handleRetry(message, options)}
+            onDislike={() => {
+              const msgIndex = Object.entries(messages).findIndex(
+                ([_, msg]) => msg === message
+              );
+              const msgValues = Object.values(structuredClone(messages)).slice(
+                0,
+                msgIndex
+              );
+              setCoachingMessages(msgValues);
+              setBadResponse(message);
+            }}
+          />
+        ),
+    [messages]
+  );
+
   return (
     <Stack sx={{ minHeight: "100%" }}>
       <Container
@@ -198,13 +222,7 @@ function Main({
               e.stopPropagation();
               setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, payload });
             }}
-            responseActions={(response) => (
-              <ResponseActions
-                response={response}
-                onRetry={(options) => handleRetry(response, options)}
-                onDislike={() => setCoachingResponse(response)}
-              />
-            )}
+            slots={{ responseActions: ResponseActionsBind }}
           />
         )}
       </Container>
@@ -242,9 +260,10 @@ function Main({
       </Box>
 
       <CoachingDialog
-        open={Boolean(coachingResponse)}
-        onClose={() => setCoachingResponse(null)}
-        message={coachingResponse}
+        open={Boolean(coachingMessages)}
+        onClose={() => setCoachingMessages(null)}
+        prevMessages={coachingMessages}
+        badResponse={badResponse}
       />
 
       <UserMessageContextMenu
@@ -258,7 +277,12 @@ function Main({
             ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
             : undefined
         }
-        payload={contextMenu?.payload}
+        payload={
+          contextMenu !== null &&
+          contextMenu.payload.message.object === "response"
+            ? contextMenu?.payload
+            : undefined
+        }
       />
 
       <ResponseContextMenu
@@ -269,9 +293,12 @@ function Main({
         onClose={() => setContextMenu(null)}
         anchorPosition={contextMenu}
         payload={
-          contextMenu?.payload as
-            | { message: Response & { timestamp: number } }
-            | undefined
+          contextMenu !== null &&
+          contextMenu.payload.message.object === "response"
+            ? (contextMenu.payload as {
+                message: Response & { timestamp: number };
+              })
+            : undefined
         }
         onRetryClick={() => handleRetry(contextMenu!.payload.message)}
       />

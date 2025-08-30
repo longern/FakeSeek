@@ -138,9 +138,10 @@ export type CreateResponseParams = {
   model?: string;
   instructions?: string;
   tools?: Tool[];
+  top_p?: number | null;
 };
 
-async function streamRequestAssistant(
+export async function streamRequestAssistant(
   messages: ResponseInputItem[],
   options?: {
     apiKey?: string;
@@ -164,6 +165,7 @@ async function streamRequestAssistant(
       reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
       instructions: options?.instructions,
       tools: options?.tools,
+      top_p: options?.top_p,
     },
     { signal: options?.signal }
   );
@@ -291,7 +293,7 @@ export const requestFunctionCall = createAppAsyncThunk(
   }
 );
 
-function normMessage(message: ChatMessage): ResponseInputItem[] {
+export function normMessage(message: ChatMessage): ResponseInputItem[] {
   if (
     message.object === "message" ||
     message.object === "function_call_output"
@@ -299,7 +301,11 @@ function normMessage(message: ChatMessage): ResponseInputItem[] {
     const { id, timestamp, object, ...rest } = message;
     return [rest as ResponseInputItem];
   }
-  return message.output;
+  return message.output.map((item) => {
+    if (item.type !== "reasoning") return item;
+    const { status, ...rest } = item;
+    return rest;
+  });
 }
 
 export const requestAssistant = createAppAsyncThunk(
