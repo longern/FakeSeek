@@ -32,7 +32,7 @@ import {
   ResponseOutputText,
   ResponseReasoningItem,
 } from "openai/resources/responses/responses.mjs";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, ElementType } from "react";
 import { useTranslation } from "react-i18next";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
@@ -45,7 +45,7 @@ import ResponseItem from "./ResponseItem";
 export function UserMessage({
   message,
   onContextMenu,
-  actions,
+  slots,
 }: {
   message: ResponseInputItem.Message & {
     id: string;
@@ -56,8 +56,10 @@ export function UserMessage({
     e: React.PointerEvent<HTMLDivElement>,
     { selectedPart }: { selectedPart?: number }
   ) => void;
-  actions: MessageItemActions["message"];
+  slots?: Pick<MessageItemSlots, "messageActions">;
 }) {
+  const Actions = slots?.messageActions;
+
   return (
     <Stack
       sx={{ marginLeft: 4, alignSelf: "flex-end", alignItems: "flex-end" }}
@@ -98,7 +100,7 @@ export function UserMessage({
         </Box>
       ))}
 
-      {actions?.(message)}
+      {Actions && <Actions message={message} />}
     </Stack>
   );
 }
@@ -692,22 +694,24 @@ function findToolCall(
   }
 }
 
-type MessageItemActions = {
-  message?: (
+type MessageItemSlots = {
+  messageActions?: ElementType<{
     message: ResponseInputItem.Message & {
       id: string;
       object: "message";
       timestamp: number;
-    }
-  ) => React.ReactNode;
-  response?: (message: Response & { timestamp: number }) => React.ReactNode;
+    };
+  }>;
+  responseActions?: ElementType<{
+    message: Response & { timestamp: number };
+  }>;
 };
 
 export function MessageItem({
   message,
   toolCall,
   onContextMenu,
-  actions,
+  slots,
 }: {
   message: ChatMessage;
   toolCall?: ResponseFunctionToolCall;
@@ -715,7 +719,7 @@ export function MessageItem({
     e: React.PointerEvent<HTMLDivElement>,
     payload: { message: ChatMessage; selectedPart?: number }
   ) => void;
-  actions?: MessageItemActions;
+  slots?: MessageItemSlots;
 }) {
   const itemContextMenu = (
     e: React.PointerEvent<HTMLDivElement>,
@@ -729,7 +733,7 @@ export function MessageItem({
       <UserMessage
         message={message}
         onContextMenu={itemContextMenu}
-        actions={actions?.message}
+        slots={slots}
       />
     );
   } else if (message.object === "function_call_output") {
@@ -739,7 +743,7 @@ export function MessageItem({
       <ResponseItem
         response={message}
         onContextMenu={itemContextMenu}
-        actions={actions?.response}
+        slots={slots}
       />
     );
   } else {
@@ -750,7 +754,7 @@ export function MessageItem({
 function MessageList({
   messages,
   onContextMenu,
-  actions,
+  slots,
 }: {
   messages: ChatMessage[];
   onContextMenu?: (
@@ -760,7 +764,7 @@ function MessageList({
       selectedPart?: number;
     }
   ) => void;
-  actions?: MessageItemActions;
+  slots?: MessageItemSlots;
 }) {
   return (
     <Stack
@@ -785,7 +789,7 @@ function MessageList({
             message={response}
             onContextMenu={onContextMenu}
             toolCall={toolCall}
-            actions={actions}
+            slots={slots}
           />
         );
       })}

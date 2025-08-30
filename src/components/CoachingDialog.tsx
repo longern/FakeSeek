@@ -13,8 +13,9 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { useCallback } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
 
 import { ChatMessage } from "../app/messages";
 import MessageList from "./MessageList";
@@ -28,9 +29,39 @@ function CoachingDialog({
   onClose: () => void;
   messages: Record<string, ChatMessage> | null;
 }) {
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
+    null
+  );
   const { t } = useTranslation();
 
-  const handleEdit = useCallback((_: ChatMessage) => {}, []);
+  const UserMessageActions = useMemo(
+    () =>
+      ({
+        message,
+      }: {
+        message: ResponseInputItem.Message & {
+          id: string;
+          object: "message";
+          timestamp: number;
+        };
+      }) =>
+        (
+          <Stack
+            direction="row"
+            gap="4px"
+            sx={{ marginTop: 1, alignItems: "center" }}
+          >
+            <IconButton
+              aria-label="Edit"
+              sx={{ width: "28px", height: "28px", borderRadius: 1 }}
+              onClick={() => setEditingMessage(message)}
+            >
+              <EditOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        ),
+    []
+  );
 
   if (!messages) return null;
 
@@ -69,23 +100,7 @@ function CoachingDialog({
             <CardContent sx={{ "&:last-child": { paddingBottom: 2 } }}>
               <MessageList
                 messages={Object.values(messages)}
-                actions={{
-                  message: (message) => (
-                    <Stack
-                      direction="row"
-                      gap="4px"
-                      sx={{ marginTop: 1, alignItems: "center" }}
-                    >
-                      <IconButton
-                        aria-label="Edit"
-                        sx={{ width: "28px", height: "28px", borderRadius: 1 }}
-                        onClick={() => handleEdit(message)}
-                      >
-                        <EditOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  ),
-                }}
+                slots={{ messageActions: UserMessageActions }}
               />
             </CardContent>
           </Card>

@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -22,20 +21,20 @@ import {
   Typography,
 } from "@mui/material";
 import { Response } from "openai/resources/responses/responses.mjs";
-import { useCallback, useState } from "react";
+import { ElementType, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
 
 import { CreateResponseParams } from "../app/thunks";
 import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "../app/tools-definitions";
 import { CodeBox } from "./Markdown";
+import { McpCallContent } from "./McpCallMessage";
 import {
   AssistantMessage,
   GenerateImageContent,
   ReasoningContent,
   RunPythonContent,
 } from "./MessageList";
-import { McpCallContent } from "./McpCallMessage";
 
 function formatTimestamp(timestamp: number) {
   const date = new Date(timestamp);
@@ -292,12 +291,17 @@ export function ResponseActions({
 function ResponseItem({
   response,
   onContextMenu,
-  actions,
+  slots,
 }: {
   response: Response & { timestamp: number };
   onContextMenu?: (e: React.PointerEvent<HTMLDivElement>) => void;
-  actions?: (message: Response & { timestamp: number }) => ReactNode;
+  slots?: {
+    responseActions?: ElementType<{
+      message: Response & { timestamp: number };
+    }>;
+  };
 }) {
+  const Actions = slots?.responseActions;
   const { t } = useTranslation();
 
   return (
@@ -374,7 +378,9 @@ function ResponseItem({
         )
       )}
 
-      {response.status !== "in_progress" && actions?.(response)}
+      {response.status !== "in_progress" && Actions && (
+        <Actions message={response} />
+      )}
     </Box>
   );
 }

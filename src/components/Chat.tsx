@@ -17,7 +17,7 @@ import {
   ResponseInputItem,
   ResponseInputMessageContentList,
 } from "openai/resources/responses/responses.mjs";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ScrollToBottom, {
   useAtBottom,
@@ -161,6 +161,19 @@ function Main({
     />
   );
 
+  const ResponseActionsBind = useMemo(
+    () =>
+      ({ message }: { message: Response & { timestamp: number } }) =>
+        (
+          <ResponseActions
+            response={message}
+            onRetry={(options) => handleRetry(message, options)}
+            onDislike={() => setCoachingMessages(structuredClone(messages))}
+          />
+        ),
+    [messages]
+  );
+
   return (
     <Stack sx={{ minHeight: "100%" }}>
       <Container
@@ -199,17 +212,7 @@ function Main({
               e.stopPropagation();
               setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, payload });
             }}
-            actions={{
-              response: (response) => (
-                <ResponseActions
-                  response={response}
-                  onRetry={(options) => handleRetry(response, options)}
-                  onDislike={() =>
-                    setCoachingMessages(structuredClone(messages))
-                  }
-                />
-              ),
-            }}
+            slots={{ responseActions: ResponseActionsBind }}
           />
         )}
       </Container>
