@@ -714,7 +714,6 @@ export function MessageItem({
         response={message}
         onContextMenu={itemContextMenu}
         responseActions={responseActions}
-        onRetry={() => {}}
       />
     );
   } else {

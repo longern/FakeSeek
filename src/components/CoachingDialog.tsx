@@ -14,20 +14,20 @@ import {
 
 import { ChatMessage } from "../app/messages";
 import { useTranslation } from "react-i18next";
-import { MessageItem } from "./MessageList";
+import MessageList from "./MessageList";
 
 function CoachingDialog({
   open,
   onClose,
-  message,
+  messages,
 }: {
   open: boolean;
   onClose: () => void;
-  message: ChatMessage | null;
+  messages: Record<string, ChatMessage> | null;
 }) {
   const { t } = useTranslation();
 
-  if (!message) return null;
+  if (!messages) return null;
 
   return (
     <Dialog
@@ -61,8 +61,8 @@ function CoachingDialog({
       <DialogContent sx={{ paddingX: 2, paddingBottom: 2 }}>
         <Container sx={{ padding: 0 }}>
           <Card variant="outlined">
-            <CardContent>
-              <MessageItem message={message} />
+            <CardContent sx={{ "&:last-child": { paddingBottom: 2 } }}>
+              <MessageList messages={Object.values(messages)} />
             </CardContent>
           </Card>
         </Container>

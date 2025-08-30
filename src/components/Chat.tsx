@@ -76,9 +76,10 @@ function Main({
   abortable?: Abortable;
   setAbortable: (promise: Abortable & Promise<unknown>) => void;
 }) {
-  const [coachingResponse, setCoachingResponse] = useState<ChatMessage | null>(
-    null
-  );
+  const [coachingMessages, setCoachingMessages] = useState<Record<
+    string,
+    ChatMessage
+  > | null>(null);
   const messages = useAppSelector((state) => state.messages.messages);
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
@@ -202,7 +203,7 @@ function Main({
               <ResponseActions
                 response={response}
                 onRetry={(options) => handleRetry(response, options)}
-                onDislike={() => setCoachingResponse(response)}
+                onDislike={() => setCoachingMessages(structuredClone(messages))}
               />
             )}
           />
@@ -242,9 +243,9 @@ function Main({
       </Box>
 
       <CoachingDialog
-        open={Boolean(coachingResponse)}
-        onClose={() => setCoachingResponse(null)}
-        message={coachingResponse}
+        open={Boolean(coachingMessages)}
+        onClose={() => setCoachingMessages(null)}
+        messages={coachingMessages}
       />
 
       <UserMessageContextMenu

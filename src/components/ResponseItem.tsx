@@ -293,33 +293,12 @@ function ResponseItem({
   response,
   onContextMenu,
   responseActions,
-  onRetry,
 }: {
   response: Response & { timestamp: number };
   onContextMenu?: (e: React.PointerEvent<HTMLDivElement>) => void;
   responseActions?: (message: Response & { timestamp: number }) => ReactNode;
-  onRetry: (options?: CreateResponseParams) => void;
 }) {
-  const [contextMenu, setContextMenu] = useState<{
-    mouseX: number;
-    mouseY: number;
-  } | null>(null);
-  const [showSelection, setShowSelection] = useState(false);
   const { t } = useTranslation();
-
-  const handleCopy = useCallback(() => {
-    const content = response.output
-      .flatMap((message) =>
-        message.type !== "message"
-          ? []
-          : message.content.map((part) =>
-              part.type === "output_text" ? part.text : part.refusal
-            )
-      )
-      .join("\n");
-    navigator.clipboard.writeText(content);
-    setContextMenu(null);
-  }, [response.output]);
 
   return (
     <Box sx={{ marginRight: 4 }}>
@@ -338,7 +317,6 @@ function ResponseItem({
                   nativeEvent.preventDefault();
                   window.getSelection()?.removeAllRanges();
                   onContextMenu?.(e);
-                  setContextMenu({ mouseX: e.clientX, mouseY: e.clientY });
                 }}
               />
             ) : null
@@ -397,91 +375,6 @@ function ResponseItem({
       )}
 
       {response.status !== "in_progress" && responseActions?.(response)}
-
-      <Menu
-        open={Boolean(contextMenu)}
-        onClose={() => setContextMenu(null)}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : undefined
-        }
-        slotProps={{ list: { sx: { minWidth: "160px" } } }}
-      >
-        <MenuItem onClick={handleCopy}>
-          <ListItemIcon>
-            <ContentCopyIcon />
-          </ListItemIcon>
-          {t("Copy")}
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            setShowSelection(true);
-            setContextMenu(null);
-          }}
-        >
-          <ListItemIcon>
-            <SelectAllIcon />
-          </ListItemIcon>
-          {t("Select Text")}
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            onRetry();
-            setContextMenu(null);
-          }}
-        >
-          <ListItemIcon>
-            <ReplayIcon />
-          </ListItemIcon>
-          {t("Retry")}
-        </MenuItem>
-      </Menu>
-
-      <Dialog
-        fullScreen
-        open={showSelection}
-        onClose={() => setShowSelection(false)}
-      >
-        <Toolbar
-          disableGutters
-          sx={{
-            position: "sticky",
-            top: 0,
-            backgroundColor: "background.paper",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-            zIndex: 1,
-          }}
-        >
-          <IconButton
-            aria-label="Close"
-            size="large"
-            onClick={() => setShowSelection(false)}
-          >
-            <CloseIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
-            {t("Select Text")}
-          </Typography>
-          <Box sx={{ width: "48px" }} />
-        </Toolbar>
-        <InputBase
-          multiline
-          fullWidth
-          value={response.output
-            .flatMap((message) =>
-              message.type !== "message"
-                ? []
-                : message.content.map((part) =>
-                    part.type === "output_text" ? part.text : part.refusal
-                  )
-            )
-            .join("\n")}
-          slotProps={{ input: { readOnly: true } }}
-          sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
-        />
-      </Dialog>
     </Box>
   );
 }
