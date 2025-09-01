@@ -138,7 +138,7 @@ export type CreateResponseParams = {
   model?: string;
   instructions?: string;
   tools?: Tool[];
-  top_p?: number | null;
+  temperature?: number | null;
 };
 
 export async function streamRequestAssistant(
@@ -165,7 +165,7 @@ export async function streamRequestAssistant(
       reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
       instructions: options?.instructions,
       tools: options?.tools,
-      top_p: options?.top_p,
+      temperature: options?.temperature,
     },
     { signal: options?.signal }
   );

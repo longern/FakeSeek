@@ -19,12 +19,17 @@ import {
   Typography,
 } from "@mui/material";
 import { configureStore } from "@reduxjs/toolkit";
-import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
+import {
+  Response,
+  ResponseInputItem,
+  Tool,
+} from "openai/resources/responses/responses.mjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useAppSelector } from "../app/hooks";
 import messageReducer, {
+  addResponse,
   ChatMessage,
   remove as removeMessage,
 } from "../app/messages";
@@ -34,6 +39,24 @@ import {
   streamRequestAssistant,
 } from "../app/thunks";
 import MessageList from "./MessageList";
+
+type TrainingMessage =
+  | { role: "user"; content: string }
+  | {
+      role: "assistant";
+      content: string | null;
+      thinking?: string;
+      tool_calls?: Array<{ name: string; arguments: any }>;
+    }
+  | { role: "tool"; content: string }
+  | { role: "system"; content: string };
+
+type TrainingRecord = {
+  prompt: TrainingMessage[];
+  teacher_prompt: TrainingMessage[];
+  completion: TrainingMessage[];
+  tools?: Tool[];
+};
 
 function messageStoreInitializer(messages: ChatMessage[]) {
   return configureStore({
@@ -46,14 +69,23 @@ function messageStoreInitializer(messages: ChatMessage[]) {
   });
 }
 
-function toTrainingRecord(
+function toTrainingMessages(
   messages: ChatMessage[],
-  options?: { instructions: string; tools?: any[] }
+  options?: { instructions?: string }
 ) {
-  const records = messages.flatMap((msg) => {
+  const records = messages.flatMap((msg: ChatMessage): TrainingMessage[] => {
     switch (msg.object) {
       case "message":
-        return [{ role: msg.role as string, content: msg.content[0].text }];
+        return [
+          {
+            role: "user",
+            content: msg.content
+              .flatMap((part) =>
+                part.type === "input_text" ? [part.text] : []
+              )
+              .join(""),
+          },
+        ];
 
       case "response":
         const records = [];
@@ -67,11 +99,23 @@ function toTrainingRecord(
               break;
             case "message":
               records.push({
-                role: "assistant",
-                content: item.content.map((part) =>
-                  part.type === "refusal" ? part.refusal : part.text
-                ),
+                role: "assistant" as const,
+                content: item.content
+                  .map((part) =>
+                    part.type === "refusal" ? part.refusal : part.text
+                  )
+                  .join(""),
                 thinking: pendingReasoning,
+              });
+              break;
+            case "function_call":
+              records.push({
+                role: "assistant" as const,
+                content: null,
+                thinking: pendingReasoning,
+                tool_calls: [
+                  { name: item.name, arguments: JSON.parse(item.arguments) },
+                ],
               });
               break;
           }
@@ -92,12 +136,16 @@ function toTrainingRecord(
 function CoachingDialog({
   open,
   onClose,
+  defaultInstructions,
   prevMessages,
+  tools,
 }: {
   open: boolean;
   onClose: () => void;
+  defaultInstructions?: string;
   prevMessages: ChatMessage[] | null;
   badResponse: ChatMessage | null;
+  tools?: Tool[];
 }) {
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[] | null>(
     null
@@ -105,7 +153,7 @@ function CoachingDialog({
   const [messageStore, setMessageStore] = useState<ReturnType<
     typeof messageStoreInitializer
   > | null>(null);
-  const [instructions, setInstructions] = useState("");
+  const [instructions, setInstructions] = useState(defaultInstructions ?? "");
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
     null
   );
@@ -156,7 +204,7 @@ function CoachingDialog({
   );
 
   const handleSend = useCallback(() => {
-    if (!messageStore?.dispatch || !currentMessages) return;
+    if (!messageStore?.dispatch) return;
     const msgValues = Object.values(messageStore.getState().messages);
     if (
       msgValues.length &&
@@ -164,6 +212,7 @@ function CoachingDialog({
     )
       messageStore.dispatch(removeMessage(msgValues[msgValues.length - 1].id));
 
+    const currentMessages = Object.values(messageStore.getState().messages);
     const messageDispatch = messageDispatchWrapper(messageStore.dispatch);
     streamRequestAssistant(
       Object.values(currentMessages).flatMap(normMessage),
@@ -172,16 +221,24 @@ function CoachingDialog({
         baseURL: provider.baseURL,
         onStreamEvent: messageDispatch,
         instructions: instructions ?? undefined,
-        top_p: greedyDecoding ? 0 : undefined,
+        tools: tools?.length ? tools : undefined,
+        temperature: greedyDecoding ? 0 : undefined,
       }
-    );
-  }, [
-    messageStore?.dispatch,
-    currentMessages,
-    provider,
-    instructions,
-    greedyDecoding,
-  ]);
+    ).catch((error) => {
+      messageStore.dispatch(
+        addResponse({
+          object: "response",
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          error: {
+            code: "server_error",
+            message: (error as Error).message,
+          },
+          output: [],
+        } as unknown as Response & { timestamp: number })
+      );
+    });
+  }, [messageStore?.dispatch, provider, instructions, greedyDecoding]);
 
   const handleExport = useCallback(() => {
     if (!prevMessages || !currentMessages) {
@@ -189,10 +246,15 @@ function CoachingDialog({
       return;
     }
 
-    const record = {
-      prompt: toTrainingRecord(prevMessages),
-      teacher_prompt: toTrainingRecord(currentMessages.slice(0, -1)),
-      completion: toTrainingRecord(currentMessages.slice(-1)),
+    const record: TrainingRecord = {
+      prompt: toTrainingMessages(prevMessages, {
+        instructions: defaultInstructions,
+      }),
+      teacher_prompt: toTrainingMessages(currentMessages.slice(0, -1), {
+        instructions,
+      }),
+      completion: toTrainingMessages(currentMessages.slice(-1)),
+      tools: tools?.length ? tools : undefined,
     };
 
     console.log(JSON.stringify(record));
@@ -240,12 +302,13 @@ function CoachingDialog({
           <Card variant="outlined">
             <CardContent sx={{ "&:last-child": { paddingBottom: 2 } }}>
               <TextField
-                variant="filled"
+                variant="outlined"
                 value={instructions}
                 onChange={(event) => setInstructions(event.target.value)}
                 label={t("Instructions")}
                 fullWidth
                 multiline
+                minRows={2}
                 sx={{ marginBottom: 2 }}
               />
               <MessageList
@@ -266,7 +329,7 @@ function CoachingDialog({
                   onChange={(event) => setGreedyDecoding(event.target.checked)}
                 ></Switch>
               }
-              label={t("Greedy Decoding")}
+              label={t("Greedy decoding")}
             />
             <Box sx={{ flexGrow: 1 }} />
             <Button variant="outlined" onClick={handleSend}>

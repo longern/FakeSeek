@@ -121,7 +121,7 @@ export function UserMessageContextMenu({
   const handleCopyClick = useCallback(async () => {
     if (!payload) return;
     const { message, selectedPart } = payload;
-    if (message.object !== "message" || !selectedPart) return;
+    if (message.object !== "message" || selectedPart === undefined) return;
     const part = message.content[selectedPart];
     if (part.type !== "input_text") return;
     await navigator.clipboard.writeText(part.text);

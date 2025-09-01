@@ -279,7 +279,7 @@ function Main({
         }
         payload={
           contextMenu !== null &&
-          contextMenu.payload.message.object === "response"
+          contextMenu.payload.message.object === "message"
             ? contextMenu?.payload
             : undefined
         }

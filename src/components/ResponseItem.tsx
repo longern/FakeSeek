@@ -21,7 +21,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Response } from "openai/resources/responses/responses.mjs";
-import { ElementType, useCallback, useState } from "react";
+import { ElementType, Fragment, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
 
@@ -309,73 +309,72 @@ function ResponseItem({
       {response.error ? (
         <Alert severity="error">{response.error.message}</Alert>
       ) : (
-        response.output.map((message) =>
-          message.type === "message" ? (
-            message.role === "assistant" ? (
-              <AssistantMessage
-                key={message?.id}
-                message={message}
-                onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
-                  const { nativeEvent } = e;
-                  if (nativeEvent.pointerType === "mouse") return;
-                  nativeEvent.preventDefault();
-                  window.getSelection()?.removeAllRanges();
-                  onContextMenu?.(e);
-                }}
-              />
-            ) : null
-          ) : message.type === "reasoning" ? (
-            <Box key={message.id}>
-              <ReasoningContent message={message} />
-            </Box>
-          ) : message.type === "mcp_call" ? (
-            <McpCallContent key={message.id} message={message} />
-          ) : message.type === "function_call" ? (
-            message.name === "run_python" ? (
-              <RunPythonContent />
-            ) : (
-              <Box key={message.id}>
+        response.output.map((message) => (
+          <Fragment key={message.id}>
+            {message.type === "message" ? (
+              message.role === "assistant" ? (
+                <AssistantMessage
+                  message={message}
+                  onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
+                    const { nativeEvent } = e;
+                    if (nativeEvent.pointerType === "mouse") return;
+                    nativeEvent.preventDefault();
+                    window.getSelection()?.removeAllRanges();
+                    onContextMenu?.(e);
+                  }}
+                />
+              ) : null
+            ) : message.type === "reasoning" ? (
+              <Box>
+                <ReasoningContent message={message} />
+              </Box>
+            ) : message.type === "mcp_call" ? (
+              <McpCallContent message={message} />
+            ) : message.type === "function_call" ? (
+              message.name === "run_python" ? (
+                <RunPythonContent />
+              ) : (
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      marginY: 1,
+                      color: "text.secondary",
+                      userSelect: "none",
+                    }}
+                  >
+                    {t("Call tool")}: {message.name}
+                  </Typography>
+                </Box>
+              )
+            ) : message.type === "image_generation_call" ? (
+              <GenerateImageContent message={message} />
+            ) : message.type === "web_search_call" ? (
+              <Box sx={{ marginY: 1 }}>
                 <Typography
                   variant="body2"
-                  sx={{
-                    marginY: 1,
-                    color: "text.secondary",
-                    userSelect: "none",
-                  }}
+                  sx={{ color: "text.secondary", userSelect: "none" }}
                 >
-                  {t("Call tool")}: {message.name}
+                  <Stack
+                    component="span"
+                    direction="row"
+                    gap={0.5}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <SearchIcon />
+                    {message.status === "completed"
+                      ? t("Search completed")
+                      : t("Searching...")}
+                  </Stack>
                 </Typography>
               </Box>
-            )
-          ) : message.type === "image_generation_call" ? (
-            <GenerateImageContent key={message.id} message={message} />
-          ) : message.type === "web_search_call" ? (
-            <Box key={message.id} sx={{ marginY: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{ color: "text.secondary", userSelect: "none" }}
-              >
-                <Stack
-                  component="span"
-                  direction="row"
-                  gap={0.5}
-                  sx={{ alignItems: "center" }}
-                >
-                  <SearchIcon />
-                  {message.status === "completed"
-                    ? t("Search completed")
-                    : t("Searching...")}
-                </Stack>
-              </Typography>
-            </Box>
-          ) : message.type === "code_interpreter_call" ? (
-            message.code === null ? null : (
-              <CodeBox key={message.id} language="python">
-                {message.code}
-              </CodeBox>
-            )
-          ) : null
-        )
+            ) : message.type === "code_interpreter_call" ? (
+              message.code === null ? null : (
+                <CodeBox language="python">{message.code}</CodeBox>
+              )
+            ) : null}
+          </Fragment>
+        ))
       )}
 
       {response.status !== "in_progress" && Actions && (
