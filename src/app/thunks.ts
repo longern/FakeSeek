@@ -304,7 +304,17 @@ export function normMessage(message: ChatMessage): ResponseInputItem[] {
     return [rest as ResponseInputItem];
   }
   return message.output.map((item) => {
-    if (item.type !== "reasoning") return item;
+    if (item.type !== "reasoning") {
+      if (item.type !== "message") return item;
+      const { content, ...rest } = item;
+      const newContent = content.map((part) => {
+        if (part.type === "output_text")
+          // vLLM returns null for logprobs which causes issues
+          return { ...part, logprobs: part.logprobs ?? undefined };
+        else return part;
+      });
+      return { content: newContent, ...rest };
+    }
     const { status, ...rest } = item;
     return rest;
   });
