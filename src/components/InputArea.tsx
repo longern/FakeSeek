@@ -85,7 +85,11 @@ function InputArea({
   const [message, setMessage] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const toolsProvider = useAppSelector((state) => state.provider.toolsProvider);
+  const preset = useAppSelector((state) =>
+    state.presets.current === null
+      ? null
+      : state.presets.presets[state.presets.current]
+  );
 
   const { t } = useTranslation();
 
@@ -128,7 +132,7 @@ function InputArea({
           onChat([{ type: "input_text", text: message }], {
             tools:
               searchMode === "auto"
-                ? toolsProvider === "openai-builtin"
+                ? preset?.toolsProvider === "openai-builtin"
                   ? [
                       { type: "web_search_preview" },
                       { type: "code_interpreter", container: { type: "auto" } },

@@ -8,12 +8,12 @@ import { initializeAction } from "./actions";
 import conversationsReducer from "./conversations";
 import { dbMiddleware } from "./db-middleware";
 import messagesReducer from "./messages";
-import providerReducer from "./provider";
+import presetsReducer from "./presets";
 
 const rootReducer = combineReducers({
   conversations: conversationsReducer,
   messages: messagesReducer,
-  provider: providerReducer,
+  presets: presetsReducer,
 });
 
 const store = configureStore({

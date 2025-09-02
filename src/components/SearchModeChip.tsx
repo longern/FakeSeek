@@ -15,6 +15,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import PresetsDialog from "./PresetsDialog";
+
 function SearchModeChip({
   value,
   onChange,
@@ -26,6 +28,7 @@ function SearchModeChip({
   ) => void;
   onMenuClose?: () => void;
 }) {
+  const [showPresets, setShowPresets] = useState(false);
   const [savedValue, setSavedValue] = useState<
     "auto" | "webpage" | "image" | "deep-research"
   >("auto");
@@ -142,7 +145,18 @@ function SearchModeChip({
           </ListItemIcon>
           <ListItemText primary={t("Deep Research")}></ListItemText>
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setShowPresets(true);
+            handleMenuClose();
+          }}
+        >
+          <ListItemIcon></ListItemIcon>
+          <ListItemText primary={t("More presets...")}></ListItemText>
+        </MenuItem>
       </Menu>
+
+      <PresetsDialog open={showPresets} onClose={() => setShowPresets(false)} />
     </>
   );
 }

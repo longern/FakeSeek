@@ -159,9 +159,11 @@ function CoachingDialog({
   );
   const [greedyDecoding, setGreedyDecoding] = useState(false);
 
-  const provider = useAppSelector((state) => state.provider);
+  const presets = useAppSelector((state) => state.presets);
 
   const { t } = useTranslation();
+
+  const currentPreset = presets.presets?.[presets.current!];
 
   useEffect(() => {
     if (!open || !prevMessages) return setMessageStore(null);
@@ -217,8 +219,9 @@ function CoachingDialog({
     streamRequestAssistant(
       Object.values(currentMessages).flatMap(normMessage),
       {
-        apiKey: provider.apiKey,
-        baseURL: provider.baseURL,
+        apiKey: currentPreset.apiKey,
+        baseURL: currentPreset.baseURL,
+        model: currentPreset.defaultModel,
         onStreamEvent: messageDispatch,
         instructions: instructions ?? undefined,
         tools: tools?.length ? tools : undefined,
@@ -238,7 +241,7 @@ function CoachingDialog({
         } as unknown as Response & { timestamp: number })
       );
     });
-  }, [messageStore?.dispatch, provider, instructions, greedyDecoding]);
+  }, [messageStore?.dispatch, currentPreset, instructions, greedyDecoding]);
 
   const handleExport = useCallback(() => {
     if (!prevMessages || !currentMessages) {

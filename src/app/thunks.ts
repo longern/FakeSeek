@@ -170,14 +170,16 @@ export async function streamRequestAssistant(
     { signal: options?.signal }
   );
 
-  let result: Response;
+  let result: Response | undefined = undefined;
   for await (const chunk of response) {
     if (chunk.type === "response.created") result = chunk.response;
     options?.onStreamEvent?.(result!.id, chunk);
     if (chunk.type === "response.completed") result = chunk.response;
   }
 
-  return result!;
+  if (!result) throw new Error("No response received");
+
+  return result;
 }
 
 export interface SearchResults {
@@ -321,7 +323,9 @@ export const requestAssistant = createAppAsyncThunk(
     thunkAPI
   ) => {
     const { dispatch, getState, signal } = thunkAPI;
-    const provider = getState().provider;
+    const presets = getState().presets;
+    const preset = presets.presets?.[presets.current!];
+    if (!preset) throw new Error("No preset selected");
     const messageDispatch = messageDispatchWrapper(dispatch);
     try {
       const currentMessages = messages;
@@ -331,11 +335,12 @@ export const requestAssistant = createAppAsyncThunk(
         const response = await streamRequestAssistant(
           currentMessages.flatMap(normMessage),
           {
-            apiKey: provider.apiKey,
-            baseURL: provider.baseURL,
+            apiKey: preset.apiKey,
+            baseURL: preset.baseURL,
             signal,
             onStreamEvent: messageDispatch,
             ...options,
+            model: options?.model ?? preset.defaultModel,
           }
         );
 
@@ -493,13 +498,14 @@ export const requestGenerateImage = createAppAsyncThunk(
   "app/requestGenerateImage",
   async (messages: ChatMessage[], thunkAPI) => {
     const { dispatch, getState, signal } = thunkAPI;
-    const provider = getState().provider;
+    const presets = getState().presets;
+    const preset = presets.presets?.[presets.current!];
 
     try {
       const client = new OpenAI({
-        apiKey: provider.apiKey,
+        apiKey: preset.apiKey,
         baseURL:
-          provider?.baseURL ||
+          preset?.baseURL ||
           new URL("/api/v1", window.location.href).toString(),
         dangerouslyAllowBrowser: true,
       });
@@ -511,7 +517,7 @@ export const requestGenerateImage = createAppAsyncThunk(
             {
               type: "image_generation",
               moderation: "low",
-              quality: provider.imageQuality,
+              quality: preset.imageQuality,
             },
           ],
           tool_choice: "required",

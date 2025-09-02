@@ -152,10 +152,14 @@ function ImageAnnotation({
   annotation: ResponseOutputText.FileCitation & { filename: string };
 }) {
   const [imageDateUrl, setImageDateUrl] = useState<string | null>(null);
-  const apiKey = useAppSelector((state) => state.provider.apiKey);
-  const baseURL = useAppSelector((state) => state.provider.baseURL);
+  const preset = useAppSelector((state) =>
+    state.presets.current === null
+      ? null
+      : state.presets.presets?.[state.presets.current]
+  );
 
   useEffect(() => {
+    const { apiKey, baseURL } = preset || {};
     const client = new OpenAI({
       apiKey,
       baseURL,
@@ -165,7 +169,7 @@ function ImageAnnotation({
       const blob = await response.blob();
       setImageDateUrl(URL.createObjectURL(blob));
     });
-  }, [annotation.file_id, apiKey, baseURL]);
+  }, [annotation.file_id, preset?.apiKey, preset?.baseURL]);
 
   if (!imageDateUrl) return;
 
