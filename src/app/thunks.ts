@@ -162,7 +162,10 @@ export async function streamRequestAssistant(
       model: model,
       input: messages,
       stream: true,
-      reasoning: model.startsWith("o") ? { summary: "detailed" } : undefined,
+      reasoning:
+        model.startsWith("o") || model.startsWith("gpt-5")
+          ? { summary: "detailed" }
+          : undefined,
       instructions: options?.instructions,
       tools: options?.tools,
       temperature: options?.temperature,

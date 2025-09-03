@@ -5,12 +5,16 @@ import {
   Card,
   Dialog,
   DialogContent,
+  FormControl,
   IconButton,
+  InputLabel,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
   Menu,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Toolbar,
@@ -140,6 +144,31 @@ function PresetEditDialog({
                 )
               }
             />
+            <FormControl fullWidth>
+              <InputLabel id="api-mode-select-label">
+                {t("API Mode")}
+              </InputLabel>
+              <Select
+                labelId="api-mode-select-label"
+                value={preset.apiMode ?? "responses"}
+                label={t("API Mode")}
+                onChange={(event) => {
+                  const newApiMode =
+                    event.target.value === "responses"
+                      ? undefined
+                      : event.target.value;
+                  setPreset((prev) =>
+                    prev ? { ...prev, apiMode: newApiMode } : prev
+                  );
+                }}
+              >
+                <MenuItem value="responses">OpenAI Responses API</MenuItem>
+                <MenuItem value="chat-completion">
+                  OpenAI Chat Completion API
+                </MenuItem>
+                <MenuItem value="gemini">Google Gemini API</MenuItem>
+              </Select>
+            </FormControl>
             <TextField
               label={t("API Key")}
               variant="outlined"
