@@ -27,17 +27,14 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { requestResponsesAPI } from "../app/api-modes/responses";
 import { useAppSelector } from "../app/hooks";
 import messageReducer, {
   addResponse,
   ChatMessage,
   remove as removeMessage,
 } from "../app/messages";
-import {
-  messageDispatchWrapper,
-  normMessage,
-  streamRequestAssistant,
-} from "../app/thunks";
+import { messageDispatchWrapper, normMessage } from "../app/thunks";
 import MessageList from "./MessageList";
 
 type TrainingMessage =
@@ -216,18 +213,15 @@ function CoachingDialog({
 
     const currentMessages = Object.values(messageStore.getState().messages);
     const messageDispatch = messageDispatchWrapper(messageStore.dispatch);
-    streamRequestAssistant(
-      Object.values(currentMessages).flatMap(normMessage),
-      {
-        apiKey: currentPreset.apiKey,
-        baseURL: currentPreset.baseURL,
-        model: currentPreset.defaultModel,
-        onStreamEvent: messageDispatch,
-        instructions: instructions ?? undefined,
-        tools: tools?.length ? tools : undefined,
-        temperature: greedyDecoding ? 0 : undefined,
-      }
-    ).catch((error) => {
+    requestResponsesAPI(Object.values(currentMessages).flatMap(normMessage), {
+      apiKey: currentPreset.apiKey,
+      baseURL: currentPreset.baseURL,
+      model: currentPreset.defaultModel,
+      onStreamEvent: messageDispatch,
+      instructions: instructions ?? undefined,
+      tools: tools?.length ? tools : undefined,
+      temperature: greedyDecoding ? 0 : undefined,
+    }).catch((error) => {
       messageStore.dispatch(
         addResponse({
           object: "response",

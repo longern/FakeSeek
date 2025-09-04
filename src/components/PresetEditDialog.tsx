@@ -168,7 +168,7 @@ function PresetEditDialog({
                     }}
                   >
                     <MenuItem value="responses">OpenAI Responses API</MenuItem>
-                    <MenuItem value="chat-completion">
+                    <MenuItem value="chat-completions">
                       OpenAI Chat Completion API
                     </MenuItem>
                     <MenuItem value="gemini">Google Gemini API</MenuItem>

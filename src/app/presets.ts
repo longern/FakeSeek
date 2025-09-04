@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export type Preset = {
   presetName: string;
-  apiMode?: "chat-completion";
+  apiMode?: "chat-completions";
   apiKey?: string;
   baseURL?: string;
   defaultModel?: string;
