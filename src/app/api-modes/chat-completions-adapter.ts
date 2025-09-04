@@ -1,8 +1,12 @@
 import OpenAI from "openai";
-import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
+import {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from "openai/resources/index.mjs";
 import {
   Response,
   ResponseInputItem,
+  ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputText,
   ResponseStreamEvent,
@@ -55,12 +59,27 @@ export async function requestChatCompletionsAPI(
     normedMessages.unshift({ role: "system", content: options.instructions });
   }
 
+  const tools = !options?.tools
+    ? undefined
+    : options.tools.map((tool): ChatCompletionTool => {
+        if (tool.type !== "function")
+          throw new Error("Chat Completions API only supports function tools");
+        return {
+          type: "function",
+          function: {
+            name: tool.name,
+            description: tool.description ?? undefined,
+            parameters: tool.parameters ?? undefined,
+          },
+        };
+      });
+
   const response = await client.chat.completions.create(
     {
-      model: model,
+      model,
       messages: normMessages(messages),
       stream: true,
-      tools: options?.tools,
+      tools,
       temperature: options?.temperature,
     },
     { signal: options?.signal }
@@ -70,6 +89,7 @@ export async function requestChatCompletionsAPI(
   let result: Response | undefined = undefined;
   let outputMessage: ResponseOutputMessage | undefined = undefined;
   let sequenceNumber = 0;
+  let outputIndex = 0;
   for await (const chunk of response) {
     if (!result) {
       result = {
@@ -105,7 +125,7 @@ export async function requestChatCompletionsAPI(
       };
       onStreamEvent?.(result.id, {
         type: "response.output_item.added",
-        output_index: 0,
+        output_index: outputIndex,
         item: structuredClone(outputMessage),
         sequence_number: sequenceNumber++,
       });
@@ -118,8 +138,8 @@ export async function requestChatCompletionsAPI(
       };
       onStreamEvent?.(result.id, {
         type: "response.content_part.added",
-        item_id: result.output[0]?.id || "",
-        output_index: 0,
+        item_id: result.output[outputIndex]?.id || "",
+        output_index: outputIndex,
         content_index: 0,
         part: structuredClone(contentPart),
         sequence_number: sequenceNumber++,
@@ -127,11 +147,97 @@ export async function requestChatCompletionsAPI(
       outputMessage.content.push(contentPart);
     }
 
+    const delta = chunk.choices[0].delta;
+    if ("images" in delta && Array.isArray(delta.images)) {
+      onStreamEvent?.(result.id, {
+        type: "response.content_part.done",
+        item_id: result.output[outputIndex]?.id || "",
+        output_index: outputIndex,
+        content_index: 0,
+        part: {
+          type: "output_text",
+          text: result.output_text,
+          annotations: [],
+        },
+        sequence_number: sequenceNumber++,
+      });
+
+      outputMessage!.status = "completed";
+      onStreamEvent?.(result.id, {
+        type: "response.output_item.done",
+        output_index: outputIndex++,
+        item: outputMessage!,
+        sequence_number: sequenceNumber++,
+      });
+
+      const imagesBase64 = await Promise.all(
+        delta.images.map(async (img) => {
+          return img.image_url.url.split(",")[1];
+        })
+      );
+
+      for (const imageBase64 of imagesBase64) {
+        const item = {
+          type: "image_generation_call",
+          id: `msg_${crypto.randomUUID()}`,
+          result: imageBase64,
+          status: "completed",
+        } as ResponseOutputItem.ImageGenerationCall;
+        result.output.push(item);
+
+        onStreamEvent?.(result.id, {
+          type: "response.output_item.added",
+          output_index: outputIndex,
+          item,
+          sequence_number: sequenceNumber++,
+        });
+
+        onStreamEvent?.(result.id, {
+          type: "response.output_item.done",
+          output_index: outputIndex++,
+          item,
+          sequence_number: sequenceNumber++,
+        });
+      }
+
+      outputMessage = {
+        type: "message",
+        id: `msg_${crypto.randomUUID()}`,
+        role: "assistant",
+        content: [],
+        status: "in_progress",
+      };
+      result.output.push(outputMessage);
+
+      onStreamEvent?.(result.id, {
+        type: "response.output_item.added",
+        output_index: outputIndex,
+        item: structuredClone(outputMessage),
+        sequence_number: sequenceNumber++,
+      });
+
+      const contentPart: ResponseOutputText = {
+        type: "output_text",
+        text: "",
+        annotations: [],
+      };
+      outputMessage.content.push(contentPart);
+
+      onStreamEvent?.(result.id, {
+        type: "response.content_part.added",
+        item_id: result.output[outputIndex]?.id || "",
+        output_index: outputIndex,
+        content_index: 0,
+        part: structuredClone(contentPart),
+        sequence_number: sequenceNumber++,
+      });
+    }
+
     onStreamEvent?.(result.id, {
       type: "response.output_text.delta",
-      output_index: 0,
+      output_index: outputIndex,
       content_index: 0,
-      item_id: result.output[0]?.id || "",
+      item_id: result.output[outputIndex]?.id || "",
       delta: chunk.choices[0].delta.content || "",
       logprobs: [],
       sequence_number: sequenceNumber++,
@@ -144,8 +250,8 @@ export async function requestChatCompletionsAPI(
 
   onStreamEvent?.(result.id, {
     type: "response.content_part.done",
-    item_id: result.output[0]?.id || "",
-    output_index: 0,
+    item_id: result.output[outputIndex]?.id || "",
+    output_index: outputIndex,
     content_index: 0,
     part: { type: "output_text", text: result.output_text, annotations: [] },
     sequence_number: sequenceNumber++,
@@ -154,7 +260,7 @@ export async function requestChatCompletionsAPI(
   outputMessage!.status = "completed";
   onStreamEvent?.(result.id, {
     type: "response.output_item.done",
-    output_index: 0,
+    output_index: outputIndex++,
     item: outputMessage!,
     sequence_number: sequenceNumber++,
   });
