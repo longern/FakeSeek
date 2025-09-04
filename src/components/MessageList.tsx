@@ -86,17 +86,15 @@ export function UserMessage({
             onContextMenu?.(e, { selectedPart: index });
           }}
         >
-          <Box key={index}>
-            {part.type === "input_text" ? (
-              part.text
-            ) : part.type === "input_image" ? (
-              <PhotoProvider bannerVisible={false}>
-                <PhotoView src={part.image_url!}>
-                  <img src={part.image_url!} alt="Input Image" />
-                </PhotoView>
-              </PhotoProvider>
-            ) : null}
-          </Box>
+          {part.type === "input_text" ? (
+            part.text
+          ) : part.type === "input_image" ? (
+            <PhotoProvider bannerVisible={false}>
+              <PhotoView src={part.image_url!}>
+                <img src={part.image_url!} alt="Input Image" />
+              </PhotoView>
+            </PhotoProvider>
+          ) : null}
         </Box>
       ))}
 

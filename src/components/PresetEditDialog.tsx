@@ -1,7 +1,6 @@
 import {
   Autocomplete,
   Box,
-  Button,
   Card,
   Dialog,
   DialogContent,
@@ -15,12 +14,16 @@ import {
   Menu,
   MenuItem,
   Select,
+  Slider,
   Stack,
   TextField,
   Toolbar,
+  Tooltip,
   Typography,
   useMediaQuery,
 } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import SaveIcon from "@mui/icons-material/Save";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
@@ -28,7 +31,6 @@ import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAppSelector } from "../app/hooks";
-import { Check } from "@mui/icons-material";
 import { Preset } from "../app/presets";
 import OpenAI from "openai";
 
@@ -36,11 +38,13 @@ function PresetEditDialog({
   open,
   onClose,
   onSave,
+  onDelete,
   editingPresetId,
 }: {
   open: boolean;
   onClose: () => void;
   onSave: (preset: Preset) => void;
+  onDelete: (presetId: string) => void;
   editingPresetId: string | null;
 }) {
   const [preset, setPreset] = useState<Preset | null>(null);
@@ -126,91 +130,126 @@ function PresetEditDialog({
       </Toolbar>
       <DialogContent
         sx={{
-          padding: 2.5,
-          backgroundColor: (theme) => theme.palette.background.paper,
+          padding: 2,
           "& .MuiListItemButton-root": { minHeight: "60px" },
         }}
       >
         {preset && (
-          <Stack gap={3}>
-            <TextField
-              label={t("Preset Name")}
-              variant="outlined"
-              fullWidth
-              value={preset.presetName}
-              onChange={(e) =>
-                setPreset((prev) =>
-                  prev ? { ...prev, presetName: e.target.value } : prev
-                )
-              }
-            />
-            <FormControl fullWidth>
-              <InputLabel id="api-mode-select-label">
-                {t("API Mode")}
-              </InputLabel>
-              <Select
-                labelId="api-mode-select-label"
-                value={preset.apiMode ?? "responses"}
-                label={t("API Mode")}
-                onChange={(event) => {
-                  const newApiMode =
-                    event.target.value === "responses"
-                      ? undefined
-                      : event.target.value;
-                  setPreset((prev) =>
-                    prev ? { ...prev, apiMode: newApiMode } : prev
-                  );
+          <Stack gap={2}>
+            <Card elevation={0} sx={{ borderRadius: 3, padding: 2.5 }}>
+              <Stack gap={3}>
+                <TextField
+                  label={t("Preset Name")}
+                  variant="outlined"
+                  fullWidth
+                  value={preset.presetName}
+                  onChange={(e) =>
+                    setPreset((prev) =>
+                      prev ? { ...prev, presetName: e.target.value } : prev
+                    )
+                  }
+                />
+                <FormControl fullWidth>
+                  <InputLabel id="api-mode-select-label">
+                    {t("API Mode")}
+                  </InputLabel>
+                  <Select
+                    labelId="api-mode-select-label"
+                    value={preset.apiMode ?? "responses"}
+                    label={t("API Mode")}
+                    onChange={(event) => {
+                      const newApiMode =
+                        event.target.value === "responses"
+                          ? undefined
+                          : event.target.value;
+                      setPreset((prev) =>
+                        prev ? { ...prev, apiMode: newApiMode } : prev
+                      );
+                    }}
+                  >
+                    <MenuItem value="responses">OpenAI Responses API</MenuItem>
+                    <MenuItem value="chat-completion">
+                      OpenAI Chat Completion API
+                    </MenuItem>
+                    <MenuItem value="gemini">Google Gemini API</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  label={t("API Key")}
+                  variant="outlined"
+                  fullWidth
+                  value={preset.apiKey ?? ""}
+                  onChange={(e) =>
+                    setPreset((prev) =>
+                      prev ? { ...prev, apiKey: e.target.value } : prev
+                    )
+                  }
+                />
+                <TextField
+                  label={t("Base URL")}
+                  variant="outlined"
+                  fullWidth
+                  value={preset.baseURL ?? ""}
+                  onChange={(e) =>
+                    setPreset((prev) =>
+                      prev ? { ...prev, baseURL: e.target.value } : prev
+                    )
+                  }
+                />
+                <Autocomplete
+                  options={modelCandidates}
+                  value={preset.defaultModel ?? ""}
+                  onChange={(_e, newValue) =>
+                    setPreset((prev) =>
+                      prev
+                        ? { ...prev, defaultModel: newValue ?? undefined }
+                        : prev
+                    )
+                  }
+                  inputValue={modelInputValue}
+                  onInputChange={(_e, newInputValue) =>
+                    setModelInputValue(newInputValue)
+                  }
+                  freeSolo
+                  fullWidth
+                  renderInput={(params) => (
+                    <TextField label={t("Default model")} {...params} />
+                  )}
+                  onFocus={loadModelCandidates}
+                />
+              </Stack>
+            </Card>
+
+            <Card elevation={0} sx={{ borderRadius: 3, padding: 2.5 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="body1" sx={{ alignSelf: "center" }}>
+                    {t("Temperature")}
+                  </Typography>
+                  <Tooltip title={t("temperature-help")}>
+                    <IconButton size="small">
+                      <HelpOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Typography variant="body1" sx={{ alignSelf: "center" }}>
+                  {(preset.temperature ?? 1).toFixed(2)}
+                </Typography>
+              </Box>
+              <Slider
+                value={preset.temperature ?? 1}
+                onChange={(_e, newValue) => {
+                  const temperature = newValue !== 1 ? newValue : undefined;
+                  setPreset((prev) => (prev ? { ...prev, temperature } : prev));
                 }}
-              >
-                <MenuItem value="responses">OpenAI Responses API</MenuItem>
-                <MenuItem value="chat-completion">
-                  OpenAI Chat Completion API
-                </MenuItem>
-                <MenuItem value="gemini">Google Gemini API</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label={t("API Key")}
-              variant="outlined"
-              fullWidth
-              value={preset.apiKey ?? ""}
-              onChange={(e) =>
-                setPreset((prev) =>
-                  prev ? { ...prev, apiKey: e.target.value } : prev
-                )
-              }
-            />
-            <TextField
-              label={t("Base URL")}
-              variant="outlined"
-              fullWidth
-              value={preset.baseURL ?? ""}
-              onChange={(e) =>
-                setPreset((prev) =>
-                  prev ? { ...prev, baseURL: e.target.value } : prev
-                )
-              }
-            />
-            <Autocomplete
-              options={modelCandidates}
-              value={preset.defaultModel ?? ""}
-              onChange={(_e, newValue) =>
-                setPreset((prev) =>
-                  prev ? { ...prev, defaultModel: newValue ?? undefined } : prev
-                )
-              }
-              inputValue={modelInputValue}
-              onInputChange={(_e, newInputValue) =>
-                setModelInputValue(newInputValue)
-              }
-              freeSolo
-              fullWidth
-              renderInput={(params) => (
-                <TextField label={t("Default model")} {...params} />
-              )}
-              onFocus={loadModelCandidates}
-            />
-            <Card elevation={0} sx={{ borderRadius: 3, marginTop: 2 }}>
+                min={0}
+                max={2}
+                step={0.01}
+                aria-label={t("Temperature")}
+              />
+            </Card>
+
+            <Card elevation={0} sx={{ borderRadius: 3 }}>
               <List disablePadding>
                 <ListItem disablePadding>
                   <ListItemButton
@@ -254,7 +293,7 @@ function PresetEditDialog({
                               sx={{ marginRight: 2 }}
                             />
                             {preset.toolsProvider === toolsProvider ? (
-                              <Check
+                              <CheckIcon
                                 color="primary"
                                 sx={{ width: 24, height: 24 }}
                               />
@@ -269,7 +308,8 @@ function PresetEditDialog({
                 </ListItem>
               </List>
             </Card>
-            <Card elevation={0} sx={{ borderRadius: 3, marginTop: 2 }}>
+
+            <Card elevation={0} sx={{ borderRadius: 3 }}>
               <List disablePadding>
                 <ListItem disablePadding>
                   <ListItemButton
@@ -307,7 +347,7 @@ function PresetEditDialog({
                             sx={{ marginRight: 2 }}
                           />
                           {preset.imageQuality === quality ? (
-                            <Check
+                            <CheckIcon
                               color="primary"
                               sx={{ width: 24, height: 24 }}
                             />
@@ -321,12 +361,25 @@ function PresetEditDialog({
                 </ListItem>
               </List>
             </Card>
+
             {editingPresetId && (
-              <Box>
-                <Button variant="outlined" color="error">
-                  {t("Delete preset")}
-                </Button>
-              </Box>
+              <Card elevation={0} sx={{ borderRadius: 3 }}>
+                <List disablePadding>
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      onClick={() => {
+                        if (window.confirm(t("delete-preset-confirm")))
+                          onDelete(editingPresetId);
+                      }}
+                    >
+                      <ListItemText
+                        primary={t("Delete Preset")}
+                        slotProps={{ primary: { color: "error" } }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                </List>
+              </Card>
             )}
           </Stack>
         )}

@@ -6,6 +6,7 @@ export type Preset = {
   apiKey?: string;
   baseURL?: string;
   defaultModel?: string;
+  temperature?: number;
   toolsProvider?: "openai-builtin";
   imageQuality?: "low" | "medium" | "high";
 };

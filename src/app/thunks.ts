@@ -354,6 +354,7 @@ export const requestAssistant = createAppAsyncThunk(
             onStreamEvent: messageDispatch,
             ...options,
             model: options?.model ?? preset.defaultModel,
+            temperature: options?.temperature ?? preset.temperature,
           }
         );
 

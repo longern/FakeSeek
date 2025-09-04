@@ -21,7 +21,11 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { patch, setCurrent as setCurrentPreset } from "../app/presets";
+import {
+  patch as patchPreset,
+  remove as removePreset,
+  setCurrent as setCurrentPreset,
+} from "../app/presets";
 import PresetEditDialog from "./PresetEditDialog";
 
 function PresetsDialog({
@@ -132,8 +136,14 @@ function PresetsDialog({
             `preset-${Date.now().toString(16)}-${Math.random()
               .toString(16)
               .slice(2)}`;
-          dispatch(patch({ presetId: id, preset }));
+          dispatch(patchPreset({ presetId: id, preset }));
           dispatch(setCurrentPreset(id));
+          setShowPresetEditor(false);
+          setEditingPresetId(null);
+        }}
+        onDelete={(presetId) => {
+          dispatch(removePreset({ presetId }));
+          if (presets.current === presetId) dispatch(setCurrentPreset(null));
           setShowPresetEditor(false);
           setEditingPresetId(null);
         }}
