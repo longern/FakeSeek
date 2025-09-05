@@ -372,7 +372,7 @@ export function ReasoningContent({
       <Button
         variant="outlined"
         size="small"
-        sx={{ paddingX: 1.5 }}
+        sx={{ marginTop: 1.5, paddingX: 1.5 }}
         onClick={() => setExpanded((expanded) => !expanded)}
       >
         {reasoning ? t("Thinking...") : t("Thinking finished")}
@@ -382,7 +382,8 @@ export function ReasoningContent({
         <Box
           color="text.secondary"
           sx={{
-            marginY: -1,
+            marginTop: -0.5,
+            marginBottom: -1,
             paddingLeft: 1,
             borderLeft: "2px solid #ddd",
             fontSize: "0.875rem",
