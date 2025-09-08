@@ -29,7 +29,6 @@ import { addMessageThunk } from "../app/db-middleware";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { ChatMessage, remove as removeMessage } from "../app/messages";
 import {
-  CreateResponseParams,
   requestAssistant,
   requestCreateResearch,
   requestGenerateImage,
@@ -37,10 +36,11 @@ import {
   requestSearchImage,
 } from "../app/thunks";
 import AppDrawer from "./AppDrawer";
-import CoachingDialog from "./CoachingDialog";
+import AnnotationDialog from "./coaching/AnnotationDialog";
 import InputArea, { Abortable } from "./InputArea";
 import MessageList, { UserMessageContextMenu } from "./MessageList";
 import { ResponseActions, ResponseContextMenu } from "./ResponseItem";
+import { CreateResponseParams } from "../app/api-modes/types";
 
 function useAbortablePromise() {
   const [abortable, setAbortable] = useState<Abortable | undefined>(undefined);
@@ -259,7 +259,7 @@ function Main({
         </Container>
       </Box>
 
-      <CoachingDialog
+      <AnnotationDialog
         open={Boolean(coachingMessages)}
         onClose={() => setCoachingMessages(null)}
         prevMessages={coachingMessages}

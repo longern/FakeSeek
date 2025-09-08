@@ -25,7 +25,6 @@ import { ElementType, Fragment, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
 
-import { CreateResponseParams } from "../app/thunks";
 import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "../app/tools-definitions";
 import { CodeBox } from "./Markdown";
 import { McpCallContent } from "./McpCallMessage";
@@ -35,6 +34,7 @@ import {
   ReasoningContent,
   RunPythonContent,
 } from "./MessageList";
+import { CreateResponseParams } from "../app/api-modes/types";
 
 function formatTimestamp(timestamp: number) {
   const date = new Date(timestamp);

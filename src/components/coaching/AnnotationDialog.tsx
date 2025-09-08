@@ -27,15 +27,15 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { requestResponsesAPI } from "../app/api-modes/responses";
-import { useAppSelector } from "../app/hooks";
+import { requestResponsesAPI } from "../../app/api-modes/responses";
+import { useAppSelector } from "../../app/hooks";
 import messageReducer, {
   addResponse,
   ChatMessage,
   remove as removeMessage,
-} from "../app/messages";
-import { messageDispatchWrapper, normMessage } from "../app/thunks";
-import MessageList from "./MessageList";
+} from "../../app/messages";
+import { messageDispatchWrapper, normMessage } from "../../app/thunks";
+import MessageList from "../MessageList";
 
 type TrainingMessage =
   | { role: "user"; content: string }
@@ -130,7 +130,7 @@ function toTrainingMessages(
   return records;
 }
 
-function CoachingDialog({
+function AnnotationDialog({
   open,
   onClose,
   defaultInstructions,
@@ -342,4 +342,4 @@ function CoachingDialog({
   );
 }
 
-export default CoachingDialog;
+export default AnnotationDialog;

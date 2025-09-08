@@ -7,6 +7,7 @@ import {
   List,
   ListItem,
   ListItemButton,
+  ListItemText,
   useMediaQuery,
 } from "@mui/material";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import {
   update as updateConversation,
 } from "../app/conversations";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
+import CoachingDialog from "./coaching/CoachingDialog";
 import ConversationList from "./ConversationList";
 import SettingsDialog from "./SettingsDialog";
 
@@ -40,7 +42,8 @@ function AppDrawer({
     (state) => state.conversations.conversations
   );
   const dispatch = useAppDispatch();
-  const [showMenu, setShowMenu] = useState(false);
+  const [showCoachingDialog, setShowCoachingDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -101,17 +104,44 @@ function AppDrawer({
         <Box sx={{ flexGrow: 1 }} />
         <Divider />
         <Box sx={{ padding: 1 }}>
-          <List disablePadding sx={{ borderRadius: 1, overflow: "hidden" }}>
+          <List
+            disablePadding
+            sx={{
+              borderRadius: 1,
+              overflow: "hidden",
+              "& .MuiListItemButton-root": { borderRadius: 2 },
+            }}
+          >
             <ListItem disablePadding>
-              <ListItemButton onClick={() => setShowMenu(true)}>
-                {t("Settings")}
+              <ListItemButton onClick={() => setShowCoachingDialog(true)}>
+                <ListItemText primary={t("Coaching")} />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => setShowSettingsDialog(true)}>
+                <ListItemText primary={t("Settings")} />
               </ListItemButton>
             </ListItem>
           </List>
         </Box>
       </Drawer>
 
-      <SettingsDialog open={showMenu} onClose={() => setShowMenu(false)} />
+      <CoachingDialog
+        open={showCoachingDialog}
+        onClose={() => {
+          if (!navigator.storage || !navigator.storage.getDirectory) {
+            window.alert(t("opfs-not-supported"));
+            return;
+          }
+
+          setShowCoachingDialog(false);
+        }}
+      />
+
+      <SettingsDialog
+        open={showSettingsDialog}
+        onClose={() => setShowSettingsDialog(false)}
+      />
     </>
   );
 }

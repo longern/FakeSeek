@@ -26,10 +26,10 @@ import { ResponseInputMessageContentList } from "openai/resources/responses/resp
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import SearchModeChip from "./SearchModeChip";
-import { CreateResponseParams } from "../app/thunks";
+import { CreateResponseParams } from "../app/api-modes/types";
 import { useAppSelector } from "../app/hooks";
 import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "../app/tools-definitions";
+import SearchModeChip from "./SearchModeChip";
 
 export interface Abortable {
   abort: () => void;
