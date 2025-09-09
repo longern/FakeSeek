@@ -236,7 +236,8 @@ function useDebounce<T>(value: T) {
   useEffect(() => {
     valueToUpdate.current = value;
     if (timeoutRef.current) return;
-    timeoutRef.current = requestAnimationFrame(() => {
+    timeoutRef.current = requestAnimationFrame(async () => {
+      await Promise.resolve();
       setDebouncedValue(valueToUpdate.current);
       timeoutRef.current = null;
     });

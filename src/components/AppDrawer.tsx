@@ -10,7 +10,7 @@ import {
   ListItemText,
   useMediaQuery,
 } from "@mui/material";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -19,13 +19,13 @@ import {
   update as updateConversation,
 } from "../app/conversations";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import CoachingDialog from "./coaching/CoachingDialog";
 import ConversationList from "./ConversationList";
 import SettingsDialog from "./SettingsDialog";
 
 const addCommentIcon = (
   <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
 );
+const CoachingDialog = lazy(() => import("./coaching/CoachingDialog"));
 
 function AppDrawer({
   open,
@@ -126,17 +126,19 @@ function AppDrawer({
         </Box>
       </Drawer>
 
-      <CoachingDialog
-        open={showCoachingDialog}
-        onClose={() => {
-          if (!navigator.storage || !navigator.storage.getDirectory) {
-            window.alert(t("opfs-not-supported"));
-            return;
-          }
+      <Suspense>
+        <CoachingDialog
+          open={showCoachingDialog}
+          onClose={() => {
+            if (!navigator.storage || !navigator.storage.getDirectory) {
+              window.alert(t("opfs-not-supported"));
+              return;
+            }
 
-          setShowCoachingDialog(false);
-        }}
-      />
+            setShowCoachingDialog(false);
+          }}
+        />
+      </Suspense>
 
       <SettingsDialog
         open={showSettingsDialog}

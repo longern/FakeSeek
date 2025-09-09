@@ -1,3 +1,4 @@
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
   Box,
   Card,
@@ -11,23 +12,12 @@ import {
   Stack,
   useMediaQuery,
 } from "@mui/material";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import yaml from "yaml";
 
-async function getDatasetDirectoryHandle() {
-  const root = await navigator.storage.getDirectory();
-  const coachingDirHandle = await root.getDirectoryHandle(".coaching", {
-    create: true,
-  });
-  const datasetDirectoryHandle = await coachingDirHandle.getDirectoryHandle(
-    "datasets",
-    { create: true }
-  );
-  return datasetDirectoryHandle;
-}
+import DatasetEditor, { getDatasetDirectoryHandle } from "./DatasetEditor";
 
 async function listDatasets() {
   const datasetDirHandle = await getDatasetDirectoryHandle();
@@ -62,21 +52,33 @@ async function deleteDataset(name: string) {
   await datasetDirHandle.removeEntry(name);
 }
 
-export function parseDataset(content: string): {
-  messages: Array<{ role: string; content: string }>;
-  teacher_messages: Array<{ role: string; content: string }>;
-  tools?: Array<any>;
-  output: Array<{ role: string; content: string }>;
-} {
-  return yaml.parse(content);
+async function convertToYaml(file: File) {
+  const text = await file.text();
+  let records;
+  if (file.name.endsWith(".jsonl")) {
+    records = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => JSON.parse(line));
+  } else if (file.name.endsWith(".json")) {
+    records = JSON.parse(text);
+  } else if (file.name.endsWith(".yaml") || file.name.endsWith(".yml")) {
+    records = yaml.parse(text);
+  } else throw new Error("Unsupported file format");
+
+  return yaml.stringify(records);
 }
 
 function DatasetsPanel() {
   const [datasets, setDatasets] = useState<string[] | null>(null);
-  const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
+  const [selectedDataset, setSelectedDataset] = useState<string | undefined>(
+    undefined
+  );
   const [selectedDatasetContent, setSelectedDatasetContent] = useState<
     string | null
   >(null);
+  const [showDatasetEditor, setShowDatasetEditor] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -89,29 +91,24 @@ function DatasetsPanel() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
 
-      const text = await file.text();
-      let records;
-      if (file.name.endsWith(".jsonl")) {
-        records = text
-          .split("\n")
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0)
-          .map((line) => JSON.parse(line));
-      } else if (file.name.endsWith(".json")) {
-        records = JSON.parse(text);
-      } else if (file.name.endsWith(".yaml") || file.name.endsWith(".yml")) {
-        records = yaml.parse(text);
-      } else return;
-
       const importName = file.name.replace(/\.(jsonl|json|yaml|yml)$/, ".yml");
+      try {
+        const importContent = await convertToYaml(file);
 
-      const datasetDirHandle = await getDatasetDirectoryHandle();
-      const destHandle = await datasetDirHandle.getFileHandle(importName, {
-        create: true,
-      });
-      const writable = await destHandle.createWritable();
-      await writable.write(yaml.stringify(records));
-      await writable.close();
+        const datasetDirHandle = await getDatasetDirectoryHandle();
+        const destHandle = await datasetDirHandle.getFileHandle(importName, {
+          create: true,
+        });
+        const writable = await destHandle.createWritable();
+        await writable.write(importContent);
+        await writable.close();
+      } catch (e) {
+        window.alert(`Failed to import dataset: ${(e as Error).message}`);
+        return;
+      }
+
+      const newDatasets = await listDatasets();
+      setDatasets(newDatasets);
     };
     input.click();
   }, []);
@@ -120,22 +117,39 @@ function DatasetsPanel() {
     listDatasets().then(setDatasets);
   }, []);
 
-  useEffect(() => {
-    if (!selectedDataset) {
-      setSelectedDatasetContent(null);
-      return;
-    }
-    readDataset(selectedDataset).then(setSelectedDatasetContent);
-  }, [selectedDataset]);
-
   const datasetList = (
     <Stack gap={1.5}>
       <Card elevation={0} sx={{ borderRadius: 3, minWidth: "260px" }}>
         <List disablePadding>
           <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => {
+                const name = window.prompt(
+                  t("Enter dataset name (without .yml suffix)")
+                );
+                if (!name) return;
+                if (!name.match(/^[a-zA-Z0-9_\-]+$/)) {
+                  window.alert(t("Invalid dataset name"));
+                  return;
+                }
+                if (datasets?.includes(`${name}.yml`)) {
+                  window.alert(t("Dataset already exists"));
+                  return;
+                }
+                setSelectedDataset(`${name}.yml`);
+                setShowDatasetEditor(true);
+              }}
+            >
+              <ListItemText
+                primary={t("Create dataset")}
+                slotProps={{ primary: { color: "primary.main" } }}
+              />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
             <ListItemButton onClick={handleImportClick}>
               <ListItemText
-                primary={t("Import datasets")}
+                primary={t("Import dataset")}
                 slotProps={{ primary: { color: "primary.main" } }}
               />
             </ListItemButton>
@@ -143,21 +157,35 @@ function DatasetsPanel() {
         </List>
       </Card>
       <Card elevation={0} sx={{ borderRadius: 3, minWidth: "260px" }}>
-        <List disablePadding dense>
+        <List disablePadding>
           {datasets === null
             ? null
             : datasets.map((dataset) => (
                 <ListItem key={dataset} disablePadding>
                   <ListItemButton
                     selected={dataset === selectedDataset}
-                    onClick={() => setSelectedDataset(dataset)}
+                    onClick={() => {
+                      setSelectedDataset(dataset);
+                      readDataset(dataset).then(setSelectedDatasetContent);
+                    }}
+                    onDoubleClick={
+                      isMobile
+                        ? undefined
+                        : () => {
+                            setSelectedDataset(dataset);
+                            setShowDatasetEditor(true);
+                          }
+                    }
                     onContextMenu={(event) => {
                       event.preventDefault();
                       setSelectedDataset(dataset);
                       setAnchorEl(event.currentTarget);
                     }}
                   >
-                    <ListItemText primary={dataset} />
+                    <ListItemText
+                      primary={dataset}
+                      slotProps={{ primary: { noWrap: true } }}
+                    />
                   </ListItemButton>
                 </ListItem>
               ))}
@@ -168,7 +196,20 @@ function DatasetsPanel() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        slotProps={{ list: { sx: { minWidth: "160px" } } }}
       >
+        <MenuItem>
+          <ListItemText
+            primary={t("Edit")}
+            onClick={async () => {
+              if (!selectedDataset) return;
+              setShowDatasetEditor(true);
+              setAnchorEl(null);
+            }}
+          />
+        </MenuItem>
         <MenuItem>
           <ListItemText
             primary={t("Export")}
@@ -184,6 +225,7 @@ function DatasetsPanel() {
             primary={t("Delete")}
             slotProps={{ primary: { color: "error.main" } }}
             onClick={async () => {
+              setAnchorEl(null);
               if (!selectedDataset) return;
               if (
                 !window.confirm(
@@ -195,8 +237,8 @@ function DatasetsPanel() {
               setDatasets(
                 (prev) => prev?.filter((d) => d !== selectedDataset) ?? null
               );
-              setSelectedDataset(null);
-              setAnchorEl(null);
+              setSelectedDataset(undefined);
+              setSelectedDatasetContent(null);
             }}
           />
         </MenuItem>
@@ -204,52 +246,74 @@ function DatasetsPanel() {
     </Stack>
   );
 
-  const highlightedYaml = selectedDatasetContent && (
-    <SyntaxHighlighter
-      children={selectedDatasetContent}
-      language="yaml"
-      customStyle={{ margin: 0, backgroundColor: "inherit" }}
-    />
-  );
+  const highlightedYaml =
+    selectedDatasetContent === null ? null : (
+      <SyntaxHighlighter
+        children={selectedDatasetContent}
+        language="yaml"
+        wrapLongLines={true}
+        customStyle={{ margin: 0, backgroundColor: "inherit" }}
+      />
+    );
 
-  return isMobile ? (
-    selectedDatasetContent ? (
-      <Stack sx={{ backgroundColor: "background.paper", height: "100%" }}>
-        <List disablePadding>
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={() => setSelectedDataset(null)}
-              disableTouchRipple
-              disableRipple
-            >
-              <ListItemText primary={selectedDataset} />
-              <ExpandLessIcon />
-            </ListItemButton>
-          </ListItem>
-        </List>
-        <Divider />
-        {highlightedYaml}
-      </Stack>
-    ) : (
-      <Box sx={{ padding: 2 }}>{datasetList}</Box>
-    )
-  ) : (
-    <Stack
-      sx={{
-        flexDirection: { xs: "column", sm: "row" },
-        width: "100%",
-      }}
-    >
-      <Box sx={{ paddingX: 2, paddingY: 1 }}>{datasetList}</Box>
-
-      <Box sx={{ padding: 2, flexGrow: 1 }}>
-        {highlightedYaml && (
-          <Card variant="outlined" sx={{ height: "100%", padding: 1 }}>
+  return (
+    <>
+      {isMobile ? (
+        highlightedYaml ? (
+          <Stack sx={{ backgroundColor: "background.paper", height: "100%" }}>
+            <List disablePadding>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    setSelectedDataset(undefined);
+                    setSelectedDatasetContent(null);
+                  }}
+                  disableTouchRipple
+                  disableRipple
+                >
+                  <ListItemText primary={selectedDataset} />
+                  <ExpandLessIcon />
+                </ListItemButton>
+              </ListItem>
+            </List>
+            <Divider />
             {highlightedYaml}
-          </Card>
-        )}
-      </Box>
-    </Stack>
+          </Stack>
+        ) : (
+          <Box sx={{ padding: 2 }}>{datasetList}</Box>
+        )
+      ) : (
+        <Stack
+          sx={{
+            flexDirection: { xs: "column", sm: "row" },
+            width: "100%",
+          }}
+        >
+          <Box sx={{ paddingX: 2, paddingY: 1 }}>{datasetList}</Box>
+
+          <Box sx={{ padding: 2, flexGrow: 1 }}>
+            {highlightedYaml && (
+              <Card
+                variant="outlined"
+                sx={{ height: "100%", padding: 1, overflowY: "auto" }}
+              >
+                {highlightedYaml}
+              </Card>
+            )}
+          </Box>
+        </Stack>
+      )}
+
+      <DatasetEditor
+        open={showDatasetEditor}
+        onClose={() => {
+          setShowDatasetEditor(false);
+          if (selectedDataset)
+            readDataset(selectedDataset).then(setSelectedDatasetContent);
+        }}
+        datasetName={selectedDataset}
+      />
+    </>
   );
 }
 

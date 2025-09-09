@@ -95,7 +95,7 @@ function MobileLayout({
           >
             <Stack
               sx={{
-                flex: 1,
+                flex: "0 0 50%",
                 height: "100%",
                 backgroundColor: "background.default",
               }}
@@ -120,7 +120,8 @@ function MobileLayout({
             </Stack>
             <Stack
               sx={{
-                flex: 1,
+                flex: "0 0 50%",
+                minWidth: 0,
                 height: "100%",
                 backgroundColor: "background.default",
               }}
