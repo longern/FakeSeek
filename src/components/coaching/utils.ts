@@ -1,3 +1,5 @@
+import { Component } from "react";
+
 function buildByteFallbackMaps() {
   const bs = [];
 
@@ -47,4 +49,18 @@ export function decodeToken(token: string) {
   }
 
   return new TextDecoder("utf-8").decode(new Uint8Array(rawBytes));
+}
+
+export class ErrorBoundary extends Component<
+  { fallback: React.ReactNode; children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  state = { hasError: false, error: undefined };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback || null;
+    return this.props.children;
+  }
 }
