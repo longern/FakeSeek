@@ -1,8 +1,33 @@
 import OpenAI from "openai";
 import { useCallback } from "react";
+import type { PreTrainedTokenizer } from "@huggingface/transformers";
 
 import { useAppSelector } from "../../app/hooks";
 import { TokenKLDiversity, TokenLogprobs } from "./MessageViewer";
+
+const TOKENIZER_CACHE: Record<string, PreTrainedTokenizer> = {};
+
+async function getTokenizer(model: string) {
+  if (model in TOKENIZER_CACHE) return TOKENIZER_CACHE[model];
+
+  const { AutoTokenizer } = await import("@huggingface/transformers");
+
+  const tokenizer = await AutoTokenizer.from_pretrained(model);
+
+  if (!tokenizer.chat_template) {
+    const { downloadFile } = await import("@huggingface/hub");
+    const templateBlob = await downloadFile({
+      repo: model,
+      path: "chat_template.jinja",
+    });
+    const chatTemplate = await templateBlob?.text();
+    tokenizer.chat_template = chatTemplate;
+  }
+
+  TOKENIZER_CACHE[model] = tokenizer;
+
+  return tokenizer;
+}
 
 export function useGenerate() {
   const currentPreset = useAppSelector((state) =>
@@ -59,20 +84,7 @@ export function useForward() {
       model?: string;
       topLogprobs?: number;
     }) => {
-      const { AutoTokenizer } = await import("@huggingface/transformers");
-
-      model = model ?? "openai/gpt-oss-120b";
-
-      const tokenizer = await AutoTokenizer.from_pretrained(model);
-      if (!tokenizer.chat_template) {
-        const { downloadFile } = await import("@huggingface/hub");
-        const templateBlob = await downloadFile({
-          repo: model,
-          path: "chat_template.jinja",
-        });
-        const chatTemplate = await templateBlob?.text();
-        tokenizer.chat_template = chatTemplate;
-      }
+      const tokenizer = await getTokenizer(model ?? "openai/gpt-oss-120b");
 
       const text = tokenizer.apply_chat_template([...prompt, ...completion], {
         tokenize: false,
@@ -192,4 +204,69 @@ export function useCalculateKL() {
   );
 
   return calculateKL;
+}
+
+export function useContinueGeneration() {
+  const currentPreset = useAppSelector((state) =>
+    state.presets.current === null
+      ? null
+      : state.presets.presets[state.presets.current] ?? null
+  );
+
+  const continueGeneration = useCallback(
+    async ({
+      prompt,
+      completion,
+      tokenIndex,
+      tokenId,
+      model,
+      topLogprobs = 1,
+    }: {
+      prompt: Array<{ role: string; content: string }>;
+      completion: Array<{ role: string; content: string }>;
+      tokenIndex: number;
+      tokenId: number;
+      model?: string;
+      topLogprobs?: number;
+    }) => {
+      const tokenizer = await getTokenizer(model ?? "openai/gpt-oss-120b");
+
+      const promptIds = tokenizer.apply_chat_template(prompt, {
+        add_generation_prompt: true,
+        return_tensor: false,
+      }) as number[];
+      const promptCompletionIds = tokenizer.apply_chat_template(
+        [...prompt, ...completion],
+        { return_tensor: false }
+      ) as number[];
+      const completionIds = promptCompletionIds.slice(promptIds.length);
+      const completionPrefixIds = completionIds.slice(0, tokenIndex);
+      const prefixIds = [...promptIds, ...completionPrefixIds, tokenId];
+
+      const prefixText = tokenizer.decode(prefixIds);
+
+      const client = new OpenAI({
+        apiKey: currentPreset?.apiKey,
+        baseURL: currentPreset?.baseURL,
+        dangerouslyAllowBrowser: true,
+      });
+      const response = await client.completions.create({
+        model: "gpt-oss-120b",
+        prompt: prefixText,
+        max_tokens: 32768,
+        temperature: currentPreset?.temperature,
+        logprobs: topLogprobs,
+        ...{ skip_special_tokens: false },
+      });
+
+      const choice = response.choices[0];
+      const completionPrefixText = tokenizer.decode(completionPrefixIds);
+      const token = tokenizer.decode([tokenId]);
+
+      return { prefix: completionPrefixText, token, choice };
+    },
+    [currentPreset]
+  );
+
+  return continueGeneration;
 }

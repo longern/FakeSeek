@@ -1,4 +1,5 @@
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import RampLeftIcon from "@mui/icons-material/RampLeft";
 import {
   Box,
   Card,
@@ -13,6 +14,119 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useState } from "react";
+
+export function LogprobsViewer({
+  logprobs,
+  decoder,
+  convertToAlpha,
+  onContinueGeneration,
+}: {
+  logprobs?: Array<TokenLogprobs>;
+  decoder: (token: string) => string;
+  convertToAlpha?: (x: number) => number;
+  onContinueGeneration?: (tokenIndex: number, tokenId: number) => void;
+}) {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [selected, setSelected] = useState<number | undefined>(undefined);
+
+  convertToAlpha = convertToAlpha ?? ((x) => (1 - x) * 0.4);
+
+  const selectedLogprob =
+    selected === undefined ? undefined : logprobs?.[selected];
+
+  if (!logprobs) return null;
+
+  return (
+    <>
+      {logprobs.map((logprob, i) => (
+        <Box
+          key={i}
+          component="span"
+          sx={{
+            whiteSpace: "pre-wrap",
+            backgroundColor: (theme) =>
+              alpha(
+                theme.palette.secondary.main,
+                convertToAlpha(Math.exp(logprob.logprob))
+              ),
+          }}
+          onClick={(event) => {
+            setSelected(i);
+            setAnchorEl(event.currentTarget);
+          }}
+        >
+          {decoder(logprob.token)}
+        </Box>
+      ))}
+
+      <Popover
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        anchorEl={anchorEl}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Box sx={{ padding: 2 }}>
+          {selectedLogprob === undefined ? null : (
+            <>
+              <Card>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Token</TableCell>
+                      <TableCell align="right">Prob</TableCell>
+                      {!onContinueGeneration ? null : <TableCell />}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedLogprob.top_logprobs.map((topLogprob, index) => (
+                      <TableRow
+                        key={topLogprob.token_id}
+                        sx={{
+                          backgroundColor:
+                            index % 2 === 0
+                              ? "action.hover"
+                              : "background.paper",
+                        }}
+                      >
+                        <TableCell>
+                          <Box
+                            component="span"
+                            sx={{ whiteSpace: "pre-wrap", marginRight: 2 }}
+                          >
+                            {topLogprob.token}
+                          </Box>
+                        </TableCell>
+                        <TableCell align="right">
+                          <code>{Math.exp(topLogprob.logprob).toFixed(4)}</code>
+                        </TableCell>
+                        {!onContinueGeneration ? null : (
+                          <TableCell>
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                onContinueGeneration?.(
+                                  selected!,
+                                  topLogprob.token_id
+                                );
+                                setAnchorEl(null);
+                              }}
+                            >
+                              <PlayArrowIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            </>
+          )}
+        </Box>
+      </Popover>
+    </>
+  );
+}
 
 export type TokenLogprobs = {
   token: string;
@@ -33,24 +147,29 @@ export type TokenKLDiversity = {
   teacherTopLogprobs: TokenLogprobs["top_logprobs"];
 };
 
-function KLViewer({
+export function KLViewer({
   klDiversity,
   decoder,
   convertToAlpha,
-  onContinue,
+  onContinueGeneration,
 }: {
   klDiversity?: Array<TokenKLDiversity>;
   decoder?: (token: string) => string;
   convertToAlpha?: (x: number) => number;
-  onContinue?: (tokenId: number) => void;
+  onContinueGeneration?: (
+    tokenIndex: number,
+    tokenId: number,
+    merge?: boolean
+  ) => void;
 }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [selectedKL, setSelectedKL] = useState<TokenKLDiversity | undefined>(
-    undefined
-  );
+  const [selected, setSelected] = useState<number | undefined>(undefined);
 
   decoder = decoder ?? ((x) => x);
   convertToAlpha = convertToAlpha ?? ((x) => Math.max(Math.tanh(x) * 0.4, 0));
+
+  const selectedKL =
+    selected === undefined ? undefined : klDiversity?.[selected];
 
   if (!klDiversity) return null;
 
@@ -66,7 +185,7 @@ function KLViewer({
               alpha(theme.palette.secondary.main, convertToAlpha(kl.lpr)),
           }}
           onClick={(event) => {
-            setSelectedKL(kl);
+            setSelected(i);
             setAnchorEl(event.currentTarget);
           }}
         >
@@ -93,13 +212,13 @@ function KLViewer({
                 <TableRow>
                   <TableCell>Prob</TableCell>
                   <TableCell align="right">
-                    <code>{Math.exp(selectedKL.logprob).toFixed(3)}</code>
+                    <code>{Math.exp(selectedKL.logprob).toFixed(4)}</code>
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>LPR</TableCell>
                   <TableCell align="right">
-                    <code>{selectedKL.lpr.toFixed(3)}</code>
+                    <code>{selectedKL.lpr.toFixed(4)}</code>
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -116,7 +235,7 @@ function KLViewer({
                   <TableRow>
                     <TableCell>Token</TableCell>
                     <TableCell align="right">Prob</TableCell>
-                    {!onContinue ? null : <TableCell />}
+                    {!onContinueGeneration ? null : <TableCell />}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -139,13 +258,36 @@ function KLViewer({
                       <TableCell align="right">
                         <code>{Math.exp(logprob.logprob).toFixed(4)}</code>
                       </TableCell>
-                      {!onContinue ? null : (
-                        <TableCell align="right">
+                      {!onContinueGeneration ? null : (
+                        <TableCell>
                           <IconButton
                             size="small"
-                            onClick={() => onContinue?.(logprob.token_id)}
+                            onClick={() => {
+                              onContinueGeneration?.(
+                                selected!,
+                                logprob.token_id
+                              );
+                              setAnchorEl(null);
+                            }}
                           >
                             <PlayArrowIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              onContinueGeneration?.(
+                                selected!,
+                                logprob.token_id,
+                                true
+                              );
+                              setAnchorEl(null);
+                            }}
+                            sx={{ marginLeft: 1 }}
+                          >
+                            <RampLeftIcon
+                              sx={{ transform: "scaleY(-1)" }}
+                              fontSize="small"
+                            />
                           </IconButton>
                         </TableCell>
                       )}
@@ -160,5 +302,3 @@ function KLViewer({
     </>
   );
 }
-
-export default KLViewer;

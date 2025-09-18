@@ -131,7 +131,7 @@ function DatasetEditor({
       </DialogTitle>
 
       <DialogContent dividers sx={{ padding: 0 }}>
-        <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
+        <Box sx={{ flexGrow: 1, minHeight: 0 }}>
           {content?.[selected] === undefined ? (
             <Box
               sx={{

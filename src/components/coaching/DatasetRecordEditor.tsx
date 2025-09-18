@@ -1,3 +1,5 @@
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
@@ -10,19 +12,28 @@ import {
   Grid,
   IconButton,
   InputBase,
-  Popover,
   Stack,
   ToggleButton,
   Typography,
+  useEventCallback,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCalculateKL, useForward, useGenerate } from "./hooks";
-import KLViewer, { TokenKLDiversity, TokenLogprobs } from "./MessageViewer";
+import {
+  useCalculateKL,
+  useContinueGeneration,
+  useForward,
+  useGenerate,
+} from "./hooks";
+import {
+  KLViewer,
+  LogprobsViewer,
+  TokenKLDiversity,
+  TokenLogprobs,
+} from "./MessageViewer";
 import TextToggleButtonGroup from "./TextToggleButtonGroup";
-import { decodeToken, ErrorBoundary } from "./utils";
+import { decodeToken, ErrorBoundary, parseCompletion } from "./utils";
 
 export type DatasetRecord = {
   prompt: Array<{ role: string; content: string }>;
@@ -34,79 +45,6 @@ export type DatasetRecord = {
     thinking?: string;
   }>;
 };
-
-function LogprobsViewer({
-  logprobs,
-  decoder,
-  convertToAlpha,
-}: {
-  logprobs?: Array<TokenLogprobs>;
-  decoder: (token: string) => string;
-  convertToAlpha?: (x: number) => number;
-}) {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [selectedLogprob, setSelectedLogprob] = useState<
-    TokenLogprobs | undefined
-  >(undefined);
-
-  convertToAlpha = convertToAlpha ?? ((x) => (1 - x) * 0.4);
-
-  if (!logprobs) return null;
-
-  return (
-    <>
-      {logprobs.map((logprob, i) => (
-        <Box
-          key={i}
-          component="span"
-          sx={{
-            whiteSpace: "pre-wrap",
-            backgroundColor: (theme) =>
-              alpha(
-                theme.palette.secondary.main,
-                convertToAlpha(Math.exp(logprob.logprob))
-              ),
-          }}
-          onClick={(event) => {
-            setSelectedLogprob(logprob);
-            setAnchorEl(event.currentTarget);
-          }}
-        >
-          {decoder(logprob.token)}
-        </Box>
-      ))}
-
-      <Popover
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-        anchorEl={anchorEl}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-      >
-        <Card variant="outlined" sx={{ margin: 2, padding: 1 }}>
-          {selectedLogprob === undefined ? null : (
-            <table>
-              <tbody>
-                {selectedLogprob.top_logprobs.map((topLogprob) => (
-                  <tr key={topLogprob.token_id}>
-                    <td>
-                      <Box
-                        component="span"
-                        sx={{ whiteSpace: "pre-wrap", marginRight: 2 }}
-                      >
-                        {topLogprob.token}
-                      </Box>
-                    </td>
-                    <td>{Math.exp(topLogprob.logprob).toFixed(3)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Card>
-      </Popover>
-    </>
-  );
-}
 
 function EditableMessage({
   role,
@@ -166,15 +104,23 @@ function EditableMessage({
 function AssistantMessageCard({
   completion,
   role = "assistant",
+  draft,
   generate,
   getLogprobs,
   getKLDiversity,
+  onApplyDraft,
+  onDiscardDraft,
+  onContinueGeneration,
 }: {
   completion?: DatasetRecord["completion"][number];
   role?: string;
+  draft?: { text: string; prefix: string };
   generate?: (signal?: AbortSignal) => Promise<void>;
   getLogprobs?: () => Promise<Array<TokenLogprobs>>;
   getKLDiversity?: () => Promise<Array<TokenKLDiversity>>;
+  onApplyDraft?: () => void;
+  onDiscardDraft?: () => void;
+  onContinueGeneration?: (tokenIndex: number, tokenId: number) => void;
 }) {
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
@@ -195,22 +141,60 @@ function AssistantMessageCard({
     generate(abortController.signal).finally(() => setAbortController(null));
   }, [generate]);
 
+  const reloadViewer = useEventCallback(() => {
+    if (viewer === "logp") getLogprobs?.().then(setLogprobs);
+    else setLogprobs(undefined);
+
+    if (viewer === "kl") getKLDiversity?.().then(setKLDiversity);
+    else setKLDiversity(undefined);
+  });
+
   useEffect(() => {
     if (completion === undefined) return;
-    setLogprobs(undefined);
-    setKLDiversity(undefined);
-    setViewer("markdown");
+    reloadViewer();
   }, [completion]);
 
   return (
-    <Card variant="outlined" sx={{ borderRadius: 3 }}>
-      <Box sx={{ paddingX: 2, paddingY: 1 }}>
+    <Card variant="outlined" sx={{ borderRadius: 3, overflow: "visible" }}>
+      <Box
+        sx={{
+          paddingX: 2,
+          paddingY: 1,
+          position: "sticky",
+          top: 0,
+          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+          borderTopLeftRadius: "12px",
+          borderTopRightRadius: "12px",
+          backgroundColor: "background.paper",
+          zIndex: 1,
+        }}
+      >
         <Stack direction="row" sx={{ alignItems: "center" }}>
           <Typography variant="subtitle2" sx={{ textTransform: "capitalize" }}>
             {role}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
           <Stack direction="row" spacing={0.5}>
+            {draft === undefined ? null : (
+              <>
+                <IconButton
+                  size="small"
+                  aria-label={t("Apply draft")}
+                  onClick={onApplyDraft}
+                  color="success"
+                >
+                  <CheckIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  aria-label={t("Discard draft")}
+                  onClick={onDiscardDraft}
+                  color="error"
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </>
+            )}
             <TextToggleButtonGroup
               size="small"
               value={viewer}
@@ -251,13 +235,39 @@ function AssistantMessageCard({
         </Stack>
       </Box>
       <Box sx={{ paddingX: 2, paddingBottom: 2 }}>
-        {viewer === "kl" ? (
-          <KLViewer klDiversity={klDiversity} />
+        {draft ? (
+          <>
+            <Typography component="span" whiteSpace="pre-wrap">
+              {draft.prefix}
+            </Typography>
+            <Typography
+              component="span"
+              whiteSpace="pre-wrap"
+              color="text.secondary"
+            >
+              {draft.text}
+            </Typography>
+          </>
+        ) : viewer === "kl" ? (
+          <KLViewer
+            klDiversity={klDiversity}
+            onContinueGeneration={onContinueGeneration}
+          />
         ) : viewer === "logp" ? (
           <ErrorBoundary
-            fallback={<LogprobsViewer logprobs={logprobs} decoder={(t) => t} />}
+            fallback={
+              <LogprobsViewer
+                logprobs={logprobs}
+                decoder={(t) => t}
+                onContinueGeneration={onContinueGeneration}
+              />
+            }
           >
-            <LogprobsViewer logprobs={logprobs} decoder={decodeToken} />
+            <LogprobsViewer
+              logprobs={logprobs}
+              decoder={decodeToken}
+              onContinueGeneration={onContinueGeneration}
+            />
           </ErrorBoundary>
         ) : (
           completion && (
@@ -292,9 +302,25 @@ function DatasetRecordEditor({
   };
   onChange: (record: DatasetRecord) => void;
 }) {
+  const [draft, setDraft] = useState<
+    | {
+        text: string;
+        prefix: string;
+      }
+    | undefined
+  >(undefined);
+  const [teacherDraft, setTeacherDraft] = useState<
+    | {
+        text: string;
+        prefix: string;
+      }
+    | undefined
+  >(undefined);
+
   const generate = useGenerate();
   const forward = useForward();
   const calculateKL = useCalculateKL();
+  const continueGeneration = useContinueGeneration();
 
   const handleGenerate = useCallback(
     async (signal?: AbortSignal) => {
@@ -338,11 +364,45 @@ function DatasetRecordEditor({
     [generate, record]
   );
 
+  const handleContinueGeneration = useCallback(
+    async (tokenIndex: number, tokenId: number, merge?: boolean) => {
+      const {
+        prefix,
+        token,
+        choice: { text },
+      } = await continueGeneration({
+        prompt: merge ? record.teacher_prompt : record.prompt,
+        completion: record.completion as any,
+        tokenIndex,
+        tokenId,
+      });
+      setDraft({ text: token + text, prefix });
+    },
+    [continueGeneration, record]
+  );
+
+  const handleTeacherContinueGeneration = useCallback(
+    async (tokenIndex: number, tokenId: number, merge?: boolean) => {
+      const {
+        prefix,
+        token,
+        choice: { text },
+      } = await continueGeneration({
+        prompt: merge ? record.prompt : record.teacher_prompt,
+        completion: record.teacher_completion as any,
+        tokenIndex,
+        tokenId,
+      });
+      setTeacherDraft({ text: token + text, prefix });
+    },
+    [continueGeneration, record]
+  );
+
   if (record === null) return null;
 
   return (
     <Stack sx={{ height: "100%" }} divider={<Divider />}>
-      <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
+      <Box sx={{ flexGrow: 1, minHeight: 0 }}>
         <Grid container>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Stack spacing={2} sx={{ padding: 2 }}>
@@ -367,6 +427,7 @@ function DatasetRecordEditor({
               <AssistantMessageCard
                 role={record.completion?.[0]?.role}
                 completion={record.completion?.[0]}
+                draft={draft}
                 generate={handleGenerate}
                 getLogprobs={async () => {
                   if (!record.completion) throw new Error("No completion");
@@ -386,6 +447,16 @@ function DatasetRecordEditor({
                     completion: record.completion as any,
                   });
                 }}
+                onApplyDraft={() => {
+                  if (!draft) return;
+                  onChange?.({
+                    ...record,
+                    completion: [parseCompletion(draft.prefix + draft.text)],
+                  });
+                  setDraft(undefined);
+                }}
+                onDiscardDraft={() => setDraft(undefined)}
+                onContinueGeneration={handleContinueGeneration}
               />
             </Stack>
           </Grid>
@@ -425,6 +496,7 @@ function DatasetRecordEditor({
               <AssistantMessageCard
                 role={record.teacher_completion?.[0]?.role}
                 completion={record.teacher_completion?.[0]}
+                draft={teacherDraft}
                 generate={handleTeacherGenerate}
                 getLogprobs={async () => {
                   if (!record.teacher_completion)
@@ -445,6 +517,18 @@ function DatasetRecordEditor({
                     completion: record.teacher_completion!,
                   });
                 }}
+                onApplyDraft={() => {
+                  if (!teacherDraft) return;
+                  onChange?.({
+                    ...record,
+                    completion: [
+                      parseCompletion(teacherDraft.prefix + teacherDraft.text),
+                    ],
+                  });
+                  setTeacherDraft(undefined);
+                }}
+                onDiscardDraft={() => setTeacherDraft(undefined)}
+                onContinueGeneration={handleTeacherContinueGeneration}
               />
             </Stack>
           </Grid>

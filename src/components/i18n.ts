@@ -45,6 +45,7 @@ const resources = {
       "What can I help with?": "What can I help with?",
       Yesterday: "Yesterday",
 
+      "confirm-close-with-unsaved-changes": "Close without saving changes?",
       "delete-chat": "Delete this chat?",
       "delete-preset-confirm": "Delete this preset?",
       "tools-provider.default": "Default",
@@ -99,6 +100,7 @@ const resources = {
       "Webpage Search": "网页搜索",
       Yesterday: "昨天",
 
+      "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
       "delete-chat": "删除此对话？",
       "delete-preset-confirm": "删除此预设？",
       "quality.low": "低",
