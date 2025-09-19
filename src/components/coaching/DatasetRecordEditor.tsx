@@ -44,6 +44,11 @@ export type DatasetRecord = {
     content: string | null;
     thinking?: string;
   }>;
+  pinned?: Array<{
+    token_index: number;
+    token_id: number;
+    confidence?: number;
+  }>;
 };
 
 function EditableMessage({
@@ -104,6 +109,7 @@ function EditableMessage({
 function AssistantMessageCard({
   completion,
   role = "assistant",
+  pinned,
   draft,
   generate,
   getLogprobs,
@@ -111,9 +117,11 @@ function AssistantMessageCard({
   onApplyDraft,
   onDiscardDraft,
   onContinueGeneration,
+  onPin,
 }: {
   completion?: DatasetRecord["completion"][number];
   role?: string;
+  pinned?: DatasetRecord["pinned"];
   draft?: { text: string; prefix: string };
   generate?: (signal?: AbortSignal) => Promise<void>;
   getLogprobs?: () => Promise<Array<TokenLogprobs>>;
@@ -121,6 +129,11 @@ function AssistantMessageCard({
   onApplyDraft?: () => void;
   onDiscardDraft?: () => void;
   onContinueGeneration?: (tokenIndex: number, tokenId: number) => void;
+  onPin?: (
+    token: { index: number; id: number },
+    value: boolean,
+    confidence?: number
+  ) => void;
 }) {
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
@@ -234,7 +247,7 @@ function AssistantMessageCard({
           </Stack>
         </Stack>
       </Box>
-      <Box sx={{ paddingX: 2, paddingBottom: 2 }}>
+      <Box sx={{ paddingX: 2, paddingBottom: 2, overflowWrap: "break-word" }}>
         {draft ? (
           <>
             <Typography component="span" whiteSpace="pre-wrap">
@@ -259,14 +272,18 @@ function AssistantMessageCard({
               <LogprobsViewer
                 logprobs={logprobs}
                 decoder={(t) => t}
+                pinned={pinned}
                 onContinueGeneration={onContinueGeneration}
+                onPin={onPin}
               />
             }
           >
             <LogprobsViewer
               logprobs={logprobs}
               decoder={decodeToken}
+              pinned={pinned}
               onContinueGeneration={onContinueGeneration}
+              onPin={onPin}
             />
           </ErrorBoundary>
         ) : (
@@ -398,6 +415,27 @@ function DatasetRecordEditor({
     [continueGeneration, record]
   );
 
+  const handlePin = useCallback(
+    (
+      token: { index: number; id: number },
+      value: boolean,
+      confidence?: number
+    ) => {
+      const newRecord = { ...record };
+      const { index: token_index, id: token_id } = token;
+      newRecord.pinned = value
+        ? [
+            ...(newRecord.pinned ?? []),
+            { token_index, token_id, confidence: confidence },
+          ]
+        : newRecord.pinned?.filter((p) => p.token_index !== token_index);
+      newRecord.pinned?.sort((a, b) => a.token_index - b.token_index);
+      if (newRecord.pinned?.length === 0) delete newRecord.pinned;
+      onChange?.(newRecord);
+    },
+    [record, onChange]
+  );
+
   if (record === null) return null;
 
   return (
@@ -427,6 +465,7 @@ function DatasetRecordEditor({
               <AssistantMessageCard
                 role={record.completion?.[0]?.role}
                 completion={record.completion?.[0]}
+                pinned={record.pinned}
                 draft={draft}
                 generate={handleGenerate}
                 getLogprobs={async () => {
@@ -457,6 +496,7 @@ function DatasetRecordEditor({
                 }}
                 onDiscardDraft={() => setDraft(undefined)}
                 onContinueGeneration={handleContinueGeneration}
+                onPin={handlePin}
               />
             </Stack>
           </Grid>

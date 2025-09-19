@@ -12,12 +12,15 @@ import {
   Stack,
   useMediaQuery,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import yaml from "yaml";
 
-import DatasetEditor, { getDatasetDirectoryHandle } from "./DatasetEditor";
+import {
+  getDatasetDirectoryHandle,
+  OpenDatasetEditorContext,
+} from "./DatasetEditor";
 
 async function listDatasets() {
   const datasetDirHandle = await getDatasetDirectoryHandle();
@@ -78,8 +81,9 @@ function DatasetsPanel() {
   const [selectedDatasetContent, setSelectedDatasetContent] = useState<
     string | null
   >(null);
-  const [showDatasetEditor, setShowDatasetEditor] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const openDatasetEditor = useContext(OpenDatasetEditorContext);
+
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
@@ -136,8 +140,9 @@ function DatasetsPanel() {
                   window.alert(t("Dataset already exists"));
                   return;
                 }
-                setSelectedDataset(`${name}.yml`);
-                setShowDatasetEditor(true);
+                openDatasetEditor(`${name}.yml`, () =>
+                  listDatasets().then(setDatasets)
+                );
               }}
             >
               <ListItemText
@@ -171,10 +176,12 @@ function DatasetsPanel() {
                     onDoubleClick={
                       isMobile
                         ? undefined
-                        : () => {
-                            setSelectedDataset(dataset);
-                            setShowDatasetEditor(true);
-                          }
+                        : () =>
+                            openDatasetEditor(dataset, async () => {
+                              if (!selectedDataset) return;
+                              const datasetContent = await readDataset(dataset);
+                              setSelectedDatasetContent(datasetContent);
+                            })
                     }
                     onContextMenu={(event) => {
                       event.preventDefault();
@@ -205,7 +212,7 @@ function DatasetsPanel() {
             primary={t("Edit")}
             onClick={async () => {
               if (!selectedDataset) return;
-              setShowDatasetEditor(true);
+              openDatasetEditor(selectedDataset);
               setAnchorEl(null);
             }}
           />
@@ -303,16 +310,6 @@ function DatasetsPanel() {
           </Box>
         </Stack>
       )}
-
-      <DatasetEditor
-        open={showDatasetEditor}
-        onClose={() => {
-          setShowDatasetEditor(false);
-          if (selectedDataset)
-            readDataset(selectedDataset).then(setSelectedDatasetContent);
-        }}
-        datasetName={selectedDataset}
-      />
     </>
   );
 }

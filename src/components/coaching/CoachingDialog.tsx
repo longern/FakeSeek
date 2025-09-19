@@ -17,11 +17,13 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { ElementType, useMemo, useRef, useState } from "react";
+import { ElementType, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Transition } from "react-transition-group";
 
 import DatasetsPanel from "./DatasetsPanel";
+import FinetunePanel from "./FinetunePanel";
+import DatasetEditor, { OpenDatasetEditorContext } from "./DatasetEditor";
 
 function EvalsPanel() {
   return null;
@@ -160,6 +162,12 @@ function CoachingDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const [datasetEditorContext, setDatasetEditorContext] = useState({
+    open: false,
+    datasetName: undefined as string | undefined,
+    onClose: undefined as (() => void) | undefined,
+  });
+
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
@@ -172,6 +180,13 @@ function CoachingDialog({
 
   const [currentTab, setCurrentTab] = useState(
     Object.keys(tabsMapping)[0] as keyof typeof tabsMapping
+  );
+
+  const openDatasetEditor = useCallback(
+    (datasetName: string | undefined, onClose?: () => void) => {
+      setDatasetEditorContext({ open: true, datasetName, onClose });
+    },
+    []
   );
 
   const TabsComponent = useMemo(
@@ -212,27 +227,46 @@ function CoachingDialog({
 
   const panel = !open ? null : currentTab === "coaching-datasets" ? (
     <DatasetsPanel />
+  ) : currentTab === "fine-tuning" ? (
+    <FinetunePanel />
   ) : currentTab === "evals" ? (
     <EvalsPanel />
   ) : null;
 
   return (
-    <Dialog open={open} onClose={onClose} fullScreen>
-      {isMobile ? (
-        <MobileLayout
-          TabsComponent={TabsComponent}
-          panel={panel}
-          panelTitle={tabsMapping[currentTab]}
-          onClose={onClose}
-        />
-      ) : (
-        <DesktopLayout
-          TabsComponent={TabsComponent}
-          panel={panel}
-          onClose={onClose}
-        />
-      )}
-    </Dialog>
+    <>
+      <OpenDatasetEditorContext.Provider value={openDatasetEditor}>
+        <Dialog open={open} onClose={onClose} fullScreen>
+          {isMobile ? (
+            <MobileLayout
+              TabsComponent={TabsComponent}
+              panel={panel}
+              panelTitle={tabsMapping[currentTab]}
+              onClose={onClose}
+            />
+          ) : (
+            <DesktopLayout
+              TabsComponent={TabsComponent}
+              panel={panel}
+              onClose={onClose}
+            />
+          )}
+        </Dialog>
+      </OpenDatasetEditorContext.Provider>
+
+      <DatasetEditor
+        open={datasetEditorContext.open}
+        onClose={() => {
+          datasetEditorContext.onClose?.();
+          setDatasetEditorContext({
+            ...datasetEditorContext,
+            open: false,
+            onClose: undefined,
+          });
+        }}
+        datasetName={datasetEditorContext.datasetName}
+      />
+    </>
   );
 }
 

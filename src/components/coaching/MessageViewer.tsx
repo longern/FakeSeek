@@ -1,4 +1,5 @@
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PushPinIcon from "@mui/icons-material/PushPin";
 import RampLeftIcon from "@mui/icons-material/RampLeft";
 import {
   Box,
@@ -17,13 +18,21 @@ import { useState } from "react";
 
 export function LogprobsViewer({
   logprobs,
+  pinned,
   decoder,
   convertToAlpha,
+  onPin,
   onContinueGeneration,
 }: {
   logprobs?: Array<TokenLogprobs>;
+  pinned?: Array<{ token_index: number; confidence?: number }>;
   decoder: (token: string) => string;
   convertToAlpha?: (x: number) => number;
+  onPin?: (
+    token: { index: number; id: number },
+    value: boolean,
+    confidence?: number
+  ) => void;
   onContinueGeneration?: (tokenIndex: number, tokenId: number) => void;
 }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -49,6 +58,9 @@ export function LogprobsViewer({
                 theme.palette.secondary.main,
                 convertToAlpha(Math.exp(logprob.logprob))
               ),
+            color: pinned?.some((p) => p.token_index === i)
+              ? "primary.main"
+              : undefined,
           }}
           onClick={(event) => {
             setSelected(i);
@@ -65,64 +77,89 @@ export function LogprobsViewer({
         anchorEl={anchorEl}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <Box sx={{ padding: 2 }}>
-          {selectedLogprob === undefined ? null : (
-            <>
-              <Card>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Token</TableCell>
-                      <TableCell align="right">Prob</TableCell>
-                      {!onContinueGeneration ? null : <TableCell />}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {selectedLogprob.top_logprobs.map((topLogprob, index) => (
-                      <TableRow
-                        key={topLogprob.token_id}
-                        sx={{
-                          backgroundColor:
-                            index % 2 === 0
-                              ? "action.hover"
-                              : "background.paper",
-                        }}
-                      >
+        {selectedLogprob === undefined ? null : (
+          <Box sx={{ padding: 2 }}>
+            <IconButton
+              size="small"
+              {...(pinned?.some((p) => p.token_index === selected)
+                ? {
+                    color: "primary",
+                    onClick: () =>
+                      onPin?.(
+                        { index: selected!, id: selectedLogprob.token_id },
+                        false
+                      ),
+                  }
+                : {
+                    onClick: () =>
+                      onPin?.(
+                        { index: selected!, id: selectedLogprob.token_id },
+                        true
+                      ),
+                  })}
+            >
+              <PushPinIcon fontSize="small" />
+            </IconButton>
+            <Card sx={{ marginTop: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Token</TableCell>
+                    <TableCell align="right">Prob</TableCell>
+                    {!onContinueGeneration ? null : <TableCell />}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {selectedLogprob.top_logprobs.map((topLogprob, index) => (
+                    <TableRow
+                      key={topLogprob.token_id}
+                      sx={{
+                        backgroundColor:
+                          index % 2 === 0 ? "action.hover" : "background.paper",
+                        "&>.MuiTableCell-root": {
+                          color:
+                            topLogprob.token === selectedLogprob.token
+                              ? "primary.main"
+                              : undefined,
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Box
+                          component="span"
+                          sx={{ whiteSpace: "pre-wrap", marginRight: 2 }}
+                        >
+                          {topLogprob.token}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">
+                        <code title={Math.exp(topLogprob.logprob).toString()}>
+                          {Math.exp(topLogprob.logprob).toFixed(4)}
+                        </code>
+                      </TableCell>
+                      {!onContinueGeneration ? null : (
                         <TableCell>
-                          <Box
-                            component="span"
-                            sx={{ whiteSpace: "pre-wrap", marginRight: 2 }}
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              onContinueGeneration?.(
+                                selected!,
+                                topLogprob.token_id
+                              );
+                              setAnchorEl(null);
+                            }}
                           >
-                            {topLogprob.token}
-                          </Box>
+                            <PlayArrowIcon fontSize="small" />
+                          </IconButton>
                         </TableCell>
-                        <TableCell align="right">
-                          <code>{Math.exp(topLogprob.logprob).toFixed(4)}</code>
-                        </TableCell>
-                        {!onContinueGeneration ? null : (
-                          <TableCell>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                onContinueGeneration?.(
-                                  selected!,
-                                  topLogprob.token_id
-                                );
-                                setAnchorEl(null);
-                              }}
-                            >
-                              <PlayArrowIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
-            </>
-          )}
-        </Box>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </Box>
+        )}
       </Popover>
     </>
   );
@@ -256,7 +293,9 @@ export function KLViewer({
                         </Box>
                       </TableCell>
                       <TableCell align="right">
-                        <code>{Math.exp(logprob.logprob).toFixed(4)}</code>
+                        <code title={Math.exp(logprob.logprob).toString()}>
+                          {Math.exp(logprob.logprob).toFixed(4)}
+                        </code>
                       </TableCell>
                       {!onContinueGeneration ? null : (
                         <TableCell>

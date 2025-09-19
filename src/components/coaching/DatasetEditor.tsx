@@ -14,12 +14,16 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import yaml from "yaml";
 
 import { useAppSelector } from "../../app/hooks";
 import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
+
+export const OpenDatasetEditorContext = createContext<
+  (datasetName: string | undefined, onClose?: () => void) => void
+>(() => {});
 
 export async function getDatasetDirectoryHandle() {
   const root = await navigator.storage.getDirectory();
