@@ -5,6 +5,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
 import StopIcon from "@mui/icons-material/Stop";
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -144,6 +145,7 @@ function AssistantMessageCard({
   const [klDiversity, setKLDiversity] = useState<
     Array<TokenKLDiversity> | undefined
   >(undefined);
+  const [error, setError] = useState("");
 
   const { t } = useTranslation();
 
@@ -214,10 +216,15 @@ function AssistantMessageCard({
               exclusive
               onChange={(_, v) => {
                 if (v) setViewer(v);
+                setError("");
                 if (v === "logp" && logprobs === undefined && getLogprobs)
-                  getLogprobs().then(setLogprobs);
+                  getLogprobs()
+                    .then(setLogprobs)
+                    .catch((reason) => setError(reason.toString()));
                 if (v === "kl" && klDiversity === undefined && getKLDiversity)
-                  getKLDiversity().then(setKLDiversity);
+                  getKLDiversity()
+                    .then(setKLDiversity)
+                    .catch((reason) => setError(reason.toString()));
               }}
             >
               <ToggleButton value="markdown">MD</ToggleButton>
@@ -247,7 +254,15 @@ function AssistantMessageCard({
           </Stack>
         </Stack>
       </Box>
-      <Box sx={{ paddingX: 2, paddingBottom: 2, overflowWrap: "break-word" }}>
+      <Box
+        sx={{
+          paddingX: 2,
+          paddingTop: 1,
+          paddingBottom: 2,
+          overflowWrap: "break-word",
+        }}
+      >
+        {error && <Alert severity="error" children={error} />}
         {draft ? (
           <>
             <Typography component="span" whiteSpace="pre-wrap">

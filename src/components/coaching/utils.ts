@@ -52,7 +52,7 @@ export function decodeToken(token: string) {
 }
 
 export class ErrorBoundary extends Component<
-  { fallback: React.ReactNode; children: React.ReactNode },
+  { fallback?: React.ReactNode; children: React.ReactNode },
   { hasError: boolean; error?: Error }
 > {
   state = { hasError: false, error: undefined };

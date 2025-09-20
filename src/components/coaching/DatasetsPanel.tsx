@@ -267,7 +267,7 @@ function DatasetsPanel() {
     <>
       {isMobile ? (
         highlightedYaml ? (
-          <Stack sx={{ backgroundColor: "background.paper", height: "100%" }}>
+          <Stack sx={{ backgroundColor: "background.paper", minHeight: 0 }}>
             <List disablePadding>
               <ListItem disablePadding>
                 <ListItemButton
