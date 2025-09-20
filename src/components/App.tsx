@@ -13,7 +13,13 @@ const theme = createTheme({
     MuiButton: { styleOverrides: { root: { textTransform: "none" } } },
     MuiToggleButton: { styleOverrides: { root: { textTransform: "none" } } },
     MuiCssBaseline: {
-      styleOverrides: { html: { WebkitFontSmoothing: "auto" } },
+      styleOverrides: {
+        html: { WebkitFontSmoothing: "auto" },
+        code: {
+          fontFamily:
+            "ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",
+        },
+      },
     },
   },
 });

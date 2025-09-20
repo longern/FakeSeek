@@ -21,6 +21,7 @@ import {
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import ConversationList from "./ConversationList";
 import SettingsDialog from "./SettingsDialog";
+import { ErrorBoundary } from "./coaching/utils";
 
 const addCommentIcon = (
   <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
@@ -126,19 +127,21 @@ function AppDrawer({
         </Box>
       </Drawer>
 
-      <Suspense>
-        <CoachingDialog
-          open={showCoachingDialog}
-          onClose={() => {
-            if (!navigator.storage || !navigator.storage.getDirectory) {
-              window.alert(t("opfs-not-supported"));
-              return;
-            }
+      <ErrorBoundary>
+        <Suspense>
+          <CoachingDialog
+            open={showCoachingDialog}
+            onClose={() => {
+              if (!navigator.storage || !navigator.storage.getDirectory) {
+                window.alert(t("opfs-not-supported"));
+                return;
+              }
 
-            setShowCoachingDialog(false);
-          }}
-        />
-      </Suspense>
+              setShowCoachingDialog(false);
+            }}
+          />
+        </Suspense>
+      </ErrorBoundary>
 
       <SettingsDialog
         open={showSettingsDialog}

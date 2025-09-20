@@ -247,7 +247,14 @@ function AssistantMessageCard({
           </Stack>
         </Stack>
       </Box>
-      <Box sx={{ paddingX: 2, paddingBottom: 2, overflowWrap: "break-word" }}>
+      <Box
+        sx={{
+          paddingX: 2,
+          paddingTop: 1,
+          paddingBottom: 2,
+          overflowWrap: "break-word",
+        }}
+      >
         {draft ? (
           <>
             <Typography component="span" whiteSpace="pre-wrap">
