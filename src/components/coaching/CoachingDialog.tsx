@@ -173,7 +173,7 @@ function CoachingDialog({
 
   const tabsMapping = {
     "coaching-datasets": t("Coaching datasets"),
-    "fine-tuning": t("Fine-tuning"),
+    "fine-tuning-jobs": t("Fine-tuning jobs"),
     serving: t("Serving"),
     evals: t("Evals"),
   };
@@ -227,7 +227,7 @@ function CoachingDialog({
 
   const panel = !open ? null : currentTab === "coaching-datasets" ? (
     <DatasetsPanel />
-  ) : currentTab === "fine-tuning" ? (
+  ) : currentTab === "fine-tuning-jobs" ? (
     <FinetunePanel />
   ) : currentTab === "evals" ? (
     <EvalsPanel />

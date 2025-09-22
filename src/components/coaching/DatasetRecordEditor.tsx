@@ -45,7 +45,7 @@ export type DatasetRecord = {
     content: string | null;
     thinking?: string;
   }>;
-  pinned?: Array<{
+  anchors?: Array<{
     token_index: number;
     token_id: number;
     confidence?: number;
@@ -119,10 +119,11 @@ function AssistantMessageCard({
   onDiscardDraft,
   onContinueGeneration,
   onPin,
+  onAnchorConfidenceChange,
 }: {
   completion?: DatasetRecord["completion"][number];
   role?: string;
-  pinned?: DatasetRecord["pinned"];
+  pinned?: DatasetRecord["anchors"];
   draft?: { text: string; prefix: string };
   generate?: (signal?: AbortSignal) => Promise<void>;
   getLogprobs?: () => Promise<Array<TokenLogprobs>>;
@@ -130,11 +131,8 @@ function AssistantMessageCard({
   onApplyDraft?: () => void;
   onDiscardDraft?: () => void;
   onContinueGeneration?: (tokenIndex: number, tokenId: number) => void;
-  onPin?: (
-    token: { index: number; id: number },
-    value: boolean,
-    confidence?: number
-  ) => void;
+  onPin?: (token: { index: number; id: number }, value: boolean) => void;
+  onAnchorConfidenceChange?: (tokenIndex: number, confidence?: number) => void;
 }) {
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
@@ -229,7 +227,7 @@ function AssistantMessageCard({
             >
               <ToggleButton value="markdown">MD</ToggleButton>
               {Boolean(getLogprobs) && (
-                <ToggleButton value="logp">logP</ToggleButton>
+                <ToggleButton value="logp">P</ToggleButton>
               )}
               {Boolean(getKLDiversity) && (
                 <ToggleButton value="kl">KL</ToggleButton>
@@ -290,6 +288,7 @@ function AssistantMessageCard({
                 pinned={pinned}
                 onContinueGeneration={onContinueGeneration}
                 onPin={onPin}
+                onAnchorConfidenceChange={onAnchorConfidenceChange}
               />
             }
           >
@@ -299,6 +298,7 @@ function AssistantMessageCard({
               pinned={pinned}
               onContinueGeneration={onContinueGeneration}
               onPin={onPin}
+              onAnchorConfidenceChange={onAnchorConfidenceChange}
             />
           </ErrorBoundary>
         ) : (
@@ -431,21 +431,14 @@ function DatasetRecordEditor({
   );
 
   const handlePin = useCallback(
-    (
-      token: { index: number; id: number },
-      value: boolean,
-      confidence?: number
-    ) => {
+    (token: { index: number; id: number }, value: boolean) => {
       const newRecord = { ...record };
       const { index: token_index, id: token_id } = token;
-      newRecord.pinned = value
-        ? [
-            ...(newRecord.pinned ?? []),
-            { token_index, token_id, confidence: confidence },
-          ]
-        : newRecord.pinned?.filter((p) => p.token_index !== token_index);
-      newRecord.pinned?.sort((a, b) => a.token_index - b.token_index);
-      if (newRecord.pinned?.length === 0) delete newRecord.pinned;
+      newRecord.anchors = value
+        ? [...(newRecord.anchors ?? []), { token_index, token_id }]
+        : newRecord.anchors?.filter((p) => p.token_index !== token_index);
+      newRecord.anchors?.sort((a, b) => a.token_index - b.token_index);
+      if (newRecord.anchors?.length === 0) delete newRecord.anchors;
       onChange?.(newRecord);
     },
     [record, onChange]
@@ -480,7 +473,7 @@ function DatasetRecordEditor({
               <AssistantMessageCard
                 role={record.completion?.[0]?.role}
                 completion={record.completion?.[0]}
-                pinned={record.pinned}
+                pinned={record.anchors}
                 draft={draft}
                 generate={handleGenerate}
                 getLogprobs={async () => {
@@ -512,6 +505,20 @@ function DatasetRecordEditor({
                 onDiscardDraft={() => setDraft(undefined)}
                 onContinueGeneration={handleContinueGeneration}
                 onPin={handlePin}
+                onAnchorConfidenceChange={(tokenIndex, confidence) =>
+                  onChange?.({
+                    ...record,
+                    anchors: record.anchors?.map((anchor) =>
+                      anchor.token_index === tokenIndex
+                        ? {
+                            ...anchor,
+                            confidence:
+                              confidence !== 1 ? confidence : undefined,
+                          }
+                        : anchor
+                    ),
+                  })
+                }
               />
             </Stack>
           </Grid>

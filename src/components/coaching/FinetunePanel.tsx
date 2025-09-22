@@ -4,27 +4,51 @@ import OpenAI from "openai";
 import { useAppSelector } from "../../app/hooks";
 import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
 
-function useListFinetuneJobs() {
+function useOpenAIClient() {
   const currentPreset = useAppSelector((state) =>
     state.presets.current === null
       ? null
       : state.presets.presets[state.presets.current] ?? null
   );
 
+  if (currentPreset === null) throw new Error("No preset selected");
+
+  const client = new OpenAI({
+    apiKey: currentPreset.apiKey,
+    baseURL: currentPreset.baseURL,
+    dangerouslyAllowBrowser: true,
+  });
+
+  return client;
+}
+
+function useListFinetuneJobs() {
+  const client = useOpenAIClient();
+
   const listFinetuneJobs = useCallback(async () => {
-    if (currentPreset === null) throw new Error("No preset selected");
-
-    const client = new OpenAI({
-      apiKey: currentPreset.apiKey,
-      baseURL: currentPreset.baseURL,
-      dangerouslyAllowBrowser: true,
-    });
-
-    const jobs = await client.fineTuning.jobs.list();
-    return jobs;
-  }, [currentPreset]);
+    return await client.fineTuning.jobs.list();
+  }, [client]);
 
   return listFinetuneJobs;
+}
+
+export function useCreateFinetuneJob() {
+  const currentPreset = useAppSelector((state) =>
+    state.presets.current === null
+      ? null
+      : state.presets.presets[state.presets.current] ?? null
+  );
+  const client = useOpenAIClient();
+
+  const createFinetuneJob = useCallback(async () => {
+    return await client.fineTuning.jobs.create({
+      method: { type: "supervised" },
+      model: currentPreset?.defaultModel!,
+      training_file: "",
+    });
+  }, [client]);
+
+  return createFinetuneJob;
 }
 
 function FinetunePanel() {

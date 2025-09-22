@@ -6,6 +6,8 @@ import {
   Card,
   IconButton,
   Popover,
+  Slider,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -14,7 +16,58 @@ import {
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+function AnchorEditor({
+  anchored,
+  onChange,
+  confidence,
+  onConfidenceChange,
+  marks,
+}: {
+  anchored: boolean;
+  onChange: (value: boolean) => void;
+  confidence?: number;
+  onConfidenceChange?: (value: number) => void;
+  marks?: Array<{ value: number; label: string }>;
+}) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={2}
+      sx={{ paddingBottom: marks ? 2.5 : 0 }}
+    >
+      <IconButton
+        size="small"
+        {...(anchored
+          ? { color: "primary", onClick: () => onChange?.(false) }
+          : { onClick: () => onChange?.(true) })}
+      >
+        <PushPinIcon fontSize="small" />
+      </IconButton>
+      <Slider
+        disabled={anchored === false}
+        value={confidence ?? 1.0}
+        min={0}
+        max={1}
+        step={0.01}
+        marks={marks}
+        onChange={(_, value) => {
+          onConfidenceChange?.(value);
+        }}
+        aria-label="Confidence"
+        sx={{ flexGrow: 1 }}
+      />
+      <Typography
+        variant="body2"
+        sx={{ flexShrink: 0, width: "32px", textAlign: "right" }}
+      >
+        {anchored ? (confidence ?? 1.0).toFixed(2) : "-"}
+      </Typography>
+    </Stack>
+  );
+}
 
 export function LogprobsViewer({
   logprobs,
@@ -22,17 +75,15 @@ export function LogprobsViewer({
   decoder,
   convertToAlpha,
   onPin,
+  onAnchorConfidenceChange,
   onContinueGeneration,
 }: {
   logprobs?: Array<TokenLogprobs>;
   pinned?: Array<{ token_index: number; confidence?: number }>;
   decoder: (token: string) => string;
   convertToAlpha?: (x: number) => number;
-  onPin?: (
-    token: { index: number; id: number },
-    value: boolean,
-    confidence?: number
-  ) => void;
+  onPin?: (token: { index: number; id: number }, value: boolean) => void;
+  onAnchorConfidenceChange?: (tokenIndex: number, confidence?: number) => void;
   onContinueGeneration?: (tokenIndex: number, tokenId: number) => void;
 }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -42,6 +93,37 @@ export function LogprobsViewer({
 
   const selectedLogprob =
     selected === undefined ? undefined : logprobs?.[selected];
+
+  const confidenceMarks = useMemo(() => {
+    if (!selectedLogprob) return undefined;
+
+    const selectedProb = Math.exp(selectedLogprob.logprob);
+    const topLogprobs = [...selectedLogprob.top_logprobs].sort(
+      (a, b) => a.rank - b.rank
+    );
+
+    const minConfidenceDelta = 0.2;
+
+    let prevConfidence = undefined;
+    const marks = [] as Array<{ value: number; label: string }>;
+
+    for (const logp of topLogprobs) {
+      if (logp.logprob < selectedLogprob.logprob) break;
+
+      const prob = Math.exp(logp.logprob);
+      const relativeConfidence = 1 - 1 / (1 + prob - selectedProb);
+      if (
+        prevConfidence !== undefined &&
+        prevConfidence - relativeConfidence < minConfidenceDelta
+      )
+        continue;
+
+      prevConfidence = relativeConfidence;
+      marks.push({ value: relativeConfidence, label: logp.token });
+    }
+
+    return marks;
+  }, [selectedLogprob]);
 
   if (!logprobs) return null;
 
@@ -79,27 +161,27 @@ export function LogprobsViewer({
       >
         {selectedLogprob === undefined ? null : (
           <Box sx={{ padding: 2 }}>
-            <IconButton
-              size="small"
-              {...(pinned?.some((p) => p.token_index === selected)
-                ? {
-                    color: "primary",
-                    onClick: () =>
-                      onPin?.(
-                        { index: selected!, id: selectedLogprob.token_id },
-                        false
-                      ),
-                  }
-                : {
-                    onClick: () =>
-                      onPin?.(
-                        { index: selected!, id: selectedLogprob.token_id },
-                        true
-                      ),
-                  })}
-            >
-              <PushPinIcon fontSize="small" />
-            </IconButton>
+            <AnchorEditor
+              anchored={Boolean(
+                pinned?.some((p) => p.token_index === selected)
+              )}
+              onChange={(value) => {
+                if (selected === undefined || !selectedLogprob) return;
+                const anchor = {
+                  index: selected,
+                  id: selectedLogprob.token_id,
+                };
+                onPin?.(anchor, value);
+              }}
+              confidence={
+                pinned?.find((p) => p.token_index === selected)?.confidence
+              }
+              onConfidenceChange={(value) => {
+                if (selected === undefined || !selectedLogprob) return;
+                onAnchorConfidenceChange?.(selected, value);
+              }}
+              marks={confidenceMarks}
+            />
             <Card sx={{ marginTop: 1 }}>
               <Table size="small">
                 <TableHead>
