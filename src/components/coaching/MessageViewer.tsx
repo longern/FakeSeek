@@ -14,9 +14,64 @@ import {
   TableHead,
   TableRow,
   Typography,
+  TypographyProps,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+
+function SpanTypography(props: TypographyProps) {
+  return <Typography component="span" {...props} />;
+}
+
+export function TokensViewer({
+  tokens,
+  slots,
+  slotProps,
+}: {
+  tokens: Array<string>;
+  slots?: { typography?: React.ComponentType<TypographyProps> };
+  slotProps?: {
+    typography?: ({ index }: { index: number }) => TypographyProps;
+    popover?: {
+      children: ({ selected }: { selected: number }) => React.ReactNode;
+    };
+  };
+}) {
+  const [selected, setSelected] = useState<number | undefined>(undefined);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  const TypographySlot: React.ComponentType<TypographyProps> =
+    slots?.typography ?? SpanTypography;
+
+  return (
+    <>
+      <Box sx={{ whiteSpace: "pre-wrap" }}>
+        {tokens.map((token, i) => (
+          <TypographySlot
+            key={i}
+            onClick={(event: React.MouseEvent<HTMLSpanElement>) => {
+              setSelected(i);
+              setAnchorEl(event.currentTarget);
+            }}
+            children={token}
+            {...slotProps?.typography?.({ index: i })}
+          />
+        ))}
+      </Box>
+
+      {slotProps?.popover?.children && selected && (
+        <Popover
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          anchorEl={anchorEl}
+          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        >
+          {slotProps.popover.children({ selected })}
+        </Popover>
+      )}
+    </>
+  );
+}
 
 function AnchorEditor({
   anchored,

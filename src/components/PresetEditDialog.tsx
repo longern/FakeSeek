@@ -175,6 +175,7 @@ function PresetEditDialog({
                   </Select>
                 </FormControl>
                 <TextField
+                  type="password"
                   label={t("API Key")}
                   variant="outlined"
                   fullWidth

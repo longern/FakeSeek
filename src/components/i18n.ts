@@ -47,6 +47,7 @@ const resources = {
       Yesterday: "Yesterday",
 
       "confirm-close-with-unsaved-changes": "Close without saving changes?",
+      "confirm-delete-record": "Delete this record?",
       "delete-chat": "Delete this chat?",
       "delete-preset-confirm": "Delete this preset?",
       "tools-provider.default": "Default",
@@ -103,6 +104,7 @@ const resources = {
       Yesterday: "昨天",
 
       "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
+      "confirm-delete-record": "删除此条数据？",
       "delete-chat": "删除此对话？",
       "delete-preset-confirm": "删除此预设？",
       "quality.low": "低",
