@@ -1,9 +1,10 @@
+import type { PreTrainedTokenizer } from "@huggingface/transformers";
 import OpenAI from "openai";
 import { useCallback } from "react";
-import type { PreTrainedTokenizer } from "@huggingface/transformers";
 
 import { useAppSelector } from "../../app/hooks";
-import { TokenKLDiversity, TokenLogprobs } from "./MessageViewer";
+import { DatasetRecord } from "./DatasetRecordEditor";
+import { TokenLogprobs } from "./MessageViewer";
 
 const TOKENIZER_CACHE: Record<string, PreTrainedTokenizer> = {};
 
@@ -27,6 +28,29 @@ async function getTokenizer(model: string) {
   TOKENIZER_CACHE[model] = tokenizer;
 
   return tokenizer;
+}
+
+export async function tokenizeCompletion({
+  model,
+  prompt,
+  completion,
+}: {
+  model: string;
+  prompt: DatasetRecord["prompt"];
+  completion: DatasetRecord["completion"];
+}) {
+  const tokenizer = await getTokenizer(model);
+  const promptIds = tokenizer.apply_chat_template(prompt, {
+    add_generation_prompt: true,
+    return_tensor: false,
+  }) as number[];
+  const promptCompletionIds = tokenizer.apply_chat_template(
+    prompt.concat(completion as any),
+    { return_tensor: false }
+  ) as number[];
+  const completionIds = promptCompletionIds.slice(promptIds.length);
+  const tokens = completionIds.map((id) => tokenizer.decode_single([id], {}));
+  return tokens;
 }
 
 export function useGenerate() {
@@ -84,7 +108,8 @@ export function useForward() {
       model?: string;
       topLogprobs?: number;
     }) => {
-      const tokenizer = await getTokenizer(model ?? "openai/gpt-oss-120b");
+      model = model ?? currentPreset?.defaultModel ?? "openai/gpt-oss-120b";
+      const tokenizer = await getTokenizer(model);
 
       const text = tokenizer.apply_chat_template([...prompt, ...completion], {
         tokenize: false,
@@ -97,7 +122,7 @@ export function useForward() {
       });
       const extraBody: Record<string, any> = { prompt_logprobs: topLogprobs };
       const logprobsResponse = await client.completions.create({
-        model: "gpt-oss-120b",
+        model,
         prompt: text,
         max_tokens: 1,
         ...extraBody,
@@ -150,62 +175,6 @@ export function useForward() {
   return forward;
 }
 
-export function useCalculateKL() {
-  const forward = useForward();
-
-  const calculateKL = useCallback(
-    async ({
-      prompt,
-      teacherPrompt,
-      completion,
-      model,
-    }: {
-      prompt: Array<{ role: string; content: string }>;
-      teacherPrompt: Array<{ role: string; content: string }>;
-      completion: Array<{ role: string; content: string }>;
-      model?: string;
-    }) => {
-      const logprobs = await forward({ model, prompt, completion });
-      const teacherLogprobs = await forward({
-        model,
-        prompt: teacherPrompt,
-        completion,
-        topLogprobs: 3,
-      });
-
-      if (logprobs.length !== teacherLogprobs.length)
-        throw new Error("Logprobs length mismatch");
-
-      const klValues = logprobs.map((logprob, i) => {
-        const teacherLogprob = teacherLogprobs[i];
-        const tokenId = (() => {
-          for (const id of Object.keys(logprob))
-            if (id in teacherLogprob) return id;
-        })();
-
-        if (!tokenId)
-          throw new Error(`Token ID not found in logprobs at position ${i}`);
-
-        return {
-          token: logprob.token,
-          lpr:
-            logprob.logprob -
-            teacherLogprob.top_logprobs.find(
-              (topLogprob) => topLogprob.token_id === logprob.token_id
-            )!.logprob,
-          logprob: logprob.logprob,
-          teacherTopLogprobs: teacherLogprob.top_logprobs,
-        } as TokenKLDiversity;
-      });
-
-      return klValues;
-    },
-    [forward]
-  );
-
-  return calculateKL;
-}
-
 export function useContinueGeneration() {
   const currentPreset = useAppSelector((state) =>
     state.presets.current === null
@@ -229,7 +198,9 @@ export function useContinueGeneration() {
       model?: string;
       topLogprobs?: number;
     }) => {
-      const tokenizer = await getTokenizer(model ?? "openai/gpt-oss-120b");
+      const tokenizer = await getTokenizer(
+        model ?? currentPreset?.defaultModel ?? "openai/gpt-oss-120b"
+      );
 
       const promptIds = tokenizer.apply_chat_template(prompt, {
         add_generation_prompt: true,
@@ -251,12 +222,12 @@ export function useContinueGeneration() {
         dangerouslyAllowBrowser: true,
       });
       const response = await client.completions.create({
-        model: "gpt-oss-120b",
+        model: model ?? currentPreset?.defaultModel ?? "openai/gpt-oss-120b",
         prompt: prefixText,
         max_tokens: 32768,
         temperature: currentPreset?.temperature,
         logprobs: topLogprobs,
-        ...{ skip_special_tokens: false },
+        ...{ include_stop_str_in_output: true, skip_special_tokens: false },
       });
 
       const choice = response.choices[0];

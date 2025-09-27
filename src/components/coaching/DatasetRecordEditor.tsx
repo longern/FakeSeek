@@ -1,40 +1,27 @@
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import SendIcon from "@mui/icons-material/Send";
-import StopIcon from "@mui/icons-material/Stop";
 import {
-  Alert,
   Box,
   Button,
   Card,
+  Container,
   Divider,
-  Grid,
   IconButton,
   InputBase,
   Stack,
-  ToggleButton,
   Typography,
-  useEventCallback,
 } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useAppSelector } from "../../app/hooks";
 import {
-  useCalculateKL,
+  tokenizeCompletion,
   useContinueGeneration,
   useForward,
   useGenerate,
 } from "./hooks";
-import {
-  KLViewer,
-  LogprobsViewer,
-  TokenKLDiversity,
-  TokenLogprobs,
-} from "./MessageViewer";
-import TextToggleButtonGroup from "./TextToggleButtonGroup";
-import { decodeToken, ErrorBoundary, parseCompletion } from "./utils";
+import AssistantMessageEditor from "./AssistantMessageEditor";
 
 export type DatasetRecord = {
   prompt: Array<{ role: string; content: string }>;
@@ -107,224 +94,6 @@ function EditableMessage({
   );
 }
 
-function AssistantMessageCard({
-  completion,
-  role = "assistant",
-  pinned,
-  draft,
-  generate,
-  getLogprobs,
-  getKLDiversity,
-  onApplyDraft,
-  onDiscardDraft,
-  onContinueGeneration,
-  onPin,
-  onAnchorConfidenceChange,
-}: {
-  completion?: DatasetRecord["completion"][number];
-  role?: string;
-  pinned?: DatasetRecord["anchors"];
-  draft?: { text: string; prefix: string };
-  generate?: (signal?: AbortSignal) => Promise<void>;
-  getLogprobs?: () => Promise<Array<TokenLogprobs>>;
-  getKLDiversity?: () => Promise<Array<TokenKLDiversity>>;
-  onApplyDraft?: () => void;
-  onDiscardDraft?: () => void;
-  onContinueGeneration?: (tokenIndex: number, tokenId: number) => void;
-  onPin?: (token: { index: number; id: number }, value: boolean) => void;
-  onAnchorConfidenceChange?: (tokenIndex: number, confidence?: number) => void;
-}) {
-  const [abortController, setAbortController] =
-    useState<AbortController | null>(null);
-  const [viewer, setViewer] = useState<"markdown" | "logp" | "kl">("markdown");
-  const [logprobs, setLogprobs] = useState<Array<TokenLogprobs> | undefined>(
-    undefined
-  );
-  const [klDiversity, setKLDiversity] = useState<
-    Array<TokenKLDiversity> | undefined
-  >(undefined);
-  const [error, setError] = useState("");
-
-  const { t } = useTranslation();
-
-  const handleGenerate = useCallback(async () => {
-    if (!generate) return;
-    const abortController = new AbortController();
-    setAbortController(abortController);
-    generate(abortController.signal).finally(() => setAbortController(null));
-  }, [generate]);
-
-  const reloadViewer = useEventCallback(() => {
-    if (viewer === "logp") getLogprobs?.().then(setLogprobs);
-    else setLogprobs(undefined);
-
-    if (viewer === "kl") getKLDiversity?.().then(setKLDiversity);
-    else setKLDiversity(undefined);
-  });
-
-  useEffect(() => {
-    if (completion === undefined) return;
-    reloadViewer();
-  }, [completion]);
-
-  return (
-    <Card variant="outlined" sx={{ borderRadius: 3, overflow: "visible" }}>
-      <Box
-        sx={{
-          paddingX: 2,
-          paddingY: 1,
-          position: "sticky",
-          top: 0,
-          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-          borderTopLeftRadius: "12px",
-          borderTopRightRadius: "12px",
-          backgroundColor: "background.paper",
-          zIndex: 1,
-        }}
-      >
-        <Stack direction="row" sx={{ alignItems: "center" }}>
-          <Typography variant="subtitle2" sx={{ textTransform: "capitalize" }}>
-            {role}
-          </Typography>
-          <Box sx={{ flexGrow: 1 }} />
-          <Stack direction="row" spacing={0.5}>
-            {draft === undefined ? null : (
-              <>
-                <IconButton
-                  size="small"
-                  aria-label={t("Apply draft")}
-                  onClick={onApplyDraft}
-                  color="success"
-                >
-                  <CheckIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  aria-label={t("Discard draft")}
-                  onClick={onDiscardDraft}
-                  color="error"
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </>
-            )}
-            <TextToggleButtonGroup
-              size="small"
-              value={viewer}
-              exclusive
-              onChange={(_, v) => {
-                if (v) setViewer(v);
-                setError("");
-                if (v === "logp" && logprobs === undefined && getLogprobs)
-                  getLogprobs()
-                    .then(setLogprobs)
-                    .catch((reason) => setError(reason.toString()));
-                if (v === "kl" && klDiversity === undefined && getKLDiversity)
-                  getKLDiversity()
-                    .then(setKLDiversity)
-                    .catch((reason) => setError(reason.toString()));
-              }}
-            >
-              <ToggleButton value="markdown">MD</ToggleButton>
-              {Boolean(getLogprobs) && (
-                <ToggleButton value="logp">P</ToggleButton>
-              )}
-              {Boolean(getKLDiversity) && (
-                <ToggleButton value="kl">KL</ToggleButton>
-              )}
-            </TextToggleButtonGroup>
-            {!generate ? null : (
-              <IconButton
-                size="small"
-                {...(abortController
-                  ? {
-                      "aria-label": t("Stop generating"),
-                      onClick: () => abortController.abort(),
-                      children: <StopIcon fontSize="small" />,
-                    }
-                  : {
-                      "aria-label": t("Generate"),
-                      onClick: handleGenerate,
-                      children: <SendIcon fontSize="small" />,
-                    })}
-              />
-            )}
-          </Stack>
-        </Stack>
-      </Box>
-      <Box
-        sx={{
-          paddingX: 2,
-          paddingTop: 1,
-          paddingBottom: 2,
-          overflowWrap: "break-word",
-        }}
-      >
-        {error && <Alert severity="error" children={error} />}
-        {draft ? (
-          <>
-            <Typography component="span" whiteSpace="pre-wrap">
-              {draft.prefix}
-            </Typography>
-            <Typography
-              component="span"
-              whiteSpace="pre-wrap"
-              color="text.secondary"
-            >
-              {draft.text}
-            </Typography>
-          </>
-        ) : viewer === "kl" ? (
-          <KLViewer
-            klDiversity={klDiversity}
-            onContinueGeneration={onContinueGeneration}
-          />
-        ) : viewer === "logp" ? (
-          <ErrorBoundary
-            fallback={
-              <LogprobsViewer
-                logprobs={logprobs}
-                decoder={(t) => t}
-                pinned={pinned}
-                onContinueGeneration={onContinueGeneration}
-                onPin={onPin}
-                onAnchorConfidenceChange={onAnchorConfidenceChange}
-              />
-            }
-          >
-            <LogprobsViewer
-              logprobs={logprobs}
-              decoder={decodeToken}
-              pinned={pinned}
-              onContinueGeneration={onContinueGeneration}
-              onPin={onPin}
-              onAnchorConfidenceChange={onAnchorConfidenceChange}
-            />
-          </ErrorBoundary>
-        ) : (
-          completion && (
-            <Box>
-              <Typography
-                variant="body2"
-                sx={{
-                  borderLeft: (theme) => `2px solid ${theme.palette.divider}`,
-                  paddingLeft: 1,
-                  marginY: 1,
-                  whiteSpace: "pre-wrap",
-                  color: "text.secondary",
-                }}
-              >
-                {completion.thinking}
-              </Typography>
-              <Box sx={{ whiteSpace: "pre-wrap" }}>{completion.content}</Box>
-            </Box>
-          )
-        )}
-      </Box>
-    </Card>
-  );
-}
-
 function DatasetRecordEditor({
   record,
   onChange,
@@ -334,25 +103,16 @@ function DatasetRecordEditor({
   };
   onChange: (record: DatasetRecord) => void;
 }) {
-  const [draft, setDraft] = useState<
-    | {
-        text: string;
-        prefix: string;
-      }
-    | undefined
-  >(undefined);
-  const [teacherDraft, setTeacherDraft] = useState<
-    | {
-        text: string;
-        prefix: string;
-      }
-    | undefined
-  >(undefined);
+  const currentPreset = useAppSelector((state) =>
+    state.presets.current === null
+      ? null
+      : state.presets.presets[state.presets.current] ?? null
+  );
 
   const generate = useGenerate();
   const forward = useForward();
-  const calculateKL = useCalculateKL();
   const continueGeneration = useContinueGeneration();
+  const { t } = useTranslation();
 
   const handleGenerate = useCallback(
     async (signal?: AbortSignal) => {
@@ -374,227 +134,99 @@ function DatasetRecordEditor({
     [generate, record]
   );
 
-  const handleTeacherGenerate = useCallback(
-    async (signal?: AbortSignal) => {
-      const completion = await generate(record.teacher_prompt, { signal });
-
-      const message = completion.choices[0].message;
-      const thinking =
-        "reasoning_content" in message &&
-        typeof message.reasoning_content === "string"
-          ? message.reasoning_content
-          : undefined;
-
-      const newContent = {
-        ...record,
-        teacher_completion: [
-          { role: "assistant", content: message.content, thinking },
-        ],
-      };
-      onChange?.(newContent);
-    },
-    [generate, record]
-  );
-
-  const handleContinueGeneration = useCallback(
-    async (tokenIndex: number, tokenId: number, merge?: boolean) => {
-      const {
-        prefix,
-        token,
-        choice: { text },
-      } = await continueGeneration({
-        prompt: merge ? record.teacher_prompt : record.prompt,
-        completion: record.completion as any,
-        tokenIndex,
-        tokenId,
-      });
-      setDraft({ text: token + text, prefix });
-    },
-    [continueGeneration, record]
-  );
-
-  const handleTeacherContinueGeneration = useCallback(
-    async (tokenIndex: number, tokenId: number, merge?: boolean) => {
-      const {
-        prefix,
-        token,
-        choice: { text },
-      } = await continueGeneration({
-        prompt: merge ? record.prompt : record.teacher_prompt,
-        completion: record.teacher_completion as any,
-        tokenIndex,
-        tokenId,
-      });
-      setTeacherDraft({ text: token + text, prefix });
-    },
-    [continueGeneration, record]
-  );
-
-  const handlePin = useCallback(
-    (token: { index: number; id: number }, value: boolean) => {
-      const newRecord = { ...record };
-      const { index: token_index, id: token_id } = token;
-      newRecord.anchors = value
-        ? [...(newRecord.anchors ?? []), { token_index, token_id }]
-        : newRecord.anchors?.filter((p) => p.token_index !== token_index);
-      newRecord.anchors?.sort((a, b) => a.token_index - b.token_index);
-      if (newRecord.anchors?.length === 0) delete newRecord.anchors;
-      onChange?.(newRecord);
-    },
-    [record, onChange]
-  );
+  const defaultModel = currentPreset?.defaultModel;
+  const handleTokenizeCompletion =
+    typeof defaultModel === "string"
+      ? () =>
+          tokenizeCompletion({
+            model: defaultModel,
+            prompt: record.prompt,
+            completion: record.completion,
+          })
+      : undefined;
 
   if (record === null) return null;
 
   return (
     <Stack sx={{ height: "100%" }} divider={<Divider />}>
       <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-        <Grid container>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Stack spacing={2} sx={{ padding: 2 }}>
-              <Card variant="outlined" sx={{ borderRadius: 3, padding: 2 }}>
-                {record.prompt?.map((msg, i) => (
-                  <EditableMessage
-                    key={i}
-                    role={msg.role}
-                    content={msg.content}
-                    onChange={(newValue) => {
-                      const newContent = { ...record };
-                      newContent.prompt[i] = {
-                        ...newContent.prompt[i],
-                        content: newValue,
-                      };
-                      onChange?.(newContent);
-                    }}
-                  />
-                ))}
-              </Card>
+        <Container sx={{ padding: 2 }}>
+          <Stack spacing={2}>
+            <Card variant="outlined" sx={{ borderRadius: 3, padding: 2 }}>
+              {record.prompt?.map((msg, i) => (
+                <EditableMessage
+                  key={i}
+                  role={msg.role}
+                  content={msg.content}
+                  onChange={(newValue) => {
+                    const newContent = { ...record };
+                    newContent.prompt[i] = {
+                      ...newContent.prompt[i],
+                      content: newValue,
+                    };
+                    onChange?.(newContent);
+                  }}
+                />
+              ))}
+            </Card>
 
-              <AssistantMessageCard
-                role={record.completion?.[0]?.role}
-                completion={record.completion?.[0]}
-                pinned={record.anchors}
-                draft={draft}
-                generate={handleGenerate}
-                getLogprobs={async () => {
-                  if (!record.completion) throw new Error("No completion");
-                  const completion = await forward({
-                    prompt: record.prompt,
-                    completion: record.completion as any,
-                    topLogprobs: 5,
-                  });
-                  return completion;
-                }}
-                getKLDiversity={async () => {
-                  if (!record.completion)
-                    throw new Error("No teacher completion");
-                  return await calculateKL({
-                    prompt: record.prompt,
-                    teacherPrompt: record.teacher_prompt,
-                    completion: record.completion as any,
-                  });
-                }}
-                onApplyDraft={() => {
-                  if (!draft) return;
-                  onChange?.({
-                    ...record,
-                    completion: [parseCompletion(draft.prefix + draft.text)],
-                  });
-                  setDraft(undefined);
-                }}
-                onDiscardDraft={() => setDraft(undefined)}
-                onContinueGeneration={handleContinueGeneration}
-                onPin={handlePin}
-                onAnchorConfidenceChange={(tokenIndex, confidence) =>
-                  onChange?.({
-                    ...record,
-                    anchors: record.anchors?.map((anchor) =>
-                      anchor.token_index === tokenIndex
-                        ? {
-                            ...anchor,
-                            confidence:
-                              confidence !== 1 ? confidence : undefined,
-                          }
-                        : anchor
-                    ),
-                  })
+            {!record.completion ? (
+              <Button variant="outlined" onClick={() => handleGenerate()}>
+                {t("Generate")}
+              </Button>
+            ) : (
+              <AssistantMessageEditor
+                role={record.completion[0].role}
+                completion={record.completion[0]}
+                onChange={(newValue) =>
+                  onChange?.({ ...record, completion: [newValue] })
                 }
-              />
-            </Stack>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Stack spacing={2} sx={{ padding: 2 }}>
-              <Card variant="outlined" sx={{ borderRadius: 3, padding: 2 }}>
-                {record.teacher_prompt === undefined ? (
-                  <Button
-                    onClick={() => {
-                      const newContent = { ...record };
-                      newContent.teacher_prompt = [...newContent.prompt];
-                      onChange?.(newContent);
-                    }}
-                  >
-                    Copy from prompt
-                  </Button>
-                ) : (
-                  record.teacher_prompt?.map((msg, i) => (
-                    <EditableMessage
-                      key={i}
-                      role={msg.role}
-                      content={msg.content}
-                      onChange={(newValue) => {
-                        const newContent = { ...record };
-                        newContent.teacher_prompt![i] = {
-                          ...newContent.teacher_prompt![i],
-                          content: newValue,
-                        };
-                        onChange?.(newContent);
-                      }}
-                    />
-                  ))
-                )}
-              </Card>
-
-              <AssistantMessageCard
-                role={record.teacher_completion?.[0]?.role}
-                completion={record.teacher_completion?.[0]}
-                draft={teacherDraft}
-                generate={handleTeacherGenerate}
+                anchors={record.anchors}
+                onAnchorsChanged={(newValue) => {
+                  onChange?.({
+                    ...record,
+                    anchors:
+                      typeof newValue === "function"
+                        ? newValue(record.anchors)
+                        : newValue,
+                  });
+                }}
+                tokenizeCompletion={handleTokenizeCompletion}
                 getLogprobs={async () => {
-                  if (!record.teacher_completion)
-                    throw new Error("No completion");
                   const completion = await forward({
-                    prompt: record.teacher_prompt,
-                    completion: record.teacher_completion as any,
+                    prompt: record.prompt,
+                    completion: record.completion as any,
                     topLogprobs: 5,
                   });
                   return completion;
                 }}
-                getKLDiversity={async () => {
-                  if (!record.teacher_completion)
-                    throw new Error("No teacher completion");
-                  return await calculateKL({
-                    prompt: record.teacher_prompt,
-                    teacherPrompt: record.prompt,
-                    completion: record.teacher_completion!,
-                  });
+                slotProps={{
+                  continueButton: ({
+                    tokenIndex,
+                    tokenId,
+                  }: {
+                    tokenIndex: number;
+                    tokenId: number;
+                  }) => ({
+                    onClick: async () => {
+                      const {
+                        prefix,
+                        token,
+                        choice: { text },
+                      } = await continueGeneration({
+                        prompt: record.prompt,
+                        completion: record.completion as any,
+                        tokenIndex,
+                        tokenId,
+                      });
+                      return { text: token + text, prefix };
+                    },
+                  }),
                 }}
-                onApplyDraft={() => {
-                  if (!teacherDraft) return;
-                  onChange?.({
-                    ...record,
-                    completion: [
-                      parseCompletion(teacherDraft.prefix + teacherDraft.text),
-                    ],
-                  });
-                  setTeacherDraft(undefined);
-                }}
-                onDiscardDraft={() => setTeacherDraft(undefined)}
-                onContinueGeneration={handleTeacherContinueGeneration}
               />
-            </Stack>
-          </Grid>
-        </Grid>
+            )}
+          </Stack>
+        </Container>
       </Box>
     </Stack>
   );
