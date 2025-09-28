@@ -3,6 +3,8 @@ import PushPinIcon from "@mui/icons-material/PushPin";
 import {
   Box,
   Card,
+  Collapse,
+  Divider,
   IconButton,
   Popover,
   Slider,
@@ -16,6 +18,7 @@ import {
   TypographyProps,
 } from "@mui/material";
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 function SpanTypography(props: TypographyProps) {
   return <Typography component="span" {...props} />;
@@ -98,44 +101,60 @@ function AnchorEditor({
     confidence ?? 1.0
   );
 
+  const { t } = useTranslation();
+
   useEffect(() => {
     setUncontrolledConfidence(confidence ?? 1.0);
   }, [confidence]);
 
   return (
-    <Stack
-      direction="row"
-      alignItems="center"
-      spacing={2}
-      sx={{ paddingBottom: marks?.length ? 2.5 : 0 }}
-    >
-      <IconButton
-        size="small"
-        {...(anchored
-          ? { color: "primary", onClick: () => onChange?.(false) }
-          : { onClick: () => onChange?.(true) })}
-      >
-        <PushPinIcon fontSize="small" />
-      </IconButton>
-      <Slider
-        disabled={anchored === false}
-        value={uncontrolledConfidence}
-        min={0}
-        max={1}
-        step={0.01}
-        marks={marks}
-        onChangeCommitted={(_, value) => onConfidenceChange?.(value)}
-        onChange={(_, value) => setUncontrolledConfidence(value)}
-        aria-label="Confidence"
-        sx={{ flexGrow: 1 }}
-      />
-      <Typography
-        variant="body2"
-        sx={{ flexShrink: 0, width: "32px", textAlign: "right" }}
-      >
-        {anchored ? uncontrolledConfidence.toFixed(2) : "-"}
-      </Typography>
-    </Stack>
+    <Card variant="outlined">
+      <Box sx={{ paddingX: 2, paddingY: 1.5 }}>
+        <Stack
+          direction="row"
+          sx={{ justifyContent: "space-between", alignItems: "center" }}
+        >
+          <Typography id="anchor-button">{t("Anchor")}</Typography>
+          <IconButton
+            aria-labelledby="anchor-button"
+            size="small"
+            {...(anchored
+              ? { color: "primary", onClick: () => onChange?.(false) }
+              : { onClick: () => onChange?.(true) })}
+          >
+            <PushPinIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      </Box>
+      <Collapse in={anchored}>
+        <Divider />
+        <Box sx={{ paddingX: 2, paddingY: 1.5 }}>
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", alignItems: "center" }}
+          >
+            <Typography id="confidence-slider">{t("Confidence")}</Typography>
+            <Typography
+              variant="body2"
+              sx={{ flexShrink: 0, width: "32px", textAlign: "right" }}
+            >
+              {uncontrolledConfidence.toFixed(2)}
+            </Typography>
+          </Stack>
+          <Slider
+            value={uncontrolledConfidence}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={marks}
+            onChangeCommitted={(_, value) => onConfidenceChange?.(value)}
+            onChange={(_, value) => setUncontrolledConfidence(value)}
+            aria-labelledby="confidence-slider"
+            sx={{ flexGrow: 1 }}
+          />
+        </Box>
+      </Collapse>
+    </Card>
   );
 }
 
@@ -163,10 +182,10 @@ export function LogprobPopover({
   onContinueGeneration?: (tokenId: number) => void;
 }) {
   return (
-    <Box sx={{ padding: 2 }}>
+    <Stack spacing={2} sx={{ padding: 2 }}>
       {slotProps?.anchorEditor && <AnchorEditor {...slotProps?.anchorEditor} />}
 
-      <Card sx={{ marginTop: 1 }}>
+      <Card variant="outlined">
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -218,6 +237,6 @@ export function LogprobPopover({
           </TableBody>
         </Table>
       </Card>
-    </Box>
+    </Stack>
   );
 }

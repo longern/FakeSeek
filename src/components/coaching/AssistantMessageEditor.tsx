@@ -278,6 +278,7 @@ function AssistantMessageEditor({
                   if (!tokens) return;
                   setEditing((oldValue) => !oldValue);
                   if (editing) {
+                    if (editingCompletion === tokens.join("")) return;
                     onChange?.(parseCompletion(editingCompletion));
                     setTokens(null);
                     setLogprobs(undefined);

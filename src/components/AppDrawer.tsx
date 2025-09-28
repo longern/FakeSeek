@@ -114,7 +114,12 @@ function AppDrawer({
             }}
           >
             <ListItem disablePadding>
-              <ListItemButton onClick={() => setShowCoachingDialog(true)}>
+              <ListItemButton
+                onClick={() => {
+                  setShowCoachingDialog(true);
+                  onClose();
+                }}
+              >
                 <ListItemText primary={t("Fine-tuning")} />
               </ListItemButton>
             </ListItem>

@@ -60,36 +60,54 @@ function EditableMessage({
 
   return (
     <Box>
-      <Stack direction="row">
-        <Typography variant="subtitle2" sx={{ textTransform: "capitalize" }}>
-          {role}
-        </Typography>
-        <Box sx={{ flexGrow: 1 }} />
-        <IconButton
-          aria-label={editing ? t("Save") : t("Edit")}
-          size="small"
-          onClick={() => {
-            if (editing && value !== content) onChange?.(value);
-            else inputRef.current?.focus();
-            setEditing(!editing);
-          }}
-          sx={{ marginTop: -1, marginRight: -1 }}
-        >
-          {editing ? (
-            <SaveIcon fontSize="small" />
-          ) : (
-            <EditIcon fontSize="small" />
-          )}
-        </IconButton>
-      </Stack>
-      <InputBase
-        inputRef={inputRef}
-        multiline
-        readOnly={!editing}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        fullWidth
-      />
+      <Box
+        sx={{
+          paddingX: 2,
+          paddingY: 1,
+          position: "sticky",
+          top: 0,
+          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+          borderTopLeftRadius: "12px",
+          borderTopRightRadius: "12px",
+          backgroundColor: "background.paper",
+          zIndex: 1,
+        }}
+      >
+        <Stack direction="row" sx={{ alignItems: "center" }}>
+          <Typography variant="subtitle2" sx={{ textTransform: "capitalize" }}>
+            {role}
+          </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Stack direction="row" spacing={0.5}>
+            <IconButton
+              aria-label={editing ? t("Save") : t("Edit")}
+              size="small"
+              onClick={() => {
+                if (editing && value !== content) onChange?.(value);
+                else inputRef.current?.focus();
+                setEditing(!editing);
+              }}
+              sx={{ marginTop: -1, marginRight: -1 }}
+            >
+              {editing ? (
+                <SaveIcon fontSize="small" />
+              ) : (
+                <EditIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Stack>
+        </Stack>
+      </Box>
+      <Box sx={{ paddingX: 2, paddingTop: 1, paddingBottom: 2 }}>
+        <InputBase
+          inputRef={inputRef}
+          multiline
+          readOnly={!editing}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          fullWidth
+        />
+      </Box>
     </Box>
   );
 }
@@ -152,7 +170,10 @@ function DatasetRecordEditor({
       <Box sx={{ flexGrow: 1, minHeight: 0 }}>
         <Container sx={{ padding: 2 }}>
           <Stack spacing={2}>
-            <Card variant="outlined" sx={{ borderRadius: 3, padding: 2 }}>
+            <Card
+              variant="outlined"
+              sx={{ borderRadius: 3, overflow: "visible" }}
+            >
               {record.prompt?.map((msg, i) => (
                 <EditableMessage
                   key={i}
