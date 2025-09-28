@@ -22,7 +22,7 @@ import {
   OpenDatasetEditorContext,
 } from "./DatasetEditor";
 
-async function listDatasets() {
+export async function listDatasets() {
   const datasetDirHandle = await getDatasetDirectoryHandle();
 
   const datasets = [];
@@ -31,10 +31,15 @@ async function listDatasets() {
   return datasets;
 }
 
-async function readDataset(name: string) {
+export async function readDataset(name: string) {
   const datasetDirHandle = await getDatasetDirectoryHandle();
   const fileHandle = await datasetDirHandle.getFileHandle(name);
   const file = await fileHandle.getFile();
+  return file;
+}
+
+export async function readDatasetText(name: string) {
+  const file = await readDataset(name);
   return file.text();
 }
 
@@ -161,7 +166,10 @@ function DatasetsPanel() {
           </ListItem>
         </List>
       </Card>
-      <Card elevation={0} sx={{ borderRadius: 3, minWidth: "260px" }}>
+      <Card
+        elevation={0}
+        sx={{ borderRadius: isMobile ? 3 : undefined, minWidth: "260px" }}
+      >
         <List disablePadding>
           {datasets === null
             ? null
@@ -169,9 +177,10 @@ function DatasetsPanel() {
                 <ListItem key={dataset} disablePadding>
                   <ListItemButton
                     selected={dataset === selectedDataset}
+                    sx={{ borderRadius: isMobile ? undefined : 2 }}
                     onClick={() => {
                       setSelectedDataset(dataset);
-                      readDataset(dataset).then(setSelectedDatasetContent);
+                      readDatasetText(dataset).then(setSelectedDatasetContent);
                     }}
                     onDoubleClick={
                       isMobile
@@ -179,7 +188,9 @@ function DatasetsPanel() {
                         : () =>
                             openDatasetEditor(dataset, async () => {
                               if (!selectedDataset) return;
-                              const datasetContent = await readDataset(dataset);
+                              const datasetContent = await readDatasetText(
+                                dataset
+                              );
                               setSelectedDatasetContent(datasetContent);
                             })
                     }
@@ -294,7 +305,9 @@ function DatasetsPanel() {
           sx={{
             flexDirection: { xs: "column", sm: "row" },
             width: "100%",
+            height: "100%",
           }}
+          divider={<Divider orientation="vertical" />}
         >
           <Box sx={{ paddingX: 2, paddingY: 1 }}>{datasetList}</Box>
 

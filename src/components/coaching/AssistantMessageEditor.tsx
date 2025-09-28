@@ -46,13 +46,13 @@ function toggleAnchor(
   anchors ??= [];
   if (value)
     return [
-      ...anchors.filter((anchor) => anchor.token_index < anchor.token_index),
+      ...anchors.filter((anc) => anc.token_index < anchor.token_index),
       anchor,
-      ...anchors.filter((anchor) => anchor.token_index > anchor.token_index),
+      ...anchors.filter((anc) => anc.token_index > anchor.token_index),
     ];
   else {
     const newAnchors = anchors.filter(
-      (anchor) => anchor.token_index !== anchor.token_index
+      (anc) => anc.token_index !== anchor.token_index
     );
     return newAnchors.length === 0 ? undefined : newAnchors;
   }
