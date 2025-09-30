@@ -21,6 +21,7 @@ import {
   Select,
   Stack,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { listDatasets, readDataset } from "./DatasetsPanel";
@@ -150,13 +151,41 @@ function CreateFinetuneJobDialog({
 function FinetunePanel() {
   const [finetuneJobs, setFinetuneJobs] = useState<FineTuningJob[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const listFinetuneJobs = useListFinetuneJobs();
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const { t } = useTranslation();
-  const listFinetuneJobs = useListFinetuneJobs();
 
   useEffect(() => {
     listFinetuneJobs().then((res) => setFinetuneJobs(res.data));
   }, [listFinetuneJobs]);
+
+  const selectedJob =
+    selectedJobId === null
+      ? undefined
+      : finetuneJobs.find((j) => j.id === selectedJobId);
+
+  const selectedJobDetail = selectedJob && (
+    <Box sx={{ padding: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        {selectedJob.id}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        {t("Status")}: {selectedJob.status}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        {t("Model")}: {selectedJob.model}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        {t("Fine-tuned model")}: {selectedJob.fine_tuned_model ?? "-"}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        {t("Created at")}:{" "}
+        {new Date(selectedJob.created_at * 1000).toLocaleString()}
+      </Typography>
+    </Box>
+  );
 
   return (
     <Card elevation={0} sx={{ height: "100%" }}>
@@ -165,30 +194,81 @@ function FinetunePanel() {
           <Typography variant="h6" gutterBottom>
             {t("Fine-tuning jobs")}
           </Typography>
-          <Button variant="contained" onClick={() => setShowCreateDialog(true)}>
-            {t("Create")}
-          </Button>
+          <Stack direction="row">
+            <Button
+              variant="outlined"
+              onClick={() => setSelectedJobId(null)}
+              sx={{
+                display: {
+                  xs: selectedJobId ? "inline-flex" : "none",
+                  sm: "none",
+                },
+              }}
+            >
+              {t("Back")}
+            </Button>
+            <Box sx={{ flexGrow: 1 }} />
+            <Button
+              variant="contained"
+              onClick={() => setShowCreateDialog(true)}
+            >
+              {t("Create")}
+            </Button>
+          </Stack>
         </Box>
 
         <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
-          <List disablePadding>
-            {finetuneJobs.map((job) => (
-              <ListItem
-                key={job.id}
-                disablePadding
-                secondaryAction={job.status}
+          <Stack
+            direction="row"
+            divider={<Divider orientation="vertical" flexItem />}
+            sx={{ height: "100%" }}
+          >
+            {isMobile && selectedJobDetail ? null : (
+              <Box
+                sx={{ width: isMobile ? "100%" : "260px", overflowY: "auto" }}
               >
-                <ListItemButton>
-                  <ListItemText
-                    primary={job.id}
-                    secondary={new Date(job.created_at * 1000).toLocaleString()}
-                    slotProps={{ primary: { noWrap: true } }}
-                  />
-                  <ListItemIcon></ListItemIcon>
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
+                <List disablePadding>
+                  {finetuneJobs.map((job) => (
+                    <ListItem
+                      key={job.id}
+                      disablePadding
+                      secondaryAction={
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ userSelect: "none" }}
+                        >
+                          {job.status}
+                        </Typography>
+                      }
+                    >
+                      <ListItemButton
+                        selected={job.id === selectedJobId}
+                        onClick={() =>
+                          setSelectedJobId((value) =>
+                            value === job.id ? null : job.id
+                          )
+                        }
+                      >
+                        <ListItemText
+                          primary={job.id}
+                          secondary={new Date(
+                            job.created_at * 1000
+                          ).toLocaleString()}
+                          slotProps={{
+                            primary: { noWrap: true },
+                            secondary: { noWrap: true },
+                          }}
+                        />
+                        <ListItemIcon></ListItemIcon>
+                      </ListItemButton>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+            {!isMobile ? <Box>{selectedJobDetail}</Box> : selectedJobDetail}
+          </Stack>
         </Box>
       </Stack>
 
