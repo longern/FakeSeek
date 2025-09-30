@@ -103,7 +103,11 @@ function MobileLayout({
               }}
             >
               <Toolbar disableGutters>
-                <IconButton aria-label="Close" size="large" onClick={onClose}>
+                <IconButton
+                  aria-label={t("Back")}
+                  size="large"
+                  onClick={onClose}
+                >
                   <NavigateBeforeIcon />
                 </IconButton>
                 <Typography
