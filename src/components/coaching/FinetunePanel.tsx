@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   Card,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -182,24 +183,68 @@ function FinetunePanel() {
       : finetuneJobs.find((j) => j.id === selectedJobId);
 
   const selectedJobDetail = selectedJob && (
-    <Box sx={{ padding: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        {selectedJob.id}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        {t("Status")}: {selectedJob.status}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        {t("Model")}: {selectedJob.model}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        {t("Fine-tuned model")}: {selectedJob.fine_tuned_model ?? "-"}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        {t("Created at")}:{" "}
-        {new Date(selectedJob.created_at * 1000).toLocaleString()}
-      </Typography>
-    </Box>
+    <Stack spacing={2} sx={{ padding: 2 }}>
+      {["validating_files", "queued", "running"].includes(
+        selectedJob.status
+      ) && (
+        <Box>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => client.fineTuning.jobs.cancel(selectedJob.id)}
+          >
+            {t("Cancel")}
+          </Button>
+        </Box>
+      )}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "auto 1fr",
+          rowGap: 1,
+          columnGap: 4,
+          "&>*": { minHeight: "32px", alignContent: "center" },
+        }}
+      >
+        <Typography>{t("Job ID")}</Typography>
+        <Typography>{selectedJob.id}</Typography>
+
+        <Typography>{t("Status")}</Typography>
+        <Box>
+          <Chip
+            label={selectedJob.status}
+            size="small"
+            color={
+              selectedJob.status === "succeeded"
+                ? "success"
+                : selectedJob.status === "failed"
+                ? "error"
+                : selectedJob.status === "cancelled"
+                ? "default"
+                : "info"
+            }
+          />
+        </Box>
+
+        <Typography>{t("Model")}</Typography>
+        <Typography>{selectedJob.model}</Typography>
+
+        <Typography>{t("Fine-tuned model")}</Typography>
+        <Typography>{selectedJob.fine_tuned_model ?? "-"}</Typography>
+
+        <Typography>{t("Created at")}</Typography>
+        <Typography>
+          {new Date(selectedJob.created_at * 1000).toLocaleString()}
+        </Typography>
+
+        <Typography>{t("Finished at")}</Typography>
+        <Typography>
+          {selectedJob.finished_at === null
+            ? "-"
+            : new Date(selectedJob.finished_at * 1000).toLocaleString()}
+        </Typography>
+      </Box>
+    </Stack>
   );
 
   return (
@@ -235,13 +280,17 @@ function FinetunePanel() {
         <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
           <Stack
             direction="row"
-            divider={<Divider orientation="vertical" flexItem />}
+            divider={
+              isMobile ? null : <Divider orientation="vertical" flexItem />
+            }
             sx={{ height: "100%" }}
           >
             {isMobile && selectedJobDetail ? null : (
               <Box
                 sx={{
-                  width: isMobile ? "100%" : "260px",
+                  padding: 1,
+                  width: isMobile ? "100%" : "300px",
+                  flexShrink: 0,
                   overflowY: "auto",
                   display: "flex",
                 }}
@@ -266,6 +315,7 @@ function FinetunePanel() {
                       >
                         <ListItemButton
                           selected={job.id === selectedJobId}
+                          sx={{ borderRadius: 2 }}
                           onClick={() =>
                             setSelectedJobId((value) =>
                               value === job.id ? null : job.id
@@ -290,7 +340,7 @@ function FinetunePanel() {
                 )}
               </Box>
             )}
-            {!isMobile ? <Box>{selectedJobDetail}</Box> : selectedJobDetail}
+            <Box sx={{ width: "100%" }}>{selectedJobDetail}</Box>
           </Stack>
         </Box>
       </Stack>

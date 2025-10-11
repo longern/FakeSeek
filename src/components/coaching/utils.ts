@@ -133,7 +133,15 @@ export function parseCompletion(text: string): {
       thinkStartIdx + THINK_PREFIX.length,
       thinkEndIdx
     );
-    const content = text.slice(thinkEndIdx + THINK_SUFFIX.length);
+
+    const endIdx = text.indexOf(
+      "<|im_end|>",
+      thinkEndIdx + THINK_SUFFIX.length
+    );
+    const content = text.slice(
+      thinkEndIdx + THINK_SUFFIX.length,
+      endIdx === -1 ? undefined : endIdx
+    );
     return { role: "assistant", content: content, thinking: thinking };
   } else {
     return { role: "assistant", content: text };
