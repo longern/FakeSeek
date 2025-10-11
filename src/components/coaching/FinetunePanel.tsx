@@ -158,9 +158,9 @@ function CreateFinetuneJobDialog({
 }
 
 function FinetunePanel() {
-  const [finetuneJobs, setFinetuneJobs] = useState<FineTuningJob[] | null>(
-    null
-  );
+  const [finetuneJobs, setFinetuneJobs] = useState<
+    FineTuningJob[] | null | Error
+  >(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const client = useOpenAIClient();
@@ -169,8 +169,12 @@ function FinetunePanel() {
   const { t } = useTranslation();
 
   const listJobs = useCallback(async () => {
-    const res = await client.fineTuning.jobs.list();
-    setFinetuneJobs(res.data);
+    try {
+      const res = await client.fineTuning.jobs.list();
+      setFinetuneJobs(res.data);
+    } catch (e) {
+      setFinetuneJobs(e as Error);
+    }
   }, [client]);
 
   useEffect(() => {
@@ -178,7 +182,7 @@ function FinetunePanel() {
   }, [listJobs]);
 
   const selectedJob =
-    selectedJobId === null || finetuneJobs === null
+    selectedJobId === null || !Array.isArray(finetuneJobs)
       ? undefined
       : finetuneJobs.find((j) => j.id === selectedJobId);
 
@@ -292,11 +296,26 @@ function FinetunePanel() {
                   width: isMobile ? "100%" : "300px",
                   flexShrink: 0,
                   overflowY: "auto",
-                  display: "flex",
                 }}
               >
-                {finetuneJobs === null ? (
-                  <CircularProgress sx={{ margin: "auto" }} />
+                {finetuneJobs instanceof Error || !finetuneJobs?.length ? (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {finetuneJobs === null ? (
+                      <CircularProgress sx={{ margin: "auto" }} />
+                    ) : finetuneJobs instanceof Error ? (
+                      <></>
+                    ) : (
+                      t("No fine-tuning jobs found")
+                    )}
+                  </Box>
                 ) : (
                   <List disablePadding sx={{ width: "100%" }}>
                     {finetuneJobs.map((job) => (
