@@ -115,7 +115,7 @@ function MobileLayout({
                   component="div"
                   sx={{ flexGrow: 1, textAlign: "center", userSelect: "none" }}
                 >
-                  {t("Coach")}
+                  {t("Fine-tuning")}
                 </Typography>
                 <Box sx={{ width: 48 }} />
               </Toolbar>
@@ -134,7 +134,7 @@ function MobileLayout({
             >
               <Toolbar disableGutters>
                 <IconButton
-                  aria-label="Back"
+                  aria-label={t("Back")}
                   size="large"
                   onClick={() => setShowPanel(false)}
                 >
@@ -176,7 +176,7 @@ function CoachingDialog({
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const tabsMapping = {
-    "coaching-datasets": t("Coaching datasets"),
+    datasets: t("Datasets"),
     "fine-tuning-jobs": t("Fine-tuning jobs"),
     serving: t("Serving"),
     evals: t("Evals"),
@@ -229,7 +229,7 @@ function CoachingDialog({
     [currentTab, tabsMapping]
   );
 
-  const panel = !open ? null : currentTab === "coaching-datasets" ? (
+  const panel = !open ? null : currentTab === "datasets" ? (
     <DatasetsPanel />
   ) : currentTab === "fine-tuning-jobs" ? (
     <FinetunePanel />

@@ -17,11 +17,26 @@ import {
   Typography,
   TypographyProps,
 } from "@mui/material";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 function SpanTypography(props: TypographyProps) {
   return <Typography component="span" {...props} />;
+}
+
+function intersperse(
+  segments: Array<React.ReactNode>,
+  replacements: Array<[string, React.ReactNode]>
+) {
+  for (const [from, to] of replacements)
+    segments = segments.flatMap((segment) =>
+      typeof segment !== "string"
+        ? [segment]
+        : segment
+            .split(from)
+            .flatMap((part, index) => (index === 0 ? [part] : [to, part]))
+    );
+  return segments;
 }
 
 export function TokensViewer({
@@ -50,19 +65,42 @@ export function TokensViewer({
   const TypographySlot: React.ComponentType<TypographyProps> =
     slots?.typography ?? SpanTypography;
 
+  const interspersed = useMemo(() => {
+    return tokens.map((token) =>
+      intersperse(
+        [token],
+        [
+          ["\n", <code className="newline">{"\u21B5\n"}</code>],
+          [" ", <code className="space">{"\u00B7"}</code>],
+          ["\t", <code className="tab">{"\u2192"}</code>],
+        ]
+      )
+    );
+  }, [tokens]);
+
   const handleClose = useCallback(() => setAnchorEl(null), []);
 
   return (
     <>
-      <Box sx={{ whiteSpace: "pre-wrap" }}>
-        {tokens.map((token, i) => (
+      <Box
+        sx={{
+          whiteSpace: "pre-wrap",
+          "& .newline, & .space, & .tab": { opacity: 0.3 },
+          "& .tab": {
+            width: "1em",
+            display: "inline-block",
+            textAlign: "center",
+          },
+        }}
+      >
+        {interspersed.map((nodes, i) => (
           <TypographySlot
             key={i}
             onClick={(event: React.MouseEvent<HTMLSpanElement>) => {
               setSelected(i);
               setAnchorEl(event.currentTarget);
             }}
-            children={token}
+            children={nodes}
             {...slotProps?.typography?.({ index: i })}
           />
         ))}
@@ -211,7 +249,14 @@ export function LogprobPopover({
               >
                 <TableCell sx={{ minWidth: "120px" }}>
                   <Box component="span" sx={{ whiteSpace: "pre-wrap" }}>
-                    {topLogprob.token}
+                    {intersperse(
+                      [topLogprob.token],
+                      [
+                        ["\n", <code className="newline">{"\u21B5"}</code>],
+                        [" ", <code className="space">{"\u00B7"}</code>],
+                        ["\t", <code className="tab">{"\u2192"}</code>],
+                      ]
+                    )}
                   </Box>
                 </TableCell>
                 <TableCell align="right">
