@@ -147,3 +147,27 @@ export function parseCompletion(text: string): {
     return { role: "assistant", content: text };
   }
 }
+
+export function convertFromHarmony(model: string, messages: any[]) {
+  if (model.startsWith("qwen/")) {
+    return messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+      reasoning_content: msg.thinking,
+    }));
+  }
+
+  return messages;
+}
+
+export function convertToHarmony(model: string, messages: any[]) {
+  if (model.startsWith("qwen/")) {
+    return messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+      thinking: msg.reasoning_content,
+    }));
+  }
+
+  return messages;
+}

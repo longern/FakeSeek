@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import OpenAI from "openai";
-
-import { useAppSelector } from "../../app/hooks";
 import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
 import {
   Box,
@@ -9,6 +7,7 @@ import {
   Card,
   Chip,
   CircularProgress,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -30,26 +29,17 @@ import { useTranslation } from "react-i18next";
 import { listDatasets, readDataset } from "./DatasetsPanel";
 import { Model } from "openai/resources/models.mjs";
 
-function useOpenAIClient() {
-  const currentPreset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current] ?? null
-  );
+import type { Preset } from "../../app/presets";
+import { useCurrentPreset } from "./hooks";
 
+function getClientFromPreset(currentPreset: Preset | null) {
   if (currentPreset === null) throw new Error("No preset selected");
 
-  const client = useMemo(
-    () =>
-      new OpenAI({
-        apiKey: currentPreset.apiKey,
-        baseURL: currentPreset.baseURL,
-        dangerouslyAllowBrowser: true,
-      }),
-    [currentPreset]
-  );
-
-  return client;
+  return new OpenAI({
+    apiKey: currentPreset.apiKey,
+    baseURL: currentPreset.baseURL,
+    dangerouslyAllowBrowser: true,
+  });
 }
 
 function CreateFinetuneJobDialog({
@@ -64,7 +54,7 @@ function CreateFinetuneJobDialog({
   const [baseModels, setBaseModels] = useState<Array<Model>>([]);
   const [existingDatasets, setExistingDatasets] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
-  const client = useOpenAIClient();
+  const currentPreset = useCurrentPreset();
   const { t } = useTranslation();
 
   const handleCreate = useCallback(async () => {
@@ -73,6 +63,7 @@ function CreateFinetuneJobDialog({
       type: "application/yaml",
     });
     setCreating(true);
+    const client = getClientFromPreset(currentPreset);
     const uploaded = await client.files.create({
       file,
       purpose: "fine-tune",
@@ -83,15 +74,16 @@ function CreateFinetuneJobDialog({
       training_file: uploaded.id,
     });
     onClose();
-  }, [baseModel, client, dataset, onClose]);
+  }, [baseModel, currentPreset, dataset, onClose]);
 
   useEffect(() => {
     if (!open) return;
+    const client = getClientFromPreset(currentPreset);
     client.models.list().then((modelsPage) => setBaseModels(modelsPage.data));
     listDatasets().then(setExistingDatasets);
     setDataset("");
     setCreating(false);
-  }, [open, client]);
+  }, [open, currentPreset]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -149,7 +141,9 @@ function CreateFinetuneJobDialog({
           onClick={handleCreate}
           variant="contained"
         >
-          {creating && <CircularProgress size={16} sx={{ marginRight: 1 }} />}
+          <Collapse in={creating} orientation="horizontal">
+            <CircularProgress size={16} sx={{ marginRight: 1 }} />
+          </Collapse>
           {t("Create")}
         </Button>
       </DialogActions>
@@ -163,19 +157,21 @@ function FinetunePanel() {
   >(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const client = useOpenAIClient();
+  const currentPreset = useCurrentPreset();
+
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const { t } = useTranslation();
 
   const listJobs = useCallback(async () => {
     try {
+      const client = getClientFromPreset(currentPreset);
       const res = await client.fineTuning.jobs.list();
       setFinetuneJobs(res.data);
     } catch (e) {
       setFinetuneJobs(e as Error);
     }
-  }, [client]);
+  }, [currentPreset]);
 
   useEffect(() => {
     listJobs();
@@ -195,7 +191,10 @@ function FinetunePanel() {
           <Button
             variant="outlined"
             color="inherit"
-            onClick={() => client.fineTuning.jobs.cancel(selectedJob.id)}
+            onClick={() => {
+              const client = getClientFromPreset(currentPreset);
+              client.fineTuning.jobs.cancel(selectedJob.id);
+            }}
           >
             {t("Cancel")}
           </Button>
@@ -255,9 +254,11 @@ function FinetunePanel() {
     <Card elevation={0} sx={{ height: "100%" }}>
       <Stack divider={<Divider />} sx={{ height: "100%" }}>
         <Box sx={{ padding: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            {t("Fine-tuning jobs")}
-          </Typography>
+          {!isMobile && (
+            <Typography variant="h6" gutterBottom>
+              {t("Fine-tuning jobs")}
+            </Typography>
+          )}
           <Stack direction="row">
             <Button
               variant="outlined"
@@ -274,6 +275,7 @@ function FinetunePanel() {
             <Box sx={{ flexGrow: 1 }} />
             <Button
               variant="contained"
+              disabled={currentPreset === null}
               onClick={() => setShowCreateDialog(true)}
             >
               {t("Create")}
@@ -311,7 +313,9 @@ function FinetunePanel() {
                     {finetuneJobs === null ? (
                       <CircularProgress sx={{ margin: "auto" }} />
                     ) : finetuneJobs instanceof Error ? (
-                      <></>
+                      <Typography color="text.secondary">
+                        {finetuneJobs.message}
+                      </Typography>
                     ) : (
                       t("No fine-tuning jobs found")
                     )}

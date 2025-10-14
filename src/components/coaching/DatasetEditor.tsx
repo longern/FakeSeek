@@ -20,6 +20,7 @@ import yaml from "yaml";
 
 import { useAppSelector } from "../../app/hooks";
 import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
+import { convertFromHarmony, convertToHarmony } from "./utils";
 
 export const OpenDatasetEditorContext = createContext<
   (datasetName: string | undefined, onClose?: () => void) => void
@@ -37,8 +38,18 @@ export async function getDatasetDirectoryHandle() {
   return datasetDirectoryHandle;
 }
 
-function parseDataset(content: string): Array<DatasetRecord> {
-  return yaml.parseDocument(content).toJS();
+function parseDataset(content: string) {
+  const parsed = yaml.parseDocument(content);
+  const match = parsed.commentBefore?.match(/Model:\s*(\S+)/);
+  const model = match ? match[1] : undefined;
+  let dataset = parsed.toJS() as Array<DatasetRecord>;
+  if (model)
+    dataset = dataset.map((record) => ({
+      ...record,
+      prompt: convertToHarmony(model, record.prompt),
+      completion: convertToHarmony(model, record.completion),
+    }));
+  return { model, dataset };
 }
 
 function DatasetEditor({
@@ -59,6 +70,7 @@ function DatasetEditor({
       ? null
       : state.presets.presets[state.presets.current] ?? null
   );
+  const [model, setModel] = useState(currentPreset?.defaultModel);
 
   const { t } = useTranslation();
 
@@ -71,8 +83,15 @@ function DatasetEditor({
   const handleSave = useCallback(async () => {
     if (!datasetName || content === null) return;
 
-    const document = new yaml.Document(content);
-    document.commentBefore = ` Model: ${currentPreset?.defaultModel}`;
+    const dataset = model
+      ? content.map((record) => ({
+          ...record,
+          prompt: convertFromHarmony(model, record.prompt),
+          completion: convertFromHarmony(model, record.completion),
+        }))
+      : content;
+    const document = new yaml.Document(dataset);
+    if (model) document.commentBefore = ` Model: ${model}`;
     const documentString = document.toString({ lineWidth: 0 });
 
     const dir = await getDatasetDirectoryHandle();
@@ -97,8 +116,11 @@ function DatasetEditor({
       const fileHandle = await dir.getFileHandle(datasetName, { create: true });
       const file = await fileHandle.getFile();
       const text = await file.text();
-      const content = text ? parseDataset(text) : [];
-      setContent(content);
+      const { model, dataset } = text
+        ? parseDataset(text)
+        : { dataset: [] as DatasetRecord[] };
+      setContent(dataset);
+      setModel(model);
       setSelected(0);
       setModified(false);
     });
@@ -157,6 +179,7 @@ function DatasetEditor({
             <DatasetRecordEditor
               key={selected}
               record={content[selected]}
+              model={model}
               onChange={(newRecord) => {
                 setContent((prev) => {
                   if (!prev) return prev;

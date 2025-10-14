@@ -14,7 +14,6 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useAppSelector } from "../../app/hooks";
 import {
   tokenizeCompletion,
   useContinueGeneration,
@@ -114,19 +113,15 @@ function EditableMessage({
 
 function DatasetRecordEditor({
   record,
+  model,
   onChange,
 }: {
   record: DatasetRecord & {
     teacher_completion?: Array<{ role: string; content: string }>;
   };
+  model?: string;
   onChange: (record: DatasetRecord) => void;
 }) {
-  const currentPreset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current] ?? null
-  );
-
   const generate = useGenerate();
   const forward = useForward();
   const continueGeneration = useContinueGeneration();
@@ -152,12 +147,11 @@ function DatasetRecordEditor({
     [generate, record]
   );
 
-  const defaultModel = currentPreset?.defaultModel;
   const handleTokenizeCompletion =
-    typeof defaultModel === "string"
+    typeof model === "string"
       ? () =>
           tokenizeCompletion({
-            model: defaultModel,
+            model,
             prompt: record.prompt,
             completion: record.completion,
           })
@@ -217,6 +211,7 @@ function DatasetRecordEditor({
                   const completion = await forward({
                     prompt: record.prompt,
                     completion: record.completion as any,
+                    tokenizerModel: model!,
                     topLogprobs: 5,
                   });
                   return completion;
@@ -239,6 +234,7 @@ function DatasetRecordEditor({
                         completion: record.completion as any,
                         tokenIndex,
                         tokenId,
+                        tokenizerModel: model!,
                       });
                       return { text: token + text, prefix };
                     },

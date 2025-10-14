@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { useAppSelector } from "../../app/hooks";
 import { DatasetRecord } from "./DatasetRecordEditor";
 import { TokenLogprobs } from "./MessageViewer";
+import { convertFromHarmony } from "./utils";
 
 const TOKENIZER_CACHE: Record<string, PreTrainedTokenizer> = {};
 
@@ -30,18 +31,6 @@ async function getTokenizer(model: string) {
   return tokenizer;
 }
 
-function convertHarmony(model: string, messages: any[]) {
-  if (model.startsWith("qwen/")) {
-    return messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-      reasoning_content: msg.thinking,
-    }));
-  }
-
-  return messages;
-}
-
 export async function tokenizeCompletion({
   model,
   prompt,
@@ -53,14 +42,14 @@ export async function tokenizeCompletion({
 }) {
   const tokenizer = await getTokenizer(model);
   const promptIds = tokenizer.apply_chat_template(
-    convertHarmony(model, prompt),
+    convertFromHarmony(model, prompt),
     {
       add_generation_prompt: true,
       return_tensor: false,
     }
   ) as number[];
   const promptCompletionIds = tokenizer.apply_chat_template(
-    convertHarmony(model, prompt.concat(completion as any)),
+    convertFromHarmony(model, prompt.concat(completion as any)),
     { return_tensor: false }
   ) as number[];
   const completionIds = promptCompletionIds.slice(promptIds.length);
@@ -68,12 +57,18 @@ export async function tokenizeCompletion({
   return tokens;
 }
 
-export function useGenerate() {
+export function useCurrentPreset() {
   const currentPreset = useAppSelector((state) =>
     state.presets.current === null
       ? null
       : state.presets.presets[state.presets.current] ?? null
   );
+
+  return currentPreset;
+}
+
+export function useGenerate() {
+  const currentPreset = useCurrentPreset();
 
   const generate = useCallback(
     async (
@@ -116,18 +111,19 @@ export function useForward() {
       prompt,
       completion,
       model,
+      tokenizerModel,
       topLogprobs = 1,
     }: {
       prompt: Array<{ role: string; content: string }>;
       completion: Array<{ role: string; content: string }>;
+      tokenizerModel: string;
       model?: string;
       topLogprobs?: number;
     }) => {
-      model = model ?? currentPreset?.defaultModel ?? "openai/gpt-oss-120b";
-      const tokenizer = await getTokenizer(model);
+      const tokenizer = await getTokenizer(tokenizerModel);
 
       const text = tokenizer.apply_chat_template(
-        convertHarmony(model, [...prompt, ...completion]),
+        convertFromHarmony(tokenizerModel, [...prompt, ...completion]),
         { tokenize: false }
       ) as string;
 
@@ -137,6 +133,7 @@ export function useForward() {
         dangerouslyAllowBrowser: true,
       });
       const extraBody: Record<string, any> = { prompt_logprobs: topLogprobs };
+      model = model ?? currentPreset?.defaultModel ?? "openai/gpt-oss-120b";
       const logprobsResponse = await client.completions.create({
         model,
         prompt: text,
@@ -157,11 +154,11 @@ export function useForward() {
       }>;
 
       const promptIds = tokenizer.apply_chat_template(
-        convertHarmony(model, prompt),
+        convertFromHarmony(tokenizerModel, prompt),
         { add_generation_prompt: true, return_tensor: false }
       ) as number[];
       const promptCompletionIds = tokenizer.apply_chat_template(
-        convertHarmony(model, [...prompt, ...completion]),
+        convertFromHarmony(tokenizerModel, [...prompt, ...completion]),
         { return_tensor: false }
       ) as number[];
       const completionIds = promptCompletionIds.slice(promptIds.length);
@@ -204,26 +201,24 @@ export function useContinueGeneration() {
       completion,
       tokenIndex,
       tokenId,
-      model,
+      tokenizerModel,
       topLogprobs = 1,
     }: {
       prompt: Array<{ role: string; content: string }>;
       completion: Array<{ role: string; content: string }>;
       tokenIndex: number;
       tokenId: number;
-      model?: string;
+      tokenizerModel: string;
       topLogprobs?: number;
     }) => {
-      const tokenizerModel =
-        model ?? currentPreset?.defaultModel ?? "openai/gpt-oss-120b";
       const tokenizer = await getTokenizer(tokenizerModel);
 
       const promptIds = tokenizer.apply_chat_template(
-        convertHarmony(tokenizerModel, prompt),
+        convertFromHarmony(tokenizerModel, prompt),
         { add_generation_prompt: true, return_tensor: false }
       ) as number[];
       const promptCompletionIds = tokenizer.apply_chat_template(
-        convertHarmony(tokenizerModel, [...prompt, ...completion]),
+        convertFromHarmony(tokenizerModel, [...prompt, ...completion]),
         { return_tensor: false }
       ) as number[];
       const completionIds = promptCompletionIds.slice(promptIds.length);
@@ -237,8 +232,9 @@ export function useContinueGeneration() {
         baseURL: currentPreset?.baseURL,
         dangerouslyAllowBrowser: true,
       });
+      const model = currentPreset?.defaultModel ?? "openai/gpt-oss-120b";
       const response = await client.completions.create({
-        model: tokenizerModel,
+        model,
         prompt: prefixText,
         max_tokens: 32768,
         temperature: currentPreset?.temperature,
