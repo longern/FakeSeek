@@ -31,7 +31,7 @@ async function getTokenizer(model: string) {
   return tokenizer;
 }
 
-export async function tokenizeCompletion({
+export async function completionApplyTemplate({
   model,
   prompt,
   completion,
@@ -42,18 +42,40 @@ export async function tokenizeCompletion({
 }) {
   const tokenizer = await getTokenizer(model);
   const promptIds = tokenizer.apply_chat_template(
-    convertFromHarmony(model, prompt),
+    model ? convertFromHarmony(model, prompt) : prompt,
     {
       add_generation_prompt: true,
+      tokenize: false,
       return_tensor: false,
     }
-  ) as number[];
+  ) as string;
   const promptCompletionIds = tokenizer.apply_chat_template(
-    convertFromHarmony(model, prompt.concat(completion as any)),
-    { return_tensor: false }
-  ) as number[];
-  const completionIds = promptCompletionIds.slice(promptIds.length);
-  const tokens = completionIds.map((id) => tokenizer.decode_single([id], {}));
+    model
+      ? convertFromHarmony(model, prompt.concat(completion as any))
+      : prompt,
+    { tokenize: false, return_tensor: false }
+  ) as string;
+  const completionText = promptCompletionIds.slice(promptIds.length);
+  return completionText;
+}
+
+export async function tokenizeCompletion({
+  model,
+  prompt,
+  completion,
+}: {
+  model: string;
+  prompt: DatasetRecord["prompt"];
+  completion: DatasetRecord["completion"];
+}) {
+  const tokenizer = await getTokenizer(model);
+  const completionText = await completionApplyTemplate({
+    model,
+    prompt,
+    completion,
+  });
+  const completionIds = tokenizer.encode(completionText);
+  const tokens = completionIds.map((id) => tokenizer.decode([id], {}));
   return tokens;
 }
 

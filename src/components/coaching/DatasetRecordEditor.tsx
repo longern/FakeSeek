@@ -11,16 +11,25 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ComponentProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  completionApplyTemplate,
   tokenizeCompletion,
   useContinueGeneration,
   useForward,
   useGenerate,
 } from "./hooks";
 import AssistantMessageEditor from "./AssistantMessageEditor";
+import CompletionTokensRenderer from "./CompletionTokensRenderer";
 
 export type DatasetRecord = {
   prompt: Array<{ role: string; content: string }>;
@@ -147,15 +156,32 @@ function DatasetRecordEditor({
     [generate, record]
   );
 
-  const handleTokenizeCompletion =
-    typeof model === "string"
-      ? () =>
-          tokenizeCompletion({
-            model,
-            prompt: record.prompt,
-            completion: record.completion,
-          })
-      : undefined;
+  const lazyTokens = useMemo(
+    () =>
+      typeof model === "string"
+        ? () =>
+            tokenizeCompletion({
+              model,
+              prompt: record.prompt,
+              completion: record.completion,
+            })
+        : undefined,
+    [model, record]
+  );
+
+  const lazyLogprobs = useMemo(
+    () =>
+      typeof model === "string"
+        ? () =>
+            forward({
+              prompt: record.prompt,
+              completion: record.completion as any,
+              tokenizerModel: model,
+              topLogprobs: 5,
+            })
+        : undefined,
+    [model, record]
+  );
 
   if (record === null) return null;
 
@@ -193,52 +219,46 @@ function DatasetRecordEditor({
               <AssistantMessageEditor
                 role={record.completion[0].role}
                 completion={record.completion[0]}
+                anchors={record.anchors}
                 onChange={(newValue) =>
                   onChange?.({ ...record, completion: [newValue] })
                 }
-                anchors={record.anchors}
-                onAnchorsChanged={(newValue) => {
-                  onChange?.({
-                    ...record,
-                    anchors:
-                      typeof newValue === "function"
-                        ? newValue(record.anchors)
-                        : newValue,
-                  });
-                }}
-                tokenizeCompletion={handleTokenizeCompletion}
-                getLogprobs={async () => {
-                  const completion = await forward({
+                applyChatTemplate={() =>
+                  completionApplyTemplate({
+                    model: model!,
                     prompt: record.prompt,
-                    completion: record.completion as any,
-                    tokenizerModel: model!,
-                    topLogprobs: 5,
-                  });
-                  return completion;
+                    completion: record.completion,
+                  })
+                }
+                slots={{
+                  tokensRenderer: CompletionTokensRenderer as any,
                 }}
                 slotProps={{
-                  continueButton: ({
-                    tokenIndex,
-                    tokenId,
-                  }: {
-                    tokenIndex: number;
-                    tokenId: number;
-                  }) => ({
-                    onClick: async () => {
-                      const {
-                        prefix,
-                        token,
-                        choice: { text },
-                      } = await continueGeneration({
-                        prompt: record.prompt,
-                        completion: record.completion as any,
-                        tokenIndex,
-                        tokenId,
-                        tokenizerModel: model!,
+                  tokensRenderer: {
+                    lazyTokens,
+                    lazyLogprobs,
+                    onAnchorsChanged: (newValue) => {
+                      onChange?.({
+                        ...record,
+                        anchors:
+                          typeof newValue === "function"
+                            ? newValue(record.anchors)
+                            : newValue,
                       });
-                      return { text: token + text, prefix };
                     },
-                  }),
+                    onContinueGeneration: async ({ tokenIndex, tokenId }) => {
+                      const { prefix, token, choice } =
+                        await continueGeneration({
+                          prompt: record.prompt,
+                          completion: record.completion as any,
+                          tokenIndex,
+                          tokenId,
+                          tokenizerModel: model!,
+                          topLogprobs: 5,
+                        });
+                      return { text: token + choice.text, prefix };
+                    },
+                  } as Partial<ComponentProps<typeof CompletionTokensRenderer>>,
                 }}
               />
             )}
