@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
-import OpenAI from "openai";
-import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Box,
   Button,
@@ -14,6 +12,7 @@ import {
   DialogTitle,
   Divider,
   FormControl,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -25,9 +24,12 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
+import OpenAI from "openai";
+import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
+import { Model } from "openai/resources/models.mjs";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listDatasets, readDataset } from "./DatasetsPanel";
-import { Model } from "openai/resources/models.mjs";
 
 import type { Preset } from "../../app/presets";
 import { useCurrentPreset } from "./hooks";
@@ -233,7 +235,32 @@ function FinetunePanel() {
         <Typography>{selectedJob.model}</Typography>
 
         <Typography>{t("Fine-tuned model")}</Typography>
-        <Typography>{selectedJob.fine_tuned_model ?? "-"}</Typography>
+        <Typography>
+          {!selectedJob.fine_tuned_model ? (
+            "-"
+          ) : (
+            <>
+              {selectedJob.fine_tuned_model}
+              <IconButton
+                size="small"
+                aria-label={t("Delete")}
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    t("confirm-delete-finetuned-model", {
+                      model: selectedJob.fine_tuned_model,
+                    })
+                  );
+                  if (!confirmed) return;
+                  const client = getClientFromPreset(currentPreset);
+                  client.models.delete(selectedJob.fine_tuned_model!);
+                }}
+                sx={{ marginLeft: 1 }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </>
+          )}
+        </Typography>
 
         <Typography>{t("Created at")}</Typography>
         <Typography>
