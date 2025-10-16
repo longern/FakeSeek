@@ -24,7 +24,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import OpenAI from "openai";
+import OpenAI, { APIError } from "openai";
 import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
 import { Model } from "openai/resources/models.mjs";
 import { useCallback, useEffect, useState } from "react";
@@ -171,7 +171,13 @@ function FinetunePanel() {
       const res = await client.fineTuning.jobs.list();
       setFinetuneJobs(res.data);
     } catch (e) {
-      setFinetuneJobs(e as Error);
+      if (e instanceof APIError) {
+        if (e.status === 404)
+          setFinetuneJobs(
+            new Error(t("This model provider does not support fine-tuning"))
+          );
+        else setFinetuneJobs(e);
+      } else setFinetuneJobs(e as Error);
     }
   }, [currentPreset]);
 
