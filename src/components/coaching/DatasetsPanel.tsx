@@ -10,6 +10,7 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Typography,
   useMediaQuery,
 } from "@mui/material";
 import { useCallback, useContext, useEffect, useState } from "react";
@@ -22,11 +23,27 @@ import {
   OpenDatasetEditorContext,
 } from "./DatasetEditor";
 
+interface DatasetFile {
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+}
+
 export async function listDatasets() {
   const datasetDirHandle = await getDatasetDirectoryHandle();
 
   const datasets = [];
-  for await (const key of datasetDirHandle.keys()) datasets.push(key);
+  for await (const key of datasetDirHandle.keys()) {
+    const handle = await datasetDirHandle.getFileHandle(key);
+    const file = await handle.getFile();
+    datasets.push({
+      name: handle.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified,
+    });
+  }
 
   return datasets;
 }
@@ -79,10 +96,10 @@ async function convertToYaml(file: File) {
 }
 
 function DatasetsPanel() {
-  const [datasets, setDatasets] = useState<string[] | null>(null);
-  const [selectedDataset, setSelectedDataset] = useState<string | undefined>(
-    undefined
-  );
+  const [datasets, setDatasets] = useState<DatasetFile[] | null>(null);
+  const [selectedDataset, setSelectedDataset] = useState<
+    DatasetFile | undefined
+  >(undefined);
   const [selectedDatasetContent, setSelectedDatasetContent] = useState<
     string | null
   >(null);
@@ -141,7 +158,7 @@ function DatasetsPanel() {
                   window.alert(t("Invalid dataset name"));
                   return;
                 }
-                if (datasets?.includes(`${name}.yml`)) {
+                if (datasets?.find((file) => file.name === `${name}.yml`)) {
                   window.alert(t("Dataset already exists"));
                   return;
                 }
@@ -174,22 +191,24 @@ function DatasetsPanel() {
           {datasets === null
             ? null
             : datasets.map((dataset) => (
-                <ListItem key={dataset} disablePadding>
+                <ListItem key={dataset.name} disablePadding>
                   <ListItemButton
                     selected={dataset === selectedDataset}
                     sx={{ borderRadius: isMobile ? undefined : 2 }}
                     onClick={() => {
                       setSelectedDataset(dataset);
-                      readDatasetText(dataset).then(setSelectedDatasetContent);
+                      readDatasetText(dataset.name).then(
+                        setSelectedDatasetContent
+                      );
                     }}
                     onDoubleClick={
                       isMobile
                         ? undefined
                         : () =>
-                            openDatasetEditor(dataset, async () => {
+                            openDatasetEditor(dataset.name, async () => {
                               if (!selectedDataset) return;
                               const datasetContent = await readDatasetText(
-                                dataset
+                                dataset.name
                               );
                               setSelectedDatasetContent(datasetContent);
                             })
@@ -201,7 +220,7 @@ function DatasetsPanel() {
                     }}
                   >
                     <ListItemText
-                      primary={dataset}
+                      primary={dataset.name}
                       slotProps={{ primary: { noWrap: true } }}
                     />
                   </ListItemButton>
@@ -223,7 +242,7 @@ function DatasetsPanel() {
             primary={t("Edit")}
             onClick={async () => {
               if (!selectedDataset) return;
-              openDatasetEditor(selectedDataset);
+              openDatasetEditor(selectedDataset.name);
               setAnchorEl(null);
             }}
           />
@@ -233,7 +252,7 @@ function DatasetsPanel() {
             primary={t("Export")}
             onClick={async () => {
               if (!selectedDataset) return;
-              await exportDataset(selectedDataset);
+              await exportDataset(selectedDataset.name);
               setAnchorEl(null);
             }}
           />
@@ -251,7 +270,7 @@ function DatasetsPanel() {
                 )
               )
                 return;
-              await deleteDataset(selectedDataset);
+              await deleteDataset(selectedDataset.name);
               setDatasets(
                 (prev) => prev?.filter((d) => d !== selectedDataset) ?? null
               );
@@ -289,7 +308,7 @@ function DatasetsPanel() {
                   disableTouchRipple
                   disableRipple
                 >
-                  <ListItemText primary={selectedDataset} />
+                  <ListItemText primary={selectedDataset?.name} />
                   <ExpandLessIcon />
                 </ListItemButton>
               </ListItem>
@@ -312,13 +331,41 @@ function DatasetsPanel() {
           <Box sx={{ paddingX: 2, paddingY: 1 }}>{datasetList}</Box>
 
           <Box sx={{ padding: 2, flexGrow: 1 }}>
-            {highlightedYaml && (
-              <Card
-                variant="outlined"
-                sx={{ height: "100%", padding: 1, overflowY: "auto" }}
-              >
-                {highlightedYaml}
-              </Card>
+            {highlightedYaml && selectedDataset && (
+              <Stack spacing={2} sx={{ height: "100%" }}>
+                <Card
+                  variant="outlined"
+                  sx={{ flexGrow: 1, padding: 1, overflowY: "auto" }}
+                >
+                  {highlightedYaml}
+                </Card>
+                <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
+                  {selectedDataset.name}
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr",
+                    rowGap: 1,
+                    columnGap: 4,
+                    "&>*": { minHeight: "32px", alignContent: "center" },
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    {t("Size")}
+                  </Typography>
+                  <Typography variant="body2">
+                    {selectedDataset.size.toLocaleString()} bytes
+                  </Typography>
+
+                  <Typography variant="body2" color="text.secondary">
+                    {t("Last Modified")}
+                  </Typography>
+                  <Typography variant="body2">
+                    {new Date(selectedDataset.lastModified).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Stack>
             )}
           </Box>
         </Stack>

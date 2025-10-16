@@ -67,14 +67,15 @@ function AppDrawer({
         onClose={onClose}
       >
         {!isMobile && (
-          <Box>
+          <Box sx={{ padding: 2 }}>
             <Button
-              size="large"
+              variant="contained"
               sx={{
-                margin: 2,
-                borderRadius: "12px",
-                backgroundColor: "#dbeafe",
-                "&:hover": { backgroundColor: "#c6dcf8" },
+                width: "100%",
+                height: "40px",
+                borderRadius: "9999px",
+                backgroundColor: "white",
+                color: "black",
               }}
               onClick={() => onConversationChange(null)}
               startIcon={addCommentIcon}

@@ -1,23 +1,8 @@
 import { Alert, alpha } from "@mui/material";
 import React, { useEffect, useState } from "react";
 
+import type { DatasetRecord } from "./DatasetRecordEditor";
 import { LogprobPopover, TokenLogprobs, TokensViewer } from "./MessageViewer";
-
-export type DatasetRecord = {
-  prompt: Array<{ role: string; content: string }>;
-  teacher_prompt: Array<{ role: string; content: string }>;
-  tools?: Array<any>;
-  completion: Array<{
-    role: string;
-    content: string | null;
-    thinking?: string;
-  }>;
-  anchors?: Array<{
-    token_index: number;
-    token_id: number;
-    confidence?: number;
-  }>;
-};
 
 function toggleAnchor(
   anchors: DatasetRecord["anchors"] | undefined,

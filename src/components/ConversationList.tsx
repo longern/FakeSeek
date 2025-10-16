@@ -73,12 +73,12 @@ function ConversationGroup({
       <ListSubheader
         sx={{
           background: "#f9fbff",
-          color: "text.secondary",
+          color: "#81858c",
           lineHeight: "unset",
           fontWeight: isMobile ? "normal" : undefined,
           marginTop: 1.5,
-          marginBottom: 0.5,
           paddingY: 0.5,
+          fontSize: { xs: undefined, sm: "12px" },
         }}
       >
         {name}

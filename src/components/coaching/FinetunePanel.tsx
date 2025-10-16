@@ -82,7 +82,9 @@ function CreateFinetuneJobDialog({
     if (!open) return;
     const client = getClientFromPreset(currentPreset);
     client.models.list().then((modelsPage) => setBaseModels(modelsPage.data));
-    listDatasets().then(setExistingDatasets);
+    listDatasets().then((datasetFiles) =>
+      setExistingDatasets(datasetFiles.map((file) => file.name))
+    );
     setDataset("");
     setCreating(false);
   }, [open, currentPreset]);
@@ -284,7 +286,7 @@ function FinetunePanel() {
   );
 
   return (
-    <Card elevation={0} sx={{ height: "100%" }}>
+    <Card elevation={0} sx={{ height: "100%", borderRadius: 0 }}>
       <Stack divider={<Divider />} sx={{ height: "100%" }}>
         <Box sx={{ padding: 2 }}>
           {!isMobile && (

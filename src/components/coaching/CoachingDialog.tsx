@@ -24,10 +24,7 @@ import { Transition } from "react-transition-group";
 import DatasetsPanel from "./DatasetsPanel";
 import FinetunePanel from "./FinetunePanel";
 import DatasetEditor, { OpenDatasetEditorContext } from "./DatasetEditor";
-
-function EvalsPanel() {
-  return null;
-}
+import EvaluationPanel from "./EvaluationPanel";
 
 function DesktopLayout({
   TabsComponent,
@@ -179,7 +176,7 @@ function CoachingDialog({
     datasets: t("Datasets"),
     "fine-tuning-jobs": t("Fine-tuning jobs"),
     serving: t("Serving"),
-    evals: t("Evals"),
+    evaluation: t("Evaluation"),
   };
 
   const [currentTab, setCurrentTab] = useState(
@@ -233,8 +230,8 @@ function CoachingDialog({
     <DatasetsPanel />
   ) : currentTab === "fine-tuning-jobs" ? (
     <FinetunePanel />
-  ) : currentTab === "evals" ? (
-    <EvalsPanel />
+  ) : currentTab === "evaluation" ? (
+    <EvaluationPanel />
   ) : null;
 
   return (
