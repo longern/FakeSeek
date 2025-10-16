@@ -31,9 +31,12 @@ import {
 import AssistantMessageEditor from "./AssistantMessageEditor";
 import CompletionTokensRenderer from "./CompletionTokensRenderer";
 
+type Content =
+  | string
+  | Array<{ type: "text"; text: string } | { type: "image"; image: string }>;
+
 export type DatasetRecord = {
-  prompt: Array<{ role: string; content: string }>;
-  teacher_prompt: Array<{ role: string; content: string }>;
+  prompt: Array<{ role: string; content: Content }>;
   tools?: Array<any>;
   completion: Array<{
     role: string;
@@ -53,8 +56,8 @@ function EditableMessage({
   onChange,
 }: {
   role: string;
-  content: string;
-  onChange?: (newContent: string) => void;
+  content: Content;
+  onChange?: (newContent: Content) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(content);
@@ -107,14 +110,37 @@ function EditableMessage({
         </Stack>
       </Box>
       <Box sx={{ paddingX: 2, paddingTop: 1, paddingBottom: 2 }}>
-        <InputBase
-          inputRef={inputRef}
-          multiline
-          readOnly={!editing}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          fullWidth
-        />
+        {typeof content === "string" ? (
+          <InputBase
+            inputRef={inputRef}
+            multiline
+            readOnly={!editing}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            fullWidth
+          />
+        ) : (
+          content.map((part, i) =>
+            part.type === "text" ? (
+              <Typography
+                key={i}
+                variant="body1"
+                component="div"
+                sx={{ whiteSpace: "pre-wrap" }}
+              >
+                {part.text}
+              </Typography>
+            ) : part.type === "image" ? (
+              <Box
+                key={i}
+                component="img"
+                src={part.image}
+                alt=""
+                sx={{ maxWidth: "100%" }}
+              />
+            ) : null
+          )
+        )}
       </Box>
     </Box>
   );
@@ -125,9 +151,7 @@ function DatasetRecordEditor({
   model,
   onChange,
 }: {
-  record: DatasetRecord & {
-    teacher_completion?: Array<{ role: string; content: string }>;
-  };
+  record: DatasetRecord;
   model?: string;
   onChange: (record: DatasetRecord) => void;
 }) {

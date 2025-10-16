@@ -94,7 +94,9 @@ export function useGenerate() {
 
   const generate = useCallback(
     async (
-      messages: Array<{ role: string; content: string }>,
+      messages: Array<
+        DatasetRecord["prompt"][number] | DatasetRecord["completion"]
+      >,
       options?: { signal?: AbortSignal }
     ) => {
       if (currentPreset === null) throw new Error("No preset selected");
@@ -136,8 +138,8 @@ export function useForward() {
       tokenizerModel,
       topLogprobs = 1,
     }: {
-      prompt: Array<{ role: string; content: string }>;
-      completion: Array<{ role: string; content: string }>;
+      prompt: DatasetRecord["prompt"];
+      completion: Array<DatasetRecord["completion"]>;
       tokenizerModel: string;
       model?: string;
       topLogprobs?: number;
@@ -226,8 +228,8 @@ export function useContinueGeneration() {
       tokenizerModel,
       topLogprobs = 1,
     }: {
-      prompt: Array<{ role: string; content: string }>;
-      completion: Array<{ role: string; content: string }>;
+      prompt: DatasetRecord["prompt"];
+      completion: Array<DatasetRecord["completion"]>;
       tokenIndex: number;
       tokenId: number;
       tokenizerModel: string;
