@@ -32,10 +32,13 @@ import { useTranslation } from "react-i18next";
 import { listDatasets, readDataset } from "./DatasetsPanel";
 
 import type { Preset } from "../../app/presets";
+import HFLogo from "./hf-logo.svg";
 import { useCurrentPreset } from "./hooks";
 
+const NO_PRESET_ERROR = new Error("No preset selected");
+
 function getClientFromPreset(currentPreset: Preset | null) {
-  if (currentPreset === null) throw new Error("No preset selected");
+  if (currentPreset === null) throw NO_PRESET_ERROR;
 
   return new OpenAI({
     apiKey: currentPreset.apiKey,
@@ -249,6 +252,33 @@ function FinetunePanel() {
           ) : (
             <>
               {selectedJob.fine_tuned_model}
+              <IconButton
+                size="small"
+                aria-label={t("Push to Hub")}
+                onClick={() => {
+                  const client = getClientFromPreset(currentPreset);
+                  const hfToken = window.prompt(
+                    t("Enter your Hugging Face token")
+                  );
+                  if (!hfToken) return;
+                  const repoId = window.prompt(
+                    t("Enter the Hugging Face repo ID to push to")
+                  );
+                  if (!repoId) return;
+                  client.post(
+                    `/models/${selectedJob.fine_tuned_model!}/push_to_hub`,
+                    { body: { hf_token: hfToken, repo_id: repoId } }
+                  );
+                }}
+                sx={{ marginLeft: 1 }}
+              >
+                <Box
+                  component="img"
+                  src={HFLogo}
+                  alt="Push to Hugging Face"
+                  sx={{ width: "20px", height: "20px" }}
+                />
+              </IconButton>
               <IconButton
                 size="small"
                 aria-label={t("Delete")}

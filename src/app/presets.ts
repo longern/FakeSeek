@@ -11,8 +11,10 @@ export type Preset = {
   imageQuality?: "low" | "medium" | "high";
 };
 
+export const MODEL_PROVIDER_PRESET_KEY = "fakeSeek:modelProviderPresets";
+
 const storedPresets = JSON.parse(
-  window.localStorage.getItem("presets") || "{}"
+  window.localStorage.getItem(MODEL_PROVIDER_PRESET_KEY) || "{}"
 ) as { presets: Record<string, Preset>; current: string | null };
 
 storedPresets.presets = storedPresets.presets || {};
