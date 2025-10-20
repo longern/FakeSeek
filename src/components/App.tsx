@@ -8,7 +8,10 @@ import {
 import Chat from "./Chat";
 
 const theme = createTheme({
-  palette: { background: { default: "#f5f5f5", paper: "#fff" } },
+  palette: {
+    background: { default: "#f5f5f5", paper: "#fff" },
+    action: { hover: "rgba(0, 0, 0, 0.12)" },
+  },
   components: {
     MuiButton: { styleOverrides: { root: { textTransform: "none" } } },
     MuiToggleButton: { styleOverrides: { root: { textTransform: "none" } } },

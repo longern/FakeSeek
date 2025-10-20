@@ -1,15 +1,46 @@
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import {
   Box,
+  Card,
   Dialog,
   DialogContent,
   IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
   Stack,
   Toolbar,
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import { useTranslation } from "react-i18next";
+
+function SettingsBlock({
+  subheader,
+  children,
+}: {
+  subheader?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box>
+      {subheader && (
+        <Typography
+          variant="body2"
+          gutterBottom
+          sx={{ marginLeft: 1.5, color: "text.secondary" }}
+        >
+          {subheader}
+        </Typography>
+      )}
+      <Card elevation={0} sx={{ borderRadius: 3 }}>
+        <List disablePadding>{children}</List>
+      </Card>
+    </Box>
+  );
+}
 
 function SettingsDialog({
   open,
@@ -57,7 +88,24 @@ function SettingsDialog({
           "& .MuiListItemButton-root": { minHeight: "60px" },
         }}
       >
-        <Stack></Stack>
+        <Stack spacing={2}>
+          <SettingsBlock subheader={t("Account")}>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => {}}>
+                <ListItemText primary={t("Data controls")} />
+                <NavigateNextIcon color="disabled" />
+              </ListItemButton>
+            </ListItem>
+          </SettingsBlock>
+          <SettingsBlock subheader={t("App")}>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => {}}>
+                <ListItemText primary={t("Language")} />
+                <NavigateNextIcon color="disabled" />
+              </ListItemButton>
+            </ListItem>
+          </SettingsBlock>
+        </Stack>
       </DialogContent>
     </Dialog>
   );
