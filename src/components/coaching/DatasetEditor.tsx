@@ -120,7 +120,7 @@ function DatasetEditor({
         ? parseDataset(text)
         : { dataset: [] as DatasetRecord[] };
       setContent(dataset);
-      setModel(model);
+      if (model) setModel(model);
       setSelected(0);
       setModified(false);
     });

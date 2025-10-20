@@ -1,4 +1,8 @@
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import OutputIcon from "@mui/icons-material/Output";
 import {
   Box,
   Card,
@@ -6,6 +10,7 @@ import {
   List,
   ListItem,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
@@ -58,6 +63,18 @@ export async function readDataset(name: string) {
 export async function readDatasetText(name: string) {
   const file = await readDataset(name);
   return file.text();
+}
+
+async function copyDataset(srcName: string, destName: string) {
+  const datasetDirHandle = await getDatasetDirectoryHandle();
+  const srcHandle = await datasetDirHandle.getFileHandle(srcName);
+  const srcFile = await srcHandle.getFile();
+  const destHandle = await datasetDirHandle.getFileHandle(destName, {
+    create: true,
+  });
+  const writable = await destHandle.createWritable();
+  await writable.write(await srcFile.text());
+  await writable.close();
 }
 
 async function exportDataset(name: string) {
@@ -237,46 +254,73 @@ function DatasetsPanel() {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{ list: { sx: { minWidth: "160px" } } }}
       >
-        <MenuItem>
-          <ListItemText
-            primary={t("Edit")}
-            onClick={async () => {
-              if (!selectedDataset) return;
-              openDatasetEditor(selectedDataset.name);
-              setAnchorEl(null);
-            }}
-          />
+        <MenuItem
+          onClick={async () => {
+            if (!selectedDataset) return;
+            openDatasetEditor(selectedDataset.name);
+            setAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary={t("Edit")} />
         </MenuItem>
-        <MenuItem>
-          <ListItemText
-            primary={t("Export")}
-            onClick={async () => {
-              if (!selectedDataset) return;
-              await exportDataset(selectedDataset.name);
-              setAnchorEl(null);
-            }}
-          />
+        <MenuItem
+          onClick={async () => {
+            setAnchorEl(null);
+            if (!selectedDataset) return;
+            const newName = window.prompt(
+              t("Enter new dataset name (without .yml suffix)")
+            );
+            if (!newName) return;
+            await copyDataset(selectedDataset.name, `${newName}.yml`);
+            const newDatasets = await listDatasets();
+            setDatasets(newDatasets);
+            setSelectedDataset(undefined);
+            setSelectedDatasetContent(null);
+          }}
+        >
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary={t("Copy")} />
         </MenuItem>
-        <MenuItem>
+        <MenuItem
+          onClick={async () => {
+            if (!selectedDataset) return;
+            await exportDataset(selectedDataset.name);
+            setAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            <OutputIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary={t("Export")} />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={async () => {
+            setAnchorEl(null);
+            if (!selectedDataset) return;
+            const confirmed = window.confirm(
+              t("confirm-delete-dataset", { name: selectedDataset })
+            );
+            if (!confirmed) return;
+            await deleteDataset(selectedDataset.name);
+            setDatasets(
+              (prev) => prev?.filter((d) => d !== selectedDataset) ?? null
+            );
+            setSelectedDataset(undefined);
+            setSelectedDatasetContent(null);
+          }}
+        >
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" color="error" />
+          </ListItemIcon>
           <ListItemText
             primary={t("Delete")}
-            slotProps={{ primary: { color: "error.main" } }}
-            onClick={async () => {
-              setAnchorEl(null);
-              if (!selectedDataset) return;
-              if (
-                !window.confirm(
-                  t("confirm-delete-dataset", { name: selectedDataset })
-                )
-              )
-                return;
-              await deleteDataset(selectedDataset.name);
-              setDatasets(
-                (prev) => prev?.filter((d) => d !== selectedDataset) ?? null
-              );
-              setSelectedDataset(undefined);
-              setSelectedDatasetContent(null);
-            }}
+            slotProps={{ primary: { color: "error" } }}
           />
         </MenuItem>
       </Menu>

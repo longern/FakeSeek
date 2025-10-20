@@ -70,9 +70,9 @@ export function TokensViewer({
       intersperse(
         [token],
         [
-          ["\n", <code className="newline">{"\u21B5\n"}</code>],
-          [" ", <code className="space">{"\u00B7"}</code>],
-          ["\t", <code className="tab">{"\u2192"}</code>],
+          ["\n", <code className="newline">{"\n"}</code>],
+          [" ", <code className="space">&nbsp;</code>],
+          ["\t", <code className="tab">{"\t"}</code>],
         ]
       )
     );
@@ -85,10 +85,28 @@ export function TokensViewer({
       <Box
         sx={{
           whiteSpace: "pre-wrap",
-          "& .newline, & .space, & .tab": { opacity: 0.3 },
-          "& .tab": {
-            width: "1em",
-            display: "inline-block",
+          "& .newline, & .space, & .tab": { position: "relative" },
+          "& .newline:after": {
+            content: '"↵"',
+            position: "absolute",
+            left: 0,
+            top: "-0.2em",
+            opacity: 0.15,
+          },
+          "& .space:after": {
+            content: '"·"',
+            position: "absolute",
+            left: 0,
+            top: "-0.1em",
+            opacity: 0.15,
+          },
+          "& .tab:after": {
+            content: '"→"',
+            position: "absolute",
+            left: 0,
+            top: "-0.1em",
+            width: "100%",
+            opacity: 0.15,
             textAlign: "center",
           },
         }}
