@@ -113,7 +113,7 @@ function CompletionTokensRenderer({
         onClose={onClose}
         slotProps={{
           anchorEditor: {
-            anchored: false,
+            anchored: (anchors ?? []).some((p) => p.token_index === selected),
             onChange: (value) =>
               onAnchorsChanged?.((anchors) =>
                 toggleAnchor(
@@ -125,8 +125,18 @@ function CompletionTokensRenderer({
                   value
                 )
               ),
-            confidence: undefined,
-            onConfidenceChange: undefined,
+            confidence: anchors?.find((p) => p.token_index === selected)
+              ?.confidence,
+            onConfidenceChange: (newConfidence) =>
+              onAnchorsChanged?.((anchors) =>
+                anchors === undefined
+                  ? undefined
+                  : anchors.map((anc) =>
+                      anc.token_index === selected
+                        ? { ...anc, confidence: newConfidence ?? undefined }
+                        : anc
+                    )
+              ),
             marks: confidenceMarks,
           },
         }}

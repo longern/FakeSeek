@@ -50,13 +50,17 @@ export type DatasetRecord = {
   }>;
 };
 
-function EditableMessage({
+export function EditableMessage({
   role,
   content,
+  readonly,
+  stickyHeader,
   onChange,
 }: {
   role: string;
   content: Content;
+  readonly?: boolean;
+  stickyHeader?: boolean;
   onChange?: (newContent: Content) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -75,7 +79,7 @@ function EditableMessage({
         sx={{
           paddingX: 2,
           paddingY: 1,
-          position: "sticky",
+          position: stickyHeader ? "sticky" : undefined,
           top: 0,
           borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
           borderTopLeftRadius: "12px",
@@ -90,22 +94,24 @@ function EditableMessage({
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
           <Stack direction="row" spacing={0.5}>
-            <IconButton
-              aria-label={editing ? t("Save") : t("Edit")}
-              size="small"
-              onClick={() => {
-                if (editing && value !== content) onChange?.(value);
-                else inputRef.current?.focus();
-                setEditing(!editing);
-              }}
-              sx={{ marginTop: -1, marginRight: -1 }}
-            >
-              {editing ? (
-                <SaveIcon fontSize="small" />
-              ) : (
-                <EditIcon fontSize="small" />
-              )}
-            </IconButton>
+            {!readonly && (
+              <IconButton
+                aria-label={editing ? t("Save") : t("Edit")}
+                size="small"
+                onClick={() => {
+                  if (editing && value !== content) onChange?.(value);
+                  else inputRef.current?.focus();
+                  setEditing(!editing);
+                }}
+                sx={{ marginTop: -1, marginRight: -1 }}
+              >
+                {editing ? (
+                  <SaveIcon fontSize="small" />
+                ) : (
+                  <EditIcon fontSize="small" />
+                )}
+              </IconButton>
+            )}
           </Stack>
         </Stack>
       </Box>
@@ -190,7 +196,7 @@ function DatasetRecordEditor({
               completion: record.completion,
             })
         : undefined,
-    [model, record]
+    [model, record.prompt, record.completion]
   );
 
   const lazyLogprobs = useMemo(
@@ -204,7 +210,7 @@ function DatasetRecordEditor({
               topLogprobs: 5,
             })
         : undefined,
-    [model, record]
+    [model, record.prompt, record.completion]
   );
 
   if (record === null) return null;
@@ -223,6 +229,7 @@ function DatasetRecordEditor({
                   key={i}
                   role={msg.role}
                   content={msg.content}
+                  stickyHeader
                   onChange={(newValue) => {
                     const newContent = { ...record };
                     newContent.prompt[i] = {
@@ -259,6 +266,7 @@ function DatasetRecordEditor({
                 }}
                 slotProps={{
                   tokensRenderer: {
+                    anchors: record.anchors,
                     lazyTokens,
                     lazyLogprobs,
                     onAnchorsChanged: (newValue) => {

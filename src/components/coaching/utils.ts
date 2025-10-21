@@ -148,8 +148,9 @@ export function parseCompletion(text: string): {
   }
 }
 
-export function convertFromHarmony(model: string, messages: any[]) {
+export function convertFromHarmony(model: string, messages: any) {
   if (model.startsWith("qwen/")) {
+    if (!Array.isArray(messages)) return messages;
     return messages.map((msg) => ({
       role: msg.role,
       content: msg.content,
@@ -160,8 +161,9 @@ export function convertFromHarmony(model: string, messages: any[]) {
   return messages;
 }
 
-export function convertToHarmony(model: string, messages: any[]) {
+export function convertToHarmony(model: string, messages: any) {
   if (model.startsWith("qwen/")) {
+    if (!Array.isArray(messages)) return messages;
     return messages.map((msg) => ({
       role: msg.role,
       content: msg.content,

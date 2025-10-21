@@ -38,7 +38,7 @@ export async function getDatasetDirectoryHandle() {
   return datasetDirectoryHandle;
 }
 
-function parseDataset(content: string) {
+export function parseDataset(content: string) {
   const parsed = yaml.parseDocument(content);
   const match = parsed.commentBefore?.match(/Model:\s*(\S+)/);
   const model = match ? match[1] : undefined;

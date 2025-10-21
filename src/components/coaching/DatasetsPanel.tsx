@@ -28,7 +28,7 @@ import {
   OpenDatasetEditorContext,
 } from "./DatasetEditor";
 
-interface DatasetFile {
+export interface DatasetFile {
   name: string;
   type: string;
   size: number;
@@ -47,7 +47,7 @@ export async function listDatasets() {
       type: file.type,
       size: file.size,
       lastModified: file.lastModified,
-    });
+    } as DatasetFile);
   }
 
   return datasets;
@@ -126,6 +126,20 @@ function DatasetsPanel() {
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
+  const handleCreateClick = useCallback(() => {
+    const name = window.prompt(t("Enter dataset name (without .yml suffix)"));
+    if (!name) return;
+    if (!name.match(/^[a-zA-Z0-9_\-]+$/)) {
+      window.alert(t("Invalid dataset name"));
+      return;
+    }
+    if (datasets?.find((file) => file.name === `${name}.yml`)) {
+      window.alert(t("Dataset already exists"));
+      return;
+    }
+    openDatasetEditor(`${name}.yml`, () => listDatasets().then(setDatasets));
+  }, [datasets, openDatasetEditor, t]);
+
   const handleImportClick = useCallback(() => {
     const input = document.createElement("input");
     input.type = "file";
@@ -156,6 +170,33 @@ function DatasetsPanel() {
     input.click();
   }, []);
 
+  const handleCopyClick = useCallback(async () => {
+    setAnchorEl(null);
+    if (!selectedDataset) return;
+    const newName = window.prompt(
+      t("Enter new dataset name (without .yml suffix)")
+    );
+    if (!newName) return;
+    await copyDataset(selectedDataset.name, `${newName}.yml`);
+    const newDatasets = await listDatasets();
+    setDatasets(newDatasets);
+    setSelectedDataset(undefined);
+    setSelectedDatasetContent(null);
+  }, [selectedDataset, t]);
+
+  const handleDeleteClick = useCallback(async () => {
+    setAnchorEl(null);
+    if (!selectedDataset) return;
+    const confirmed = window.confirm(
+      t("confirm-delete-dataset", { name: selectedDataset })
+    );
+    if (!confirmed) return;
+    await deleteDataset(selectedDataset.name);
+    setDatasets((prev) => prev?.filter((d) => d !== selectedDataset) ?? null);
+    setSelectedDataset(undefined);
+    setSelectedDatasetContent(null);
+  }, [selectedDataset, t]);
+
   useEffect(() => {
     listDatasets().then(setDatasets);
   }, []);
@@ -165,25 +206,7 @@ function DatasetsPanel() {
       <Card elevation={0} sx={{ borderRadius: 3, minWidth: "260px" }}>
         <List disablePadding>
           <ListItem disablePadding>
-            <ListItemButton
-              onClick={() => {
-                const name = window.prompt(
-                  t("Enter dataset name (without .yml suffix)")
-                );
-                if (!name) return;
-                if (!name.match(/^[a-zA-Z0-9_\-]+$/)) {
-                  window.alert(t("Invalid dataset name"));
-                  return;
-                }
-                if (datasets?.find((file) => file.name === `${name}.yml`)) {
-                  window.alert(t("Dataset already exists"));
-                  return;
-                }
-                openDatasetEditor(`${name}.yml`, () =>
-                  listDatasets().then(setDatasets)
-                );
-              }}
-            >
+            <ListItemButton onClick={handleCreateClick}>
               <ListItemText
                 primary={t("Create dataset")}
                 slotProps={{ primary: { color: "primary.main" } }}
@@ -266,21 +289,7 @@ function DatasetsPanel() {
           </ListItemIcon>
           <ListItemText primary={t("Edit")} />
         </MenuItem>
-        <MenuItem
-          onClick={async () => {
-            setAnchorEl(null);
-            if (!selectedDataset) return;
-            const newName = window.prompt(
-              t("Enter new dataset name (without .yml suffix)")
-            );
-            if (!newName) return;
-            await copyDataset(selectedDataset.name, `${newName}.yml`);
-            const newDatasets = await listDatasets();
-            setDatasets(newDatasets);
-            setSelectedDataset(undefined);
-            setSelectedDatasetContent(null);
-          }}
-        >
+        <MenuItem onClick={handleCopyClick}>
           <ListItemIcon>
             <ContentCopyIcon fontSize="small" />
           </ListItemIcon>
@@ -299,22 +308,7 @@ function DatasetsPanel() {
           <ListItemText primary={t("Export")} />
         </MenuItem>
         <Divider />
-        <MenuItem
-          onClick={async () => {
-            setAnchorEl(null);
-            if (!selectedDataset) return;
-            const confirmed = window.confirm(
-              t("confirm-delete-dataset", { name: selectedDataset })
-            );
-            if (!confirmed) return;
-            await deleteDataset(selectedDataset.name);
-            setDatasets(
-              (prev) => prev?.filter((d) => d !== selectedDataset) ?? null
-            );
-            setSelectedDataset(undefined);
-            setSelectedDatasetContent(null);
-          }}
-        >
+        <MenuItem onClick={handleDeleteClick}>
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>

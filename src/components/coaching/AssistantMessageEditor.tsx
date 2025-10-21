@@ -21,7 +21,7 @@ import TextToggleButtonGroup from "./TextToggleButtonGroup";
 import { parseCompletion } from "./utils";
 import type { DatasetRecord } from "./DatasetRecordEditor";
 
-function KeepMounted({
+export function KeepMounted({
   open,
   children,
 }: {

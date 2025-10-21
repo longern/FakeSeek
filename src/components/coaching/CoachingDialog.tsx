@@ -52,7 +52,7 @@ function DesktopLayout({
         </Box>
         <TabsComponent />
       </Stack>
-      <Box sx={{ flexGrow: 1 }}>{panel}</Box>
+      <Box sx={{ flexGrow: 1, minWidth: 0 }}>{panel}</Box>
     </Stack>
   );
 }

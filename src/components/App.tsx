@@ -14,6 +14,7 @@ const theme = createTheme({
   },
   components: {
     MuiButton: { styleOverrides: { root: { textTransform: "none" } } },
+    MuiTab: { styleOverrides: { root: { textTransform: "none" } } },
     MuiToggleButton: { styleOverrides: { root: { textTransform: "none" } } },
     MuiCssBaseline: {
       styleOverrides: {
