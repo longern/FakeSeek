@@ -1,12 +1,15 @@
+import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import InputIcon from "@mui/icons-material/Input";
 import OutputIcon from "@mui/icons-material/Output";
 import {
   Box,
   Card,
   Divider,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -27,6 +30,7 @@ import {
   getDatasetDirectoryHandle,
   OpenDatasetEditorContext,
 } from "./DatasetEditor";
+import { formatBytes } from "./utils";
 
 export interface DatasetFile {
   name: string;
@@ -184,6 +188,14 @@ function DatasetsPanel() {
     setSelectedDatasetContent(null);
   }, [selectedDataset, t]);
 
+  const handleEditClick = useCallback(() => {
+    if (!selectedDataset) return;
+    openDatasetEditor(selectedDataset.name, async () => {
+      const datasetContent = await readDatasetText(selectedDataset.name);
+      setSelectedDatasetContent(datasetContent);
+    });
+  }, [selectedDataset, openDatasetEditor]);
+
   const handleDeleteClick = useCallback(async () => {
     setAnchorEl(null);
     if (!selectedDataset) return;
@@ -202,30 +214,10 @@ function DatasetsPanel() {
   }, []);
 
   const datasetList = (
-    <Stack gap={1.5}>
-      <Card elevation={0} sx={{ borderRadius: 3, minWidth: "260px" }}>
-        <List disablePadding>
-          <ListItem disablePadding>
-            <ListItemButton onClick={handleCreateClick}>
-              <ListItemText
-                primary={t("Create dataset")}
-                slotProps={{ primary: { color: "primary.main" } }}
-              />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton onClick={handleImportClick}>
-              <ListItemText
-                primary={t("Import dataset")}
-                slotProps={{ primary: { color: "primary.main" } }}
-              />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Card>
+    <>
       <Card
         elevation={0}
-        sx={{ borderRadius: isMobile ? 3 : undefined, minWidth: "260px" }}
+        sx={{ borderRadius: isMobile ? 3 : undefined, width: "260px" }}
       >
         <List disablePadding>
           {datasets === null
@@ -241,18 +233,7 @@ function DatasetsPanel() {
                         setSelectedDatasetContent
                       );
                     }}
-                    onDoubleClick={
-                      isMobile
-                        ? undefined
-                        : () =>
-                            openDatasetEditor(dataset.name, async () => {
-                              if (!selectedDataset) return;
-                              const datasetContent = await readDatasetText(
-                                dataset.name
-                              );
-                              setSelectedDatasetContent(datasetContent);
-                            })
-                    }
+                    onDoubleClick={isMobile ? undefined : handleEditClick}
                     onContextMenu={(event) => {
                       event.preventDefault();
                       setSelectedDataset(dataset);
@@ -268,57 +249,58 @@ function DatasetsPanel() {
               ))}
         </List>
       </Card>
+    </>
+  );
 
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ list: { sx: { minWidth: "160px" } } }}
+  const datasetMenu = (
+    <Menu
+      anchorEl={anchorEl}
+      open={Boolean(anchorEl)}
+      onClose={() => setAnchorEl(null)}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      transformOrigin={{ vertical: "top", horizontal: "right" }}
+      slotProps={{ list: { sx: { minWidth: "160px" } } }}
+    >
+      <MenuItem
+        onClick={async () => {
+          handleEditClick();
+          setAnchorEl(null);
+        }}
       >
-        <MenuItem
-          onClick={async () => {
-            if (!selectedDataset) return;
-            openDatasetEditor(selectedDataset.name);
-            setAnchorEl(null);
-          }}
-        >
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary={t("Edit")} />
-        </MenuItem>
-        <MenuItem onClick={handleCopyClick}>
-          <ListItemIcon>
-            <ContentCopyIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary={t("Copy")} />
-        </MenuItem>
-        <MenuItem
-          onClick={async () => {
-            if (!selectedDataset) return;
-            await exportDataset(selectedDataset.name);
-            setAnchorEl(null);
-          }}
-        >
-          <ListItemIcon>
-            <OutputIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary={t("Export")} />
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleDeleteClick}>
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" color="error" />
-          </ListItemIcon>
-          <ListItemText
-            primary={t("Delete")}
-            slotProps={{ primary: { color: "error" } }}
-          />
-        </MenuItem>
-      </Menu>
-    </Stack>
+        <ListItemIcon>
+          <EditIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText primary={t("Edit")} />
+      </MenuItem>
+      <MenuItem onClick={handleCopyClick}>
+        <ListItemIcon>
+          <ContentCopyIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText primary={t("Copy")} />
+      </MenuItem>
+      <MenuItem
+        onClick={async () => {
+          if (!selectedDataset) return;
+          await exportDataset(selectedDataset.name);
+          setAnchorEl(null);
+        }}
+      >
+        <ListItemIcon>
+          <OutputIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText primary={t("Export")} />
+      </MenuItem>
+      <Divider />
+      <MenuItem onClick={handleDeleteClick}>
+        <ListItemIcon>
+          <DeleteIcon fontSize="small" color="error" />
+        </ListItemIcon>
+        <ListItemText
+          primary={t("Delete")}
+          slotProps={{ primary: { color: "error" } }}
+        />
+      </MenuItem>
+    </Menu>
   );
 
   const highlightedYaml =
@@ -332,83 +314,141 @@ function DatasetsPanel() {
     );
 
   return (
-    <>
-      {isMobile ? (
-        highlightedYaml ? (
-          <Stack sx={{ backgroundColor: "background.paper", minHeight: 0 }}>
-            <List disablePadding>
-              <ListItem disablePadding>
-                <ListItemButton
-                  onClick={() => {
-                    setSelectedDataset(undefined);
-                    setSelectedDatasetContent(null);
-                  }}
-                  disableTouchRipple
-                  disableRipple
-                >
-                  <ListItemText primary={selectedDataset?.name} />
-                  <ExpandLessIcon />
-                </ListItemButton>
-              </ListItem>
-            </List>
-            <Divider />
-            {highlightedYaml}
-          </Stack>
-        ) : (
-          <Box sx={{ padding: 2 }}>{datasetList}</Box>
-        )
-      ) : (
+    <Card elevation={0} sx={{ height: "100%", borderRadius: 0 }}>
+      {datasetMenu}
+
+      <Stack divider={<Divider />} sx={{ height: "100%" }}>
         <Stack
-          sx={{
-            flexDirection: { xs: "column", sm: "row" },
-            width: "100%",
-            height: "100%",
-          }}
+          direction="row"
+          spacing={2}
+          sx={{ alignItems: "center", padding: 2 }}
+        >
+          {!isMobile ? (
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              {t("Datasets")}
+            </Typography>
+          ) : Boolean(selectedDataset) ? (
+            <>
+              <IconButton
+                aria-label={t("Back to dataset list")}
+                size="small"
+                onClick={() => {
+                  setSelectedDataset(undefined);
+                  setSelectedDatasetContent(null);
+                }}
+              >
+                <ExpandLessIcon fontSize="small" />
+              </IconButton>
+              <Typography
+                variant="subtitle1"
+                component="div"
+                sx={{ flexGrow: 1, userSelect: "none" }}
+                noWrap
+              >
+                {selectedDataset?.name}
+              </Typography>
+            </>
+          ) : (
+            <Box sx={{ flexGrow: 1 }} />
+          )}
+
+          {isMobile && selectedDataset ? (
+            <IconButton
+              aria-label={t("Edit dataset")}
+              size="small"
+              onClick={handleEditClick}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          ) : (
+            <>
+              <IconButton
+                aria-label={t("Create dataset")}
+                size="small"
+                onClick={handleCreateClick}
+              >
+                <AddIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                aria-label={t("Import dataset")}
+                size="small"
+                onClick={handleImportClick}
+              >
+                <InputIcon fontSize="small" />
+              </IconButton>
+            </>
+          )}
+        </Stack>
+
+        <Stack
+          sx={{ flexGrow: 1, minHeight: 0 }}
+          direction="row"
           divider={<Divider orientation="vertical" />}
         >
-          <Box sx={{ paddingX: 2, paddingY: 1 }}>{datasetList}</Box>
+          {(!isMobile || !highlightedYaml) && (
+            <Box sx={{ padding: 1, overflowY: "auto", flexShrink: 0 }}>
+              {datasetList}
+            </Box>
+          )}
 
-          <Box sx={{ padding: 2, flexGrow: 1 }}>
-            {highlightedYaml && selectedDataset && (
-              <Stack spacing={2} sx={{ height: "100%" }}>
-                <Card
-                  variant="outlined"
-                  sx={{ flexGrow: 1, padding: 1, overflowY: "auto" }}
-                >
-                  {highlightedYaml}
-                </Card>
-                <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
-                  {selectedDataset.name}
-                </Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "auto 1fr",
-                    rowGap: 1,
-                    columnGap: 4,
-                    "&>*": { minHeight: "32px", alignContent: "center" },
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    {t("Size")}
-                  </Typography>
-                  <Typography variant="body2">
-                    {selectedDataset.size.toLocaleString()} bytes
-                  </Typography>
+          {isMobile ? (
+            highlightedYaml
+          ) : (
+            <Box sx={{ padding: 2, flexGrow: 1, overflowY: "auto" }}>
+              {highlightedYaml && selectedDataset && (
+                <Stack spacing={3} sx={{ height: "100%" }}>
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      flexGrow: 1,
+                      padding: 1,
+                      overflowY: "auto",
+                      minHeight: "6rem",
+                    }}
+                  >
+                    {highlightedYaml}
+                  </Card>
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      gutterBottom
+                      sx={{ wordBreak: "break-all" }}
+                    >
+                      {selectedDataset.name}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "auto 1fr",
+                        rowGap: 0.5,
+                        columnGap: 4,
+                        "&>*": { minHeight: "28px", alignContent: "center" },
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        {t("Size")}
+                      </Typography>
+                      <Typography variant="body2">
+                        {formatBytes(selectedDataset.size)}
+                      </Typography>
 
-                  <Typography variant="body2" color="text.secondary">
-                    {t("Last Modified")}
-                  </Typography>
-                  <Typography variant="body2">
-                    {new Date(selectedDataset.lastModified).toLocaleString()}
-                  </Typography>
-                </Box>
-              </Stack>
-            )}
-          </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        {t("Last Modified")}
+                      </Typography>
+                      <Typography variant="body2">
+                        {new Date(
+                          selectedDataset.lastModified
+                        ).toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Stack>
+              )}
+            </Box>
+          )}
         </Stack>
-      )}
-    </>
+      </Stack>
+    </Card>
   );
 }
 

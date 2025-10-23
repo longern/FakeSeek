@@ -33,6 +33,7 @@ import { DatasetRecord, EditableMessage } from "./DatasetRecordEditor";
 import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
 import { useCurrentPreset } from "./hooks";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
+import { formatBytes } from "./utils";
 
 function TwoColumnLayout({
   left,
@@ -116,6 +117,32 @@ function ModelMenu({
         ))}
       </Menu>
     </>
+  );
+}
+
+function AssistantMessageRenderer({
+  content,
+}: {
+  content?: DatasetRecord["completion"] | null;
+}) {
+  return content === undefined ? null : content === null ? (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        padding: 2,
+      }}
+    >
+      <CircularProgress />
+    </Box>
+  ) : (
+    content[0].content && (
+      <Box sx={{ padding: 1 }}>
+        <Card variant="outlined" sx={{ borderRadius: 3, padding: 1 }}>
+          <Markdown>{content[0].content}</Markdown>
+        </Card>
+      </Box>
+    )
   );
 }
 
@@ -206,10 +233,15 @@ function ComparePanel({
       baseURL: currentPreset.baseURL,
       dangerouslyAllowBrowser: true,
     });
-    client.models.list().then((res) => {
-      const modelNames = res.data.map((model) => model.id);
-      setModels(modelNames);
-    });
+    client.models
+      .list()
+      .then((res) => {
+        const modelNames = res.data.map((model) => model.id);
+        setModels(modelNames);
+      })
+      .catch((reason) => {
+        console.error("Failed to fetch model list:", reason);
+      });
   }, [currentPreset]);
 
   return (
@@ -344,45 +376,17 @@ function ComparePanel({
           >
             <TwoColumnLayout
               left={
-                baseCompletions?.[selectedRecordIndex] === null ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      padding: 2,
-                    }}
-                  >
-                    <CircularProgress />
-                  </Box>
-                ) : (
-                  baseCompletions?.[selectedRecordIndex]?.[0].content && (
-                    <Box sx={{ padding: 1 }}>
-                      <Card
-                        variant="outlined"
-                        sx={{ borderRadius: 3, padding: 1 }}
-                      >
-                        <Markdown>
-                          {baseCompletions[selectedRecordIndex][0].content}
-                        </Markdown>
-                      </Card>
-                    </Box>
-                  )
-                )
+                <AssistantMessageRenderer
+                  content={baseCompletions?.[selectedRecordIndex]}
+                />
               }
               right={
-                finetunedCompletions?.[selectedRecordIndex]?.[0].content && (
-                  <Box sx={{ padding: 1 }}>
-                    <Card
-                      variant="outlined"
-                      sx={{ borderRadius: 3, padding: 1 }}
-                    >
-                      <Markdown>
-                        {finetunedCompletions[selectedRecordIndex][0].content}
-                      </Markdown>
-                    </Card>
-                  </Box>
-                )
+                <AssistantMessageRenderer
+                  content={finetunedCompletions?.[selectedRecordIndex]}
+                />
               }
+              leftTitle={t("Base model")}
+              rightTitle={t("Fine-tuned model")}
               tab={tab}
               onTabChange={setTab}
             />
@@ -421,32 +425,41 @@ function EvaluationPanel() {
             onBack={() => setSelected(null)}
           />
         ) : (
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Dataset Name</TableCell>
-                <TableCell>Size</TableCell>
-                <TableCell>Date Created</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {datasets?.map((dataset) => (
-                <TableRow
-                  key={dataset.name}
-                  hover
-                  selected={selected === dataset.name}
-                  onClick={() => setSelected(dataset.name)}
-                  sx={{ cursor: "pointer" }}
-                >
-                  <TableCell>{dataset.name}</TableCell>
-                  <TableCell>{dataset.size}</TableCell>
-                  <TableCell>
-                    {new Date(dataset.lastModified).toLocaleString()}
-                  </TableCell>
+          <Box sx={{ overflowY: "auto" }}>
+            <Table>
+              <TableHead
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "background.paper",
+                  zIndex: 1,
+                }}
+              >
+                <TableRow>
+                  <TableCell>Dataset Name</TableCell>
+                  <TableCell>Size</TableCell>
+                  <TableCell>Date Created</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {datasets?.map((dataset) => (
+                  <TableRow
+                    key={dataset.name}
+                    hover
+                    selected={selected === dataset.name}
+                    onClick={() => setSelected(dataset.name)}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    <TableCell>{dataset.name}</TableCell>
+                    <TableCell>{formatBytes(dataset.size)}</TableCell>
+                    <TableCell>
+                      {new Date(dataset.lastModified).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
         )}
       </Stack>
     </Card>

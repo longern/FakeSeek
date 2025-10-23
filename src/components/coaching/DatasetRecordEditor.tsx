@@ -243,9 +243,15 @@ function DatasetRecordEditor({
             </Card>
 
             {!record.completion ? (
-              <Button variant="outlined" onClick={() => handleGenerate()}>
-                {t("Generate")}
-              </Button>
+              <Divider>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleGenerate()}
+                >
+                  {t("Generate")}
+                </Button>
+              </Divider>
             ) : (
               <AssistantMessageEditor
                 role={record.completion[0].role}
@@ -253,6 +259,9 @@ function DatasetRecordEditor({
                 anchors={record.anchors}
                 onChange={(newValue) =>
                   onChange?.({ ...record, completion: [newValue] })
+                }
+                onDelete={() =>
+                  onChange?.({ ...record, completion: undefined as any })
                 }
                 applyChatTemplate={() =>
                   completionApplyTemplate({

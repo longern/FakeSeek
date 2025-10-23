@@ -428,7 +428,9 @@ function FinetunePanel() {
                 )}
               </Box>
             )}
-            <Box sx={{ width: "100%" }}>{selectedJobDetail}</Box>
+            <Box sx={{ width: "100%", overflowY: "auto" }}>
+              {selectedJobDetail}
+            </Box>
           </Stack>
         </Box>
       </Stack>

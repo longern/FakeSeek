@@ -1,5 +1,20 @@
 import { Component } from "react";
 
+export function formatBytes(size: number): string {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+
+  let value = size;
+  let unitIndex = 0;
+
+  for (; unitIndex < units.length - 1 && value >= 1024; unitIndex++) {
+    value /= 1024;
+  }
+
+  const formattedValue = value.toFixed(value >= 10 ? 0 : 1);
+
+  return `${formattedValue} ${units[unitIndex]}`;
+}
+
 function buildByteFallbackMaps() {
   const bs = [];
 

@@ -1,5 +1,6 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import {
@@ -50,6 +51,7 @@ function AssistantMessageEditor({
   hideLogprobs,
   applyChatTemplate,
   onChange,
+  onDelete,
   slots,
   slotProps,
 }: {
@@ -61,6 +63,7 @@ function AssistantMessageEditor({
     completion: DatasetRecord["completion"][number]
   ) => Promise<string>;
   onChange?: (newValue: DatasetRecord["completion"][number]) => void;
+  onDelete?: () => void;
   slots?: { tokensRenderer?: React.ComponentType<TokenRendererProps> };
   slotProps?: { tokensRenderer?: any };
 }) {
@@ -163,6 +166,19 @@ function AssistantMessageEditor({
                 )}
               </IconButton>
             )}
+            <IconButton
+              size="small"
+              aria-label={t("Delete assistant message")}
+              onClick={() => {
+                const confirmed = window.confirm(
+                  t("Are you sure you want to delete this assistant message?")
+                );
+                if (!confirmed) return;
+                onDelete?.();
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
           </Stack>
         </Stack>
       </Box>

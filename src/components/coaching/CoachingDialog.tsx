@@ -216,7 +216,7 @@ function CoachingDialog({
                     selected={isMobile ? false : currentTab === slug}
                   >
                     <ListItemText primary={verbose} />
-                    <NavigateNextIcon />
+                    {isMobile && <NavigateNextIcon />}
                   </ListItemButton>
                 </ListItem>
               ))}
