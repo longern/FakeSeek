@@ -38,17 +38,11 @@ import { formatBytes } from "./utils";
 function TwoColumnLayout({
   left,
   right,
-  leftTitle,
-  rightTitle,
   tab,
-  onTabChange,
 }: {
   left: React.ReactNode;
   right: React.ReactNode;
-  leftTitle?: string;
-  rightTitle?: string;
   tab: number;
-  onTabChange?: (newTab: number) => void;
 }) {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("md"));
 
@@ -59,16 +53,6 @@ function TwoColumnLayout({
     </Stack>
   ) : (
     <>
-      {leftTitle && rightTitle && (
-        <Tabs
-          variant="fullWidth"
-          value={tab}
-          onChange={(_, newValue) => onTabChange?.(newValue)}
-        >
-          <Tab label={leftTitle} />
-          <Tab label={rightTitle} />
-        </Tabs>
-      )}
       <KeepMounted open={tab === 0}>{left}</KeepMounted>
       <KeepMounted open={tab === 1}>{right}</KeepMounted>
     </>
@@ -299,6 +283,7 @@ function ComparePanel({
               onChange={(_, newValue) => setTab(newValue)}
             >
               <Tab
+                component={!isMobile || tab === 0 ? "div" : "button"}
                 value={0}
                 label={
                   <Typography
@@ -307,26 +292,32 @@ function ComparePanel({
                     sx={{ maxWidth: "100%" }}
                   >
                     {baseModel ?? t("Base model")}
+                    {(!isMobile || tab === 0) && (
+                      <ModelMenu
+                        models={models}
+                        onChange={(model) => setBaseModel(model)}
+                        sx={{
+                          position: "absolute",
+                          right: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          pointerEvents: "auto",
+                        }}
+                      />
+                    )}
                   </Typography>
                 }
                 disabled={!isMobile}
+                disableRipple
+                sx={{
+                  position: "relative",
+                  borderRight: "1px solid",
+                  borderColor: "divider",
+                }}
               />
-              <Box sx={{ position: "relative" }}>
-                <ModelMenu
-                  models={models}
-                  onChange={(model) => setBaseModel(model)}
-                  sx={{
-                    position: "absolute",
-                    right: "8px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                />
-              </Box>
-
-              <Divider orientation="vertical" flexItem />
 
               <Tab
+                component={!isMobile || tab === 1 ? "div" : "button"}
                 value={1}
                 label={
                   <Typography
@@ -335,22 +326,25 @@ function ComparePanel({
                     sx={{ maxWidth: "100%" }}
                   >
                     {finetunedModel ?? t("Fine-tuned model")}
+                    {(!isMobile || tab === 1) && (
+                      <ModelMenu
+                        models={models}
+                        onChange={(model) => setFinetunedModel(model)}
+                        sx={{
+                          position: "absolute",
+                          right: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          pointerEvents: "auto",
+                        }}
+                      />
+                    )}
                   </Typography>
                 }
                 disabled={!isMobile}
+                disableRipple
+                sx={{ position: "relative" }}
               />
-              <Box sx={{ position: "relative" }}>
-                <ModelMenu
-                  models={models}
-                  onChange={(model) => setFinetunedModel(model)}
-                  sx={{
-                    position: "absolute",
-                    right: "8px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                />
-              </Box>
             </Tabs>
             <Divider />
           </Box>
@@ -385,10 +379,7 @@ function ComparePanel({
                   content={finetunedCompletions?.[selectedRecordIndex]}
                 />
               }
-              leftTitle={t("Base model")}
-              rightTitle={t("Fine-tuned model")}
               tab={tab}
-              onTabChange={setTab}
             />
           </Box>
         </Box>

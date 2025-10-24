@@ -16,7 +16,6 @@ import {
   List,
   ListItem,
   ListItemButton,
-  ListItemIcon,
   ListItemText,
   MenuItem,
   Select,
