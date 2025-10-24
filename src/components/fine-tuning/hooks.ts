@@ -9,7 +9,7 @@ import { convertFromHarmony } from "./utils";
 
 const TOKENIZER_CACHE: Record<string, PreTrainedTokenizer> = {};
 
-async function getTokenizer(model: string) {
+export async function getTokenizer(model: string) {
   if (model in TOKENIZER_CACHE) return TOKENIZER_CACHE[model];
 
   const { AutoTokenizer } = await import("@huggingface/transformers");
@@ -29,6 +29,16 @@ async function getTokenizer(model: string) {
   TOKENIZER_CACHE[model] = tokenizer;
 
   return tokenizer;
+}
+
+export function encodeSingleToken(
+  tokenizer: PreTrainedTokenizer,
+  token: string
+) {
+  const encoded = tokenizer.encode(token);
+  if (encoded.length !== 1)
+    throw new Error(`Tokenizer encoded multiple tokens for single token.`);
+  return encoded[0];
 }
 
 export async function completionApplyTemplate({
@@ -226,13 +236,15 @@ export function useContinueGeneration() {
       tokenIndex,
       tokenId,
       tokenizerModel,
-      topLogprobs = 1,
+      maxTokens,
+      topLogprobs,
     }: {
       prompt: DatasetRecord["prompt"];
       completion: Array<DatasetRecord["completion"]>;
       tokenIndex: number;
       tokenId: number;
       tokenizerModel: string;
+      maxTokens?: number;
       topLogprobs?: number;
     }) => {
       const tokenizer = await getTokenizer(tokenizerModel);
@@ -260,7 +272,7 @@ export function useContinueGeneration() {
       const response = await client.completions.create({
         model,
         prompt: prefixText,
-        max_tokens: 32768,
+        max_tokens: maxTokens ?? 32768,
         temperature: currentPreset?.temperature,
         logprobs: topLogprobs,
         ...{ include_stop_str_in_output: true, skip_special_tokens: false },
@@ -276,4 +288,67 @@ export function useContinueGeneration() {
   );
 
   return continueGeneration;
+}
+
+export function useMoreLogprobs() {
+  const currentPreset = useAppSelector((state) =>
+    state.presets.current === null
+      ? null
+      : state.presets.presets[state.presets.current] ?? null
+  );
+
+  const moreLogprobs = useCallback(
+    async ({
+      prompt,
+      completion,
+      tokenIndex,
+      tokenizerModel,
+      topLogprobs = 20,
+    }: {
+      prompt: DatasetRecord["prompt"];
+      completion: Array<DatasetRecord["completion"]>;
+      tokenIndex: number;
+      tokenizerModel: string;
+      topLogprobs: number;
+    }) => {
+      const tokenizer = await getTokenizer(tokenizerModel);
+
+      const promptIds = tokenizer.apply_chat_template(
+        convertFromHarmony(tokenizerModel, prompt),
+        { add_generation_prompt: true, return_tensor: false }
+      ) as number[];
+      const promptCompletionIds = tokenizer.apply_chat_template(
+        convertFromHarmony(tokenizerModel, [...prompt, ...completion]),
+        { return_tensor: false }
+      ) as number[];
+      const completionIds = promptCompletionIds.slice(promptIds.length);
+      const completionPrefixIds = completionIds.slice(0, tokenIndex);
+      const prefixIds = [...promptIds, ...completionPrefixIds];
+
+      const prefixText = tokenizer.decode(prefixIds);
+
+      const client = new OpenAI({
+        apiKey: currentPreset?.apiKey,
+        baseURL: currentPreset?.baseURL,
+        dangerouslyAllowBrowser: true,
+      });
+      const model = currentPreset?.defaultModel ?? "openai/gpt-oss-120b";
+      const response = await client.completions.create({
+        model,
+        prompt: prefixText,
+        max_tokens: 1,
+        temperature: currentPreset?.temperature,
+        logprobs: topLogprobs,
+        ...{ include_stop_str_in_output: true, skip_special_tokens: false },
+      });
+
+      const choice = response.choices[0];
+      const logprobs = choice.logprobs;
+
+      return logprobs;
+    },
+    [currentPreset]
+  );
+
+  return moreLogprobs;
 }

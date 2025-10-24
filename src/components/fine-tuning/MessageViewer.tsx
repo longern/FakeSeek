@@ -1,3 +1,4 @@
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import {
@@ -231,14 +232,16 @@ export function LogprobPopover({
   slotProps,
   onClose,
   onContinueGeneration,
+  onMoreLogprobs,
 }: {
   logprob: TokenLogprobs;
   slotProps?: { anchorEditor?: AnchorEditorProps };
   onClose?: () => void;
   onContinueGeneration?: (tokenId: number) => void;
+  onMoreLogprobs?: () => void;
 }) {
   return (
-    <Stack spacing={2} sx={{ padding: 2 }}>
+    <Stack spacing={2} sx={{ padding: 2, minWidth: "360px" }}>
       {slotProps?.anchorEditor && <AnchorEditor {...slotProps?.anchorEditor} />}
 
       <Card variant="outlined">
@@ -297,6 +300,17 @@ export function LogprobPopover({
                 )}
               </TableRow>
             ))}
+            <TableRow>
+              <TableCell colSpan={3} align="center">
+                <IconButton
+                  aria-label={"More"}
+                  size="small"
+                  onClick={onMoreLogprobs}
+                >
+                  <MoreHorizIcon fontSize="small" />
+                </IconButton>
+              </TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </Card>

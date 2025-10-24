@@ -60,6 +60,7 @@ function CompletionTokensRenderer({
   lazyLogprobs,
   onAnchorsChanged,
   onContinueGeneration,
+  onMoreLogprobs,
 }: {
   anchors?: DatasetRecord["anchors"];
   onDraft?: (draft: { text: string; prefix: string }) => void;
@@ -72,6 +73,7 @@ function CompletionTokensRenderer({
     tokenIndex: number;
     tokenId: number;
   }) => Promise<{ text: string; prefix: string }>;
+  onMoreLogprobs?: (tokenIndex: number) => Promise<TokenLogprobs>;
 }) {
   const [tokens, setTokens] = useState<Array<string> | null>(null);
   const [logprobs, setLogprobs] = useState<Array<TokenLogprobs> | undefined>(
@@ -146,6 +148,15 @@ function CompletionTokensRenderer({
             tokenId: tokenId,
           });
           if (draft) onDraft?.(draft);
+        }}
+        onMoreLogprobs={async () => {
+          if (!onMoreLogprobs) return;
+          const logprob = await onMoreLogprobs(selected);
+          setLogprobs((prevLogprobs) => {
+            return prevLogprobs?.map((lp, index) =>
+              index === selected ? logprob : lp
+            );
+          });
         }}
       />
     );

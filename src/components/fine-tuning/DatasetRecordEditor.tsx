@@ -23,13 +23,17 @@ import { useTranslation } from "react-i18next";
 
 import {
   completionApplyTemplate,
+  encodeSingleToken,
+  getTokenizer,
   tokenizeCompletion,
   useContinueGeneration,
   useForward,
   useGenerate,
+  useMoreLogprobs,
 } from "./hooks";
 import AssistantMessageEditor from "./AssistantMessageEditor";
 import CompletionTokensRenderer from "./CompletionTokensRenderer";
+import { TokenLogprobs } from "./MessageViewer";
 
 type Content =
   | string
@@ -164,6 +168,7 @@ function DatasetRecordEditor({
   const generate = useGenerate();
   const forward = useForward();
   const continueGeneration = useContinueGeneration();
+  const moreLogprobs = useMoreLogprobs();
   const { t } = useTranslation("fineTuning");
 
   const handleGenerate = useCallback(
@@ -298,6 +303,38 @@ function DatasetRecordEditor({
                           topLogprobs: 5,
                         });
                       return { text: token + choice.text, prefix };
+                    },
+                    onMoreLogprobs: async (tokenIndex: number) => {
+                      const logprobs = await moreLogprobs({
+                        prompt: record.prompt,
+                        completion: record.completion as any,
+                        tokenIndex,
+                        tokenizerModel: model!,
+                        topLogprobs: 20,
+                      });
+                      if (!logprobs) return null;
+
+                      const tokenizer = await getTokenizer(model!);
+
+                      return {
+                        token: logprobs.tokens![0],
+                        token_id: encodeSingleToken(
+                          tokenizer,
+                          logprobs.tokens![0]
+                        ),
+                        logprob: logprobs.token_logprobs![0],
+                        top_logprobs: Object.entries(logprobs.top_logprobs![0])
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([token, logprob], index) => ({
+                            token,
+                            token_id: encodeSingleToken(
+                              tokenizer,
+                              logprobs.tokens![0]
+                            ),
+                            logprob,
+                            rank: index + 1,
+                          })),
+                      } as TokenLogprobs;
                     },
                   } as Partial<ComponentProps<typeof CompletionTokensRenderer>>,
                 }}
