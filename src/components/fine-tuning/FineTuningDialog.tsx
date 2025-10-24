@@ -71,7 +71,7 @@ function MobileLayout({
   const [showPanel, setShowPanel] = useState(false);
   const nodeRef = useRef(null);
   const theme = useTheme();
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   return (
     <Box sx={{ width: "100%", height: "100%", overflow: "hidden" }}>
@@ -169,7 +169,7 @@ function CoachingDialog({
     onClose: undefined as (() => void) | undefined,
   });
 
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const tabsMapping = {

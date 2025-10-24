@@ -72,7 +72,7 @@ function DatasetEditor({
   );
   const [model, setModel] = useState(currentPreset?.defaultModel);
 
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   const confirmClose = useCallback(() => {
     if (!modified) return onClose();

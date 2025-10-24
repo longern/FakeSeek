@@ -121,7 +121,9 @@ function AppDrawer({
                   onClose();
                 }}
               >
-                <ListItemText primary={t("Fine-tuning")} />
+                <ListItemText
+                  primary={t("Fine-tuning", { ns: "fineTuning" })}
+                />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>

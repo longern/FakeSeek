@@ -157,7 +157,7 @@ function AnchorEditor({
     confidence ?? 1.0
   );
 
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   useEffect(() => {
     setUncontrolledConfidence(confidence ?? 1.0);

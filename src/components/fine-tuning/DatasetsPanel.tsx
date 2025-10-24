@@ -127,7 +127,7 @@ function DatasetsPanel() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openDatasetEditor = useContext(OpenDatasetEditorContext);
 
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const handleCreateClick = useCallback(() => {

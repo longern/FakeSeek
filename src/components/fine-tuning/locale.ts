@@ -1,0 +1,48 @@
+export default {
+  en: {
+    fineTuning: {
+      "Base model": "Base model",
+      "Create a fine-tuning job": "Create a fine-tuning job",
+      "Created at": "Created at",
+      Dataset: "Dataset",
+      Datasets: "Datasets",
+      Edit: "Edit",
+      Evaluation: "Evaluation",
+      Export: "Export",
+      "Fine-tuned model": "Fine-tuned model",
+      "Fine-tuning": "Fine-tuning",
+      "Fine-tuning jobs": "Fine-tuning jobs",
+      "Finished at": "Finished at",
+      "Found {{count}} results": "Found {{count}} results",
+      "Greedy decoding": "Greedy decoding",
+      "Last modified": "Last modified",
+      Rename: "Rename",
+
+      "confirm-close-with-unsaved-changes": "Close without saving changes?",
+      "confirm-delete-record": "Delete this record?",
+    },
+  },
+  "zh-CN": {
+    fineTuning: {
+      "Base model": "基底模型",
+      "Create a fine-tuning job": "创建微调任务",
+      "Created at": "创建时间",
+      Dataset: "数据集",
+      Datasets: "数据集",
+      Edit: "编辑",
+      Evaluation: "评估",
+      Export: "导出",
+      "Fine-tuned model": "微调模型",
+      "Fine-tuning": "微调",
+      "Fine-tuning jobs": "微调任务",
+      "Finished at": "完成时间",
+      "Found {{count}} results": "找到 {{count}} 个结果",
+      "Greedy decoding": "贪心解码",
+      "Last modified": "最后修改时间",
+      Rename: "重命名",
+
+      "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
+      "confirm-delete-record": "删除此条数据？",
+    },
+  },
+};

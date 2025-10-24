@@ -60,7 +60,7 @@ function CreateFinetuneJobDialog({
   const [existingDatasets, setExistingDatasets] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const currentPreset = useCurrentPreset();
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   const handleCreate = useCallback(async () => {
     const datasetContent = await readDataset(dataset);
@@ -175,7 +175,7 @@ function FinetunePanel() {
 
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   const listJobs = useCallback(async () => {
     try {
@@ -249,7 +249,7 @@ function FinetunePanel() {
           />
         </Box>
 
-        <Typography>{t("Model")}</Typography>
+        <Typography>{t("Base model")}</Typography>
         <Typography>{selectedJob.model}</Typography>
 
         <Typography>{t("Fine-tuned model")}</Typography>
@@ -395,19 +395,7 @@ function FinetunePanel() {
                 ) : (
                   <List disablePadding sx={{ width: "100%" }}>
                     {finetuneJobs.map((job) => (
-                      <ListItem
-                        key={job.id}
-                        disablePadding
-                        secondaryAction={
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ userSelect: "none" }}
-                          >
-                            {job.status}
-                          </Typography>
-                        }
-                      >
+                      <ListItem key={job.id} disablePadding>
                         <ListItemButton
                           selected={job.id === selectedJobId}
                           sx={{ borderRadius: 2 }}
@@ -427,7 +415,17 @@ function FinetunePanel() {
                               secondary: { noWrap: true },
                             }}
                           />
-                          <ListItemIcon></ListItemIcon>
+                          <Typography
+                            variant="body2"
+                            color="textSecondary"
+                            sx={{
+                              fontSize: "0.8125rem",
+                              marginLeft: 0.5,
+                              userSelect: "none",
+                            }}
+                          >
+                            {job.status}
+                          </Typography>
                         </ListItemButton>
                       </ListItem>
                     ))}

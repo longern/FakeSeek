@@ -80,7 +80,7 @@ function AssistantMessageEditor({
   >(undefined);
   const [error, setError] = useState("");
 
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   return (
     <Card variant="outlined" sx={{ borderRadius: 3, overflow: "visible" }}>

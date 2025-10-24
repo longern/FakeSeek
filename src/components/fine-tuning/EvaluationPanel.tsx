@@ -168,7 +168,7 @@ function ComparePanel({
   const [selectedRecordIndex, setSelectedRecordIndex] = useState<number>(0);
   const currentPreset = useCurrentPreset();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("md"));
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   const handleGenerateAll = useCallback(async () => {
     const prompt = records?.[selectedRecordIndex].prompt;
@@ -402,7 +402,7 @@ function EvaluationPanel() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("md"));
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   useEffect(() => {
     listDatasets().then((datasets) => {

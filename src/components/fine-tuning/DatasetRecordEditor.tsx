@@ -67,7 +67,7 @@ export function EditableMessage({
   const [value, setValue] = useState(content);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   useEffect(() => {
     setValue(content);
@@ -164,7 +164,7 @@ function DatasetRecordEditor({
   const generate = useGenerate();
   const forward = useForward();
   const continueGeneration = useContinueGeneration();
-  const { t } = useTranslation();
+  const { t } = useTranslation("fineTuning");
 
   const handleGenerate = useCallback(
     async (signal?: AbortSignal) => {
