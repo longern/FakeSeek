@@ -32,7 +32,7 @@ const resources = {
       "Image Search": "Image Search",
       "In 7 days": "In 7 days",
       "In 30 days": "In 30 days",
-      "New Chat": "New Chat",
+      "New chat": "New chat",
       Older: "Older",
       "Preset Name": "Preset Name",
       Rename: "Rename",
@@ -63,6 +63,7 @@ const resources = {
       "quality.low": "Low",
       "quality.medium": "Medium",
       "quality.high": "High",
+      "start-a-new-chat": "New chat",
       "temperature-help":
         "The temperature parameter controls the randomness of the generated text. Lower values will produce more deterministic and predictable output, while higher values increase diversity and creativity.",
     },
@@ -98,7 +99,7 @@ const resources = {
       "Image Search": "图片搜索",
       "In 7 days": "7 天内",
       "In 30 days": "30 天内",
-      "New Chat": "开启新对话",
+      "New chat": "新对话",
       Older: "更早",
       "Preset Name": "预设名称",
       Rename: "重命名",
@@ -127,6 +128,7 @@ const resources = {
       "quality.low": "低",
       "quality.medium": "中",
       "quality.high": "高",
+      "start-a-new-chat": "开启新对话",
       "temperature-help":
         "温度参数控制生成文本的随机性。较低的值会产生更确定和可预测的输出，而较高的值会增加多样性和创造性。",
       "tools-provider.default": "默认",

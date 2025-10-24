@@ -80,7 +80,7 @@ function AppDrawer({
               onClick={() => onConversationChange(null)}
               startIcon={addCommentIcon}
             >
-              {t("New Chat")}
+              {t("start-a-new-chat")}
             </Button>
           </Box>
         )}

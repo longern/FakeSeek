@@ -311,6 +311,13 @@ function Chat() {
   const selectedConversation = useAppSelector(
     (state) => state.conversations.current
   );
+  const selectedConversationTitle = useAppSelector((state) => {
+    const current = state.conversations.current;
+    if (current === null) return null;
+    const currentConversation = state.conversations.conversations[current];
+    if (!currentConversation) return null;
+    return currentConversation.title;
+  });
   const [showSidebar, setShowSidebar] = useState(false);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
@@ -340,9 +347,15 @@ function Chat() {
             >
               <MenuIcon />
             </IconButton>
-            <Box sx={{ flexGrow: 1 }} />
+            <Typography
+              variant="subtitle1"
+              noWrap
+              sx={{ flexGrow: 1, textAlign: "center", userSelect: "none" }}
+            >
+              {selectedConversationTitle || t("New chat")}
+            </Typography>
             <IconButton
-              aria-label={t("New Chat")}
+              aria-label={t("start-a-new-chat")}
               size="large"
               onClick={() => {
                 dispatch(changeConversation(null));
