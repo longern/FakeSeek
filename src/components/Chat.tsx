@@ -36,7 +36,7 @@ import {
   requestSearchImage,
 } from "../app/thunks";
 import AppDrawer from "./AppDrawer";
-import AnnotationDialog from "./coaching/AnnotationDialog";
+import AnnotationDialog from "./fine-tuning/AnnotationDialog";
 import InputArea, { Abortable } from "./InputArea";
 import MessageList, { UserMessageContextMenu } from "./MessageList";
 import { ResponseActions, ResponseContextMenu } from "./ResponseItem";

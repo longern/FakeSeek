@@ -21,12 +21,12 @@ import {
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import ConversationList from "./ConversationList";
 import SettingsDialog from "./SettingsDialog";
-import { ErrorBoundary } from "./coaching/utils";
+import { ErrorBoundary } from "./fine-tuning/utils";
 
 const addCommentIcon = (
   <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
 );
-const CoachingDialog = lazy(() => import("./coaching/CoachingDialog"));
+const FineTuningDialog = lazy(() => import("./fine-tuning/FineTuningDialog"));
 
 function AppDrawer({
   open,
@@ -135,7 +135,7 @@ function AppDrawer({
 
       <ErrorBoundary>
         <Suspense>
-          <CoachingDialog
+          <FineTuningDialog
             open={showCoachingDialog}
             onClose={() => {
               if (!navigator.storage || !navigator.storage.getDirectory) {

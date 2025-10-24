@@ -28,10 +28,10 @@ export const OpenDatasetEditorContext = createContext<
 
 export async function getDatasetDirectoryHandle() {
   const root = await navigator.storage.getDirectory();
-  const coachingDirHandle = await root.getDirectoryHandle(".coaching", {
+  const fineTuningDirHandle = await root.getDirectoryHandle(".coaching", {
     create: true,
   });
-  const datasetDirectoryHandle = await coachingDirHandle.getDirectoryHandle(
+  const datasetDirectoryHandle = await fineTuningDirHandle.getDirectoryHandle(
     "datasets",
     { create: true }
   );

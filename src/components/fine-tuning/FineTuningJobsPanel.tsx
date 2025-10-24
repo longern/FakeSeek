@@ -73,12 +73,17 @@ function CreateFinetuneJobDialog({
       file,
       purpose: "fine-tune",
     });
-    await client.fineTuning.jobs.create({
-      method: { type: "supervised" },
-      model: baseModel,
-      training_file: uploaded.id,
-    });
-    onClose();
+    try {
+      await client.fineTuning.jobs.create({
+        method: { type: "supervised" },
+        model: baseModel,
+        training_file: uploaded.id,
+      });
+      onClose();
+    } catch (e) {
+      setCreating(false);
+      console.error("Failed to create fine-tuning job", e);
+    }
   }, [baseModel, currentPreset, dataset, onClose]);
 
   useEffect(() => {
@@ -149,7 +154,9 @@ function CreateFinetuneJobDialog({
           variant="contained"
         >
           <Collapse in={creating} orientation="horizontal">
-            <CircularProgress size={16} sx={{ marginRight: 1 }} />
+            <Box sx={{ marginRight: 1, display: "flex" }}>
+              <CircularProgress size={16} />
+            </Box>
           </Collapse>
           {t("Create")}
         </Button>

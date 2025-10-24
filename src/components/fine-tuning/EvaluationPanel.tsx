@@ -436,9 +436,9 @@ function EvaluationPanel() {
                 }}
               >
                 <TableRow>
-                  <TableCell>Dataset Name</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell>Date Created</TableCell>
+                  <TableCell>{t("Name")}</TableCell>
+                  <TableCell>{t("Size")}</TableCell>
+                  <TableCell>{t("Last modified")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

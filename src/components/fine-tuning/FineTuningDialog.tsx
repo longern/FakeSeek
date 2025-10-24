@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { Transition } from "react-transition-group";
 
 import DatasetsPanel from "./DatasetsPanel";
-import FinetunePanel from "./FinetunePanel";
+import FineTuningJobsPanel from "./FineTuningJobsPanel";
 import DatasetEditor, { OpenDatasetEditorContext } from "./DatasetEditor";
 import EvaluationPanel from "./EvaluationPanel";
 
@@ -229,7 +229,7 @@ function CoachingDialog({
   const panel = !open ? null : currentTab === "datasets" ? (
     <DatasetsPanel />
   ) : currentTab === "fine-tuning-jobs" ? (
-    <FinetunePanel />
+    <FineTuningJobsPanel />
   ) : currentTab === "evaluation" ? (
     <EvaluationPanel />
   ) : null;
