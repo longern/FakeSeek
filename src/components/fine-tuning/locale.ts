@@ -18,6 +18,12 @@ export default {
       "Last modified": "Last modified",
       Rename: "Rename",
 
+      cancelled: "Cancelled",
+      failed: "Failed",
+      queued: "Queued",
+      running: "Running",
+      succeeded: "Succeeded",
+
       "confirm-close-with-unsaved-changes": "Close without saving changes?",
       "confirm-delete-record": "Delete this record?",
     },
@@ -40,6 +46,12 @@ export default {
       "Greedy decoding": "贪心解码",
       "Last modified": "最后修改时间",
       Rename: "重命名",
+
+      cancelled: "已取消",
+      failed: "失败",
+      queued: "排队中",
+      running: "运行中",
+      succeeded: "成功",
 
       "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
       "confirm-delete-record": "删除此条数据？",

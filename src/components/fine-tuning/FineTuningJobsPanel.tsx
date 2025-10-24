@@ -234,7 +234,7 @@ function FinetunePanel() {
         <Typography>{t("Status")}</Typography>
         <Box>
           <Chip
-            label={selectedJob.status}
+            label={t(selectedJob.status)}
             size="small"
             color={
               selectedJob.status === "succeeded"
@@ -418,12 +418,14 @@ function FinetunePanel() {
                             variant="body2"
                             color="textSecondary"
                             sx={{
+                              flexShrink: 0,
+                              textWrap: "nowrap",
                               fontSize: "0.8125rem",
-                              marginLeft: 0.5,
+                              marginLeft: 1,
                               userSelect: "none",
                             }}
                           >
-                            {job.status}
+                            {t(job.status)}
                           </Typography>
                         </ListItemButton>
                       </ListItem>
