@@ -28,11 +28,11 @@ import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
 import { Model } from "openai/resources/models.mjs";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { listDatasets, readDataset } from "./DatasetsPanel";
 
 import type { Preset } from "../../app/presets";
+import { useCurrentPreset } from "../presets/hooks";
+import { listDatasets, readDataset } from "./DatasetsPanel";
 import HFLogo from "./hf-logo.svg";
-import { useCurrentPreset } from "./hooks";
 
 const NO_PRESET_ERROR = new Error("No preset selected");
 

@@ -30,8 +30,8 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
 
-import { useAppSelector } from "../app/hooks";
-import { Preset } from "../app/presets";
+import { useAppSelector } from "../../app/hooks";
+import { Preset } from "../../app/presets";
 import OpenAI from "openai";
 
 function PresetEditDialog({

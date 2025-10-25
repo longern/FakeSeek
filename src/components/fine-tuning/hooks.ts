@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { useCallback } from "react";
 
 import { useAppSelector } from "../../app/hooks";
+import { useCurrentPreset } from "../presets/hooks";
 import { DatasetRecord } from "./DatasetRecordEditor";
 import { TokenLogprobs } from "./MessageViewer";
 import { convertFromHarmony } from "./utils";
@@ -87,16 +88,6 @@ export async function tokenizeCompletion({
   const completionIds = tokenizer.encode(completionText);
   const tokens = completionIds.map((id) => tokenizer.decode([id], {}));
   return tokens;
-}
-
-export function useCurrentPreset() {
-  const currentPreset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current] ?? null
-  );
-
-  return currentPreset;
 }
 
 export function useGenerate() {

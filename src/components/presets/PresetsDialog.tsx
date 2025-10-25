@@ -20,12 +20,12 @@ import EditIcon from "@mui/icons-material/Edit";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
-import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   patch as patchPreset,
   remove as removePreset,
   setCurrent as setCurrentPreset,
-} from "../app/presets";
+} from "../../app/presets";
 import PresetEditDialog from "./PresetEditDialog";
 
 function PresetsDialog({
@@ -79,31 +79,41 @@ function PresetsDialog({
             "& .MuiListItemButton-root": { minHeight: "60px" },
           }}
         >
-          <Card elevation={0} sx={{ borderRadius: 3 }}>
-            <List disablePadding>
-              {Object.entries(presets.presets).map(([presetId, preset]) => (
-                <ListItem key={presetId} disablePadding>
-                  <ListItemButton
-                    selected={presets.current === presetId}
-                    onClick={() => {
-                      dispatch(setCurrentPreset(presetId));
-                    }}
-                  >
-                    <ListItemText primary={preset.presetName} />
-                    <IconButton
-                      edge="end"
+          {Object.keys(presets.presets).length === 0 ? (
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              sx={{ textAlign: "center", padding: 4, userSelect: "none" }}
+            >
+              {t("No data")}
+            </Typography>
+          ) : (
+            <Card elevation={0} sx={{ borderRadius: 3 }}>
+              <List disablePadding>
+                {Object.entries(presets.presets).map(([presetId, preset]) => (
+                  <ListItem key={presetId} disablePadding>
+                    <ListItemButton
+                      selected={presets.current === presetId}
                       onClick={() => {
-                        setShowPresetEditor(true);
-                        setEditingPresetId(presetId);
+                        dispatch(setCurrentPreset(presetId));
                       }}
                     >
-                      <EditIcon />
-                    </IconButton>
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          </Card>
+                      <ListItemText primary={preset.presetName} />
+                      <IconButton
+                        edge="end"
+                        onClick={() => {
+                          setShowPresetEditor(true);
+                          setEditingPresetId(presetId);
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Card>
+          )}
         </DialogContent>
 
         <DialogActions>

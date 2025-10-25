@@ -14,8 +14,7 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import PresetsDialog from "./PresetsDialog";
+import { useShowPresetsDialog } from "./presets/contexts";
 
 function SearchModeChip({
   value,
@@ -28,13 +27,13 @@ function SearchModeChip({
   ) => void;
   onMenuClose?: () => void;
 }) {
-  const [showPresets, setShowPresets] = useState(false);
   const [savedValue, setSavedValue] = useState<
     "auto" | "webpage" | "image" | "deep-research"
   >("auto");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation();
+  const showPresetsDialog = useShowPresetsDialog();
 
   const handleMenuClose = useCallback(() => {
     setAnchorEl(null);
@@ -147,7 +146,7 @@ function SearchModeChip({
         </MenuItem>
         <MenuItem
           onClick={() => {
-            setShowPresets(true);
+            showPresetsDialog();
             handleMenuClose();
           }}
         >
@@ -155,8 +154,6 @@ function SearchModeChip({
           <ListItemText primary={t("More presets...")}></ListItemText>
         </MenuItem>
       </Menu>
-
-      <PresetsDialog open={showPresets} onClose={() => setShowPresets(false)} />
     </>
   );
 }

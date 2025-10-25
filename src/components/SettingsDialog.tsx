@@ -17,6 +17,8 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
+import { useShowPresetsDialog } from "./presets/contexts";
+
 function SettingsBlock({
   subheader,
   children,
@@ -49,6 +51,7 @@ function SettingsDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const showPresetsDialog = useShowPresetsDialog();
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
@@ -90,6 +93,12 @@ function SettingsDialog({
       >
         <Stack spacing={2}>
           <SettingsBlock subheader={t("Account")}>
+            <ListItem disablePadding>
+              <ListItemButton onClick={showPresetsDialog}>
+                <ListItemText primary={t("Presets")} />
+                <NavigateNextIcon color="disabled" />
+              </ListItemButton>
+            </ListItem>
             <ListItem disablePadding>
               <ListItemButton onClick={() => {}}>
                 <ListItemText primary={t("Data controls")} />

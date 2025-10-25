@@ -1,11 +1,9 @@
-import {
-  createTheme,
-  CssBaseline,
-  GlobalStyles,
-  ThemeProvider,
-} from "@mui/material";
+import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 
 import Chat from "./Chat";
+import { useCallback, useState } from "react";
+import { PresetsDialogContext } from "./presets/contexts";
+import PresetsDialog from "./presets/PresetsDialog";
 
 const theme = createTheme({
   palette: {
@@ -18,7 +16,9 @@ const theme = createTheme({
     MuiToggleButton: { styleOverrides: { root: { textTransform: "none" } } },
     MuiCssBaseline: {
       styleOverrides: {
+        "html, body, #root": { height: "100%" },
         html: { WebkitFontSmoothing: "auto" },
+        body: { overflow: "hidden" },
         code: {
           fontFamily:
             "ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",
@@ -29,16 +29,20 @@ const theme = createTheme({
 });
 
 function App() {
+  const [isPresetsDialogOpen, setIsPresetsDialogOpen] = useState(false);
+
+  const showPresetsDialog = useCallback(() => setIsPresetsDialogOpen(true), []);
+
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <GlobalStyles
-        styles={{
-          "html, body, #root": { height: "100%" },
-          body: { overflow: "hidden" },
-        }}
-      ></GlobalStyles>
-      <Chat />
+      <PresetsDialogContext.Provider value={showPresetsDialog}>
+        <CssBaseline />
+        <Chat />
+        <PresetsDialog
+          open={isPresetsDialogOpen}
+          onClose={() => setIsPresetsDialogOpen(false)}
+        />
+      </PresetsDialogContext.Provider>
     </ThemeProvider>
   );
 }

@@ -27,12 +27,12 @@ import OpenAI from "openai";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Markdown } from "../Markdown";
+import { useCurrentPreset } from "../presets/hooks";
 import { KeepMounted } from "./AssistantMessageEditor";
 import { parseDataset } from "./DatasetEditor";
 import { DatasetRecord, EditableMessage } from "./DatasetRecordEditor";
-import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
-import { useCurrentPreset } from "./hooks";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
+import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
 import { formatBytes } from "./utils";
 
 function TwoColumnLayout({
