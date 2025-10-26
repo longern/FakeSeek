@@ -365,11 +365,12 @@ function FinetunePanel() {
             {isMobile && selectedJobDetail ? null : (
               <Box
                 sx={{
-                  padding: 1,
+                  paddingX: 1,
                   width: isMobile ? "100%" : "300px",
                   flexShrink: 0,
                   overflowY: "auto",
                 }}
+                onClick={() => setSelectedJobId(null)}
               >
                 {finetuneJobs instanceof Error || !finetuneJobs?.length ? (
                   <Box
@@ -392,17 +393,16 @@ function FinetunePanel() {
                     )}
                   </Box>
                 ) : (
-                  <List disablePadding sx={{ width: "100%" }}>
+                  <List sx={{ width: "100%" }}>
                     {finetuneJobs.map((job) => (
                       <ListItem key={job.id} disablePadding>
                         <ListItemButton
                           selected={job.id === selectedJobId}
                           sx={{ borderRadius: 2 }}
-                          onClick={() =>
-                            setSelectedJobId((value) =>
-                              value === job.id ? null : job.id
-                            )
-                          }
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedJobId(job.id);
+                          }}
                         >
                           <ListItemText
                             primary={job.id}
