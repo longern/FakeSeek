@@ -124,6 +124,12 @@ function DatasetEditor({
       setSelected(0);
       setModified(false);
     });
+
+    const oldTitle = document.title;
+    document.title = datasetName + " - FakeSeek";
+    return () => {
+      document.title = oldTitle;
+    };
   }, [open, datasetName]);
 
   return (

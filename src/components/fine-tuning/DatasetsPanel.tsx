@@ -213,44 +213,34 @@ function DatasetsPanel() {
     listDatasets().then(setDatasets);
   }, []);
 
-  const datasetList = (
-    <>
-      <Card
-        elevation={0}
-        sx={{ borderRadius: isMobile ? 3 : undefined, width: "260px" }}
-      >
-        <List disablePadding>
-          {datasets === null
-            ? null
-            : datasets.map((dataset) => (
-                <ListItem key={dataset.name} disablePadding>
-                  <ListItemButton
-                    selected={dataset === selectedDataset}
-                    sx={{ borderRadius: isMobile ? undefined : 2 }}
-                    onClick={() => {
-                      setSelectedDataset(dataset);
-                      readDatasetText(dataset.name).then(
-                        setSelectedDatasetContent
-                      );
-                    }}
-                    onDoubleClick={isMobile ? undefined : handleEditClick}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      setSelectedDataset(dataset);
-                      setAnchorEl(event.currentTarget);
-                    }}
-                  >
-                    <ListItemText
-                      primary={dataset.name}
-                      slotProps={{ primary: { noWrap: true } }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-        </List>
-      </Card>
-    </>
-  );
+  const datasetList =
+    datasets === null ? null : (
+      <List disablePadding>
+        {datasets.map((dataset) => (
+          <ListItem key={dataset.name} disablePadding>
+            <ListItemButton
+              selected={dataset === selectedDataset}
+              sx={{ borderRadius: 2 }}
+              onClick={() => {
+                setSelectedDataset(dataset);
+                readDatasetText(dataset.name).then(setSelectedDatasetContent);
+              }}
+              onDoubleClick={isMobile ? undefined : handleEditClick}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setSelectedDataset(dataset);
+                setAnchorEl(event.currentTarget);
+              }}
+            >
+              <ListItemText
+                primary={dataset.name}
+                slotProps={{ primary: { noWrap: true } }}
+              />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    );
 
   const datasetMenu = (
     <Menu
@@ -327,7 +317,7 @@ function DatasetsPanel() {
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               {t("Datasets")}
             </Typography>
-          ) : Boolean(selectedDataset) ? (
+          ) : selectedDataset && selectedDatasetContent ? (
             <>
               <IconButton
                 aria-label={t("Back to dataset list")}
@@ -345,14 +335,14 @@ function DatasetsPanel() {
                 sx={{ flexGrow: 1, userSelect: "none" }}
                 noWrap
               >
-                {selectedDataset?.name}
+                {selectedDataset.name}
               </Typography>
             </>
           ) : (
             <Box sx={{ flexGrow: 1 }} />
           )}
 
-          {isMobile && selectedDataset ? (
+          {isMobile && selectedDataset && selectedDatasetContent ? (
             <IconButton
               aria-label={t("Edit dataset")}
               size="small"
@@ -386,7 +376,14 @@ function DatasetsPanel() {
           divider={<Divider orientation="vertical" />}
         >
           {(!isMobile || !highlightedYaml) && (
-            <Box sx={{ padding: 1, overflowY: "auto", flexShrink: 0 }}>
+            <Box
+              sx={{
+                padding: 1,
+                overflowY: "auto",
+                flexShrink: 0,
+                width: { xs: "100%", sm: "260px" },
+              }}
+            >
               {datasetList}
             </Box>
           )}
@@ -433,7 +430,7 @@ function DatasetsPanel() {
                       </Typography>
 
                       <Typography variant="body2" color="text.secondary">
-                        {t("Last Modified")}
+                        {t("Last modified")}
                       </Typography>
                       <Typography variant="body2">
                         {new Date(

@@ -1,8 +1,6 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
 import {
   Alert,
   alpha,
@@ -72,8 +70,9 @@ function AssistantMessageEditor({
       null) as React.ComponentType<TokenRendererProps>,
   } = slots ?? {};
 
-  const [viewer, setViewer] = useState<"markdown" | "tokens">("markdown");
-  const [editing, setEditing] = useState(false);
+  const [viewer, setViewer] = useState<"markdown" | "raw" | "tokens">(
+    "markdown"
+  );
   const [editingCompletion, setEditingCompletion] = useState("");
   const [draft, setDraft] = useState<
     { text: string; prefix: string } | undefined
@@ -108,11 +107,13 @@ function AssistantMessageEditor({
             onChange={(_, v) => {
               if (v) setViewer(v);
               setError("");
-              if (v !== "tokens") setEditing(false);
+              if (v === "raw")
+                applyChatTemplate!(completion).then(setEditingCompletion);
             }}
             sx={{ marginLeft: 2 }}
           >
             <ToggleButton value="markdown">MD</ToggleButton>
+            <ToggleButton value="raw">Raw</ToggleButton>
             {!hideLogprobs && <ToggleButton value="tokens">Tok</ToggleButton>}
           </TextToggleButtonGroup>
           <Box sx={{ flexGrow: 1 }} />
@@ -139,32 +140,6 @@ function AssistantMessageEditor({
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </>
-            )}
-            {viewer === "tokens" && (
-              <IconButton
-                size="small"
-                aria-label={editing ? t("Save") : t("Edit")}
-                disabled={!applyChatTemplate}
-                onClick={async () => {
-                  if (!applyChatTemplate) return;
-                  setEditing((oldValue) => !oldValue);
-                  const originalCompletion = await applyChatTemplate(
-                    completion
-                  );
-                  if (editing) {
-                    if (editingCompletion === originalCompletion) return;
-                    onChange?.(parseCompletion(editingCompletion));
-                  } else {
-                    setEditingCompletion(originalCompletion);
-                  }
-                }}
-              >
-                {editing ? (
-                  <SaveIcon fontSize="small" />
-                ) : (
-                  <EditIcon fontSize="small" />
-                )}
-              </IconButton>
             )}
             <IconButton
               size="small"
@@ -209,19 +184,28 @@ function AssistantMessageEditor({
               {draft.text}
             </Typography>
           </>
-        ) : viewer === "tokens" ? (
-          editing ? (
-            <InputBase
-              value={editingCompletion}
-              multiline
-              fullWidth
-              sx={{ lineHeight: 1.5, padding: 0 }}
-              onChange={(event) => setEditingCompletion(event.target.value)}
-            />
-          ) : null
         ) : null}
 
-        <KeepMounted open={viewer === "tokens" && !editing && !draft}>
+        <KeepMounted open={viewer === "raw"}>
+          <InputBase
+            value={editingCompletion}
+            multiline
+            fullWidth
+            sx={{ lineHeight: 1.5, padding: 0 }}
+            onChange={(event) => setEditingCompletion(event.target.value)}
+            onBlur={async () => {
+              try {
+                const originalCompletion = await applyChatTemplate!(completion);
+                if (editingCompletion === originalCompletion) return;
+                onChange?.(parseCompletion(editingCompletion));
+              } catch (e: any) {
+                setError(e.message);
+              }
+            }}
+          />
+        </KeepMounted>
+
+        <KeepMounted open={viewer === "tokens" && !draft}>
           <TokensRenderer
             anchors={anchors}
             onDraft={(draft) => setDraft(draft)}
