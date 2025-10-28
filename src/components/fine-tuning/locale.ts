@@ -2,6 +2,7 @@ export default {
   en: {
     fineTuning: {
       "Base model": "Base model",
+      Confidence: "Confidence",
       "Create a fine-tuning job": "Create a fine-tuning job",
       "Created at": "Created at",
       Dataset: "Dataset",
@@ -14,6 +15,7 @@ export default {
       "Fine-tuning jobs": "Fine-tuning jobs",
       "Finished at": "Finished at",
       "Found {{count}} results": "Found {{count}} results",
+      Generate: "Generate",
       "Greedy decoding": "Greedy decoding",
       "Last modified": "Last modified",
       Rename: "Rename",
@@ -31,6 +33,7 @@ export default {
   "zh-CN": {
     fineTuning: {
       "Base model": "基底模型",
+      Confidence: "置信度",
       "Create a fine-tuning job": "创建微调任务",
       "Created at": "创建时间",
       Dataset: "数据集",
@@ -43,6 +46,7 @@ export default {
       "Fine-tuning jobs": "微调任务",
       "Finished at": "完成时间",
       "Found {{count}} results": "找到 {{count}} 个结果",
+      Generate: "生成",
       "Greedy decoding": "贪心解码",
       "Last modified": "最后修改时间",
       Rename: "重命名",

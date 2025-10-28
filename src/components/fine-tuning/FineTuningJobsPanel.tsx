@@ -164,48 +164,17 @@ function CreateFinetuneJobDialog({
   );
 }
 
-function FinetunePanel() {
-  const [finetuneJobs, setFinetuneJobs] = useState<
-    FineTuningJob[] | null | Error
-  >(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
   const currentPreset = useCurrentPreset();
-
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
-
   const { t } = useTranslation("fineTuning");
 
-  const listJobs = useCallback(async () => {
-    try {
-      const client = getClientFromPreset(currentPreset);
-      const res = await client.fineTuning.jobs.list();
-      setFinetuneJobs(res.data);
-    } catch (e) {
-      if (e instanceof APIError) {
-        if (e.status === 404)
-          setFinetuneJobs(
-            new Error(t("This model provider does not support fine-tuning"))
-          );
-        else setFinetuneJobs(e);
-      } else setFinetuneJobs(e as Error);
-    }
-  }, [currentPreset]);
+  const isCancellable = ["validating_files", "queued", "running"].includes(
+    selectedJob.status
+  );
 
-  useEffect(() => {
-    listJobs();
-  }, [listJobs]);
-
-  const selectedJob =
-    selectedJobId === null || !Array.isArray(finetuneJobs)
-      ? undefined
-      : finetuneJobs.find((j) => j.id === selectedJobId);
-
-  const selectedJobDetail = selectedJob && (
+  return (
     <Stack spacing={2} sx={{ padding: 2 }}>
-      {["validating_files", "queued", "running"].includes(
-        selectedJob.status
-      ) && (
+      {isCancellable && (
         <Box>
           <Button
             variant="outlined"
@@ -225,6 +194,7 @@ function FinetunePanel() {
           gridTemplateColumns: "auto 1fr",
           rowGap: 1,
           columnGap: 4,
+          overflowWrap: "anywhere",
           "&>*": { minHeight: "32px", alignContent: "center" },
         }}
       >
@@ -319,6 +289,84 @@ function FinetunePanel() {
         </Typography>
       </Box>
     </Stack>
+  );
+}
+
+function FinetunePanel() {
+  const [finetuneJobs, setFinetuneJobs] = useState<
+    FineTuningJob[] | null | Error
+  >(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const currentPreset = useCurrentPreset();
+
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
+  const { t } = useTranslation("fineTuning");
+
+  const listJobs = useCallback(async () => {
+    try {
+      const client = getClientFromPreset(currentPreset);
+      const res = await client.fineTuning.jobs.list();
+      setFinetuneJobs(res.data);
+    } catch (e) {
+      if (e instanceof APIError) {
+        if (e.status === 404)
+          setFinetuneJobs(
+            new Error(t("This model provider does not support fine-tuning"))
+          );
+        else setFinetuneJobs(e);
+      } else setFinetuneJobs(e as Error);
+    }
+  }, [currentPreset]);
+
+  const retrieveJob = useCallback(
+    async (jobId: string) => {
+      try {
+        const client = getClientFromPreset(currentPreset);
+        const job = await client.fineTuning.jobs.retrieve(jobId);
+        return job;
+      } catch (e) {
+        console.error("Failed to retrieve fine-tuning job", e);
+        return null;
+      }
+    },
+    [currentPreset]
+  );
+
+  useEffect(() => {
+    listJobs();
+  }, [listJobs]);
+
+  useEffect(() => {
+    if (selectedJobId === null || !(finetuneJobs instanceof Array)) return;
+    const finalStatuses = ["succeeded", "failed", "cancelled"];
+    if (
+      finalStatuses.includes(
+        finetuneJobs.find((j) => j.id === selectedJobId)?.status ?? ""
+      )
+    )
+      return;
+
+    const interval = setInterval(async () => {
+      const job = await retrieveJob(selectedJobId);
+      if (!job) return;
+      setFinetuneJobs((prevJobs) => {
+        if (!(prevJobs instanceof Array)) return prevJobs;
+        return prevJobs.map((j) => (j.id === job.id ? job : j));
+      });
+      if (finalStatuses.includes(job.status)) clearInterval(interval);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [selectedJobId, finetuneJobs, retrieveJob]);
+
+  const selectedJob =
+    selectedJobId === null || !Array.isArray(finetuneJobs)
+      ? undefined
+      : finetuneJobs.find((j) => j.id === selectedJobId);
+
+  const selectedJobDetail = selectedJob && (
+    <FinetuneJobDetail job={selectedJob} />
   );
 
   return (

@@ -19,11 +19,10 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import OpenAI from "openai";
-import { useCallback, useEffect, useState } from "react";
+import { Activity, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Markdown } from "../Markdown";
 import { useCurrentPreset } from "../presets/hooks";
-import { KeepMounted } from "./AssistantMessageEditor";
 import { parseDataset } from "./DatasetEditor";
 import { DatasetRecord, EditableMessage } from "./DatasetRecordEditor";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
@@ -48,8 +47,8 @@ function TwoColumnLayout({
     </Stack>
   ) : (
     <>
-      <KeepMounted open={tab === 0}>{left}</KeepMounted>
-      <KeepMounted open={tab === 1}>{right}</KeepMounted>
+      <Activity mode={tab === 0 ? "visible" : "hidden"}>{left}</Activity>
+      <Activity mode={tab === 1 ? "visible" : "hidden"}>{right}</Activity>
     </>
   );
 }

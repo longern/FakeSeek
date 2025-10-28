@@ -56,10 +56,12 @@ function DatasetEditor({
   open,
   onClose,
   datasetName,
+  autoSave = true,
 }: {
   open: boolean;
   onClose: () => void;
   datasetName?: string;
+  autoSave?: boolean;
 }) {
   const [content, setContent] = useState<Array<DatasetRecord> | null>(null);
   const [selected, setSelected] = useState(0);
@@ -193,7 +195,9 @@ function DatasetEditor({
                   newContent[selected] = newRecord;
                   return newContent;
                 });
-                setModified(true);
+
+                if (autoSave) handleSave();
+                else setModified(true);
               }}
             />
           )}

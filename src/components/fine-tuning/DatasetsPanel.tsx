@@ -334,7 +334,7 @@ function DatasetsPanel() {
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               {t("Datasets")}
             </Typography>
-          ) : selectedDataset && selectedDatasetContent ? (
+          ) : selectedDataset && selectedDatasetContent !== null ? (
             <>
               <IconButton
                 aria-label={t("Back to dataset list")}
@@ -359,7 +359,7 @@ function DatasetsPanel() {
             <Box sx={{ flexGrow: 1 }} />
           )}
 
-          {isMobile && selectedDataset && selectedDatasetContent ? (
+          {isMobile && selectedDataset && selectedDatasetContent !== null ? (
             <IconButton
               aria-label={t("Edit dataset")}
               size="small"

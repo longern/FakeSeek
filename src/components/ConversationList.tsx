@@ -91,6 +91,7 @@ function ConversationGroup({
             isMobile ? null : (
               <IconButton
                 edge="end"
+                size="small"
                 className={
                   menuConversation === conversation
                     ? "ConversationList-anchor"
@@ -110,6 +111,7 @@ function ConversationGroup({
           sx={{
             "&>.MuiListItemSecondaryAction-root": {
               visibility: "hidden",
+              right: "8px",
             },
             "&:hover>.MuiListItemSecondaryAction-root": {
               visibility: "visible",

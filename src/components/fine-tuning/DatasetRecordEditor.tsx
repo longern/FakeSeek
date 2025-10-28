@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Card,
+  CircularProgress,
   Container,
   Divider,
   IconButton,
@@ -127,6 +128,10 @@ export function EditableMessage({
             readOnly={!editing}
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            onBlur={() => {
+              if (editing && value !== content) onChange?.(value);
+              setEditing(false);
+            }}
             fullWidth
           />
         ) : (
@@ -165,6 +170,10 @@ function DatasetRecordEditor({
   model?: string;
   onChange: (record: DatasetRecord) => void;
 }) {
+  const [generationAbortController, setGenerationAbortController] = useState<
+    AbortController | undefined
+  >(undefined);
+
   const generate = useGenerate();
   const forward = useForward();
   const continueGeneration = useContinueGeneration();
@@ -252,9 +261,22 @@ function DatasetRecordEditor({
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={() => handleGenerate()}
+                  onClick={() => {
+                    const abortController = new AbortController();
+                    setGenerationAbortController(abortController);
+                    handleGenerate(abortController.signal).finally(() =>
+                      setGenerationAbortController(undefined)
+                    );
+                  }}
                 >
-                  {t("Generate")}
+                  {generationAbortController ? (
+                    <>
+                      <CircularProgress size={16} sx={{ marginRight: 1 }} />
+                      {t("Stop")}
+                    </>
+                  ) : (
+                    t("Generate")
+                  )}
                 </Button>
               </Divider>
             ) : (

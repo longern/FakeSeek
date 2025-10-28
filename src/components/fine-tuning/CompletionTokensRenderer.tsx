@@ -143,20 +143,28 @@ function CompletionTokensRenderer({
           },
         }}
         onContinueGeneration={async (tokenId: number) => {
-          const draft = await onContinueGeneration?.({
-            tokenIndex: selected,
-            tokenId: tokenId,
-          });
-          if (draft) onDraft?.(draft);
+          try {
+            const draft = await onContinueGeneration?.({
+              tokenIndex: selected,
+              tokenId: tokenId,
+            });
+            if (draft) onDraft?.(draft);
+          } catch (error: any) {
+            setError(error.toString());
+          }
         }}
         onMoreLogprobs={async () => {
           if (!onMoreLogprobs) return;
-          const logprob = await onMoreLogprobs(selected);
-          setLogprobs((prevLogprobs) => {
-            return prevLogprobs?.map((lp, index) =>
-              index === selected ? logprob : lp
-            );
-          });
+          try {
+            const logprob = await onMoreLogprobs(selected);
+            setLogprobs((prevLogprobs) => {
+              return prevLogprobs?.map((lp, index) =>
+                index === selected ? logprob : lp
+              );
+            });
+          } catch (error: any) {
+            setError(error.toString());
+          }
         }}
       />
     );

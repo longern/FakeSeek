@@ -12,29 +12,13 @@ import {
   ToggleButton,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { Activity, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Markdown } from "../Markdown";
+import type { DatasetRecord } from "./DatasetRecordEditor";
 import TextToggleButtonGroup from "./TextToggleButtonGroup";
 import { parseCompletion } from "./utils";
-import type { DatasetRecord } from "./DatasetRecordEditor";
-
-export function KeepMounted({
-  open,
-  children,
-}: {
-  open: boolean;
-  children: React.ReactNode;
-}) {
-  const [mounted, setMounted] = useState(open);
-  useEffect(() => {
-    if (open) setMounted(true);
-  }, [open]);
-  return mounted ? (
-    <Box sx={{ display: open ? undefined : "none" }}>{children}</Box>
-  ) : null;
-}
 
 interface TokenRendererProps {
   anchors?: DatasetRecord["anchors"];
@@ -186,7 +170,7 @@ function AssistantMessageEditor({
           </>
         ) : null}
 
-        <KeepMounted open={viewer === "raw"}>
+        <Activity mode={viewer === "raw" ? "visible" : "hidden"}>
           <InputBase
             value={editingCompletion}
             multiline
@@ -203,17 +187,17 @@ function AssistantMessageEditor({
               }
             }}
           />
-        </KeepMounted>
+        </Activity>
 
-        <KeepMounted open={viewer === "tokens" && !draft}>
+        <Activity mode={viewer === "tokens" && !draft ? "visible" : "hidden"}>
           <TokensRenderer
             anchors={anchors}
             onDraft={(draft) => setDraft(draft)}
             {...slotProps?.tokensRenderer}
           />
-        </KeepMounted>
+        </Activity>
 
-        <KeepMounted open={viewer === "markdown"}>
+        <Activity mode={viewer === "markdown" ? "visible" : "hidden"}>
           <Typography
             variant="body2"
             sx={{
@@ -227,7 +211,7 @@ function AssistantMessageEditor({
             {completion.thinking}
           </Typography>
           <Markdown>{completion.content!}</Markdown>
-        </KeepMounted>
+        </Activity>
       </Box>
     </Card>
   );

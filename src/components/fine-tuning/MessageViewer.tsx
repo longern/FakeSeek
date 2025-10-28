@@ -165,7 +165,7 @@ function AnchorEditor({
   }, [confidence]);
 
   return (
-    <Card variant="outlined">
+    <Stack>
       <Box sx={{ paddingX: 2, paddingY: 1.5 }}>
         <Stack
           direction="row"
@@ -183,6 +183,7 @@ function AnchorEditor({
           </IconButton>
         </Stack>
       </Box>
+
       <Collapse in={anchored}>
         <Divider />
         <Box sx={{ paddingX: 2, paddingY: 1.5 }}>
@@ -198,20 +199,21 @@ function AnchorEditor({
               {uncontrolledConfidence.toFixed(2)}
             </Typography>
           </Stack>
-          <Slider
-            value={uncontrolledConfidence}
-            min={0}
-            max={1}
-            step={0.01}
-            marks={marks}
-            onChangeCommitted={(_, value) => onConfidenceChange?.(value)}
-            onChange={(_, value) => setUncontrolledConfidence(value)}
-            aria-labelledby="confidence-slider"
-            sx={{ flexGrow: 1 }}
-          />
+          <Box sx={{ marginTop: 1, paddingX: 1 }}>
+            <Slider
+              value={uncontrolledConfidence}
+              min={0}
+              max={1}
+              step={0.01}
+              marks={marks}
+              onChangeCommitted={(_, value) => onConfidenceChange?.(value)}
+              onChange={(_, value) => setUncontrolledConfidence(value)}
+              aria-labelledby="confidence-slider"
+            />
+          </Box>
         </Box>
       </Collapse>
-    </Card>
+    </Stack>
   );
 }
 
@@ -241,79 +243,84 @@ export function LogprobPopover({
   onMoreLogprobs?: () => void;
 }) {
   return (
-    <Stack spacing={2} sx={{ padding: 2, minWidth: "360px" }}>
+    <Stack
+      sx={{ minWidth: { xs: "320px", sm: "400px" } }}
+      divider={<Divider />}
+    >
       {slotProps?.anchorEditor && <AnchorEditor {...slotProps?.anchorEditor} />}
 
-      <Card variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Token</TableCell>
-              <TableCell align="right">Prob</TableCell>
-              {!onContinueGeneration ? null : <TableCell />}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {logprob.top_logprobs.map((topLogprob, index) => (
-              <TableRow
-                key={topLogprob.token_id}
-                sx={{
-                  backgroundColor:
-                    index % 2 === 0 ? "action.hover" : "background.paper",
-                  "&>.MuiTableCell-root": {
-                    color:
-                      topLogprob.token === logprob.token
-                        ? "primary.main"
-                        : undefined,
-                  },
-                }}
-              >
-                <TableCell sx={{ minWidth: "120px" }}>
-                  <Box component="span" sx={{ whiteSpace: "pre-wrap" }}>
-                    {intersperse(
-                      [topLogprob.token],
-                      [
-                        ["\n", <code className="newline">{"\u21B5"}</code>],
-                        [" ", <code className="space">{"\u00B7"}</code>],
-                        ["\t", <code className="tab">{"\u2192"}</code>],
-                      ]
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell align="right">
-                  <code title={Math.exp(topLogprob.logprob).toString()}>
-                    {Math.exp(topLogprob.logprob).toFixed(4)}
-                  </code>
-                </TableCell>
-                {!onContinueGeneration ? null : (
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        onContinueGeneration?.(topLogprob.token_id);
-                        onClose?.();
-                      }}
-                    >
-                      <PlayArrowIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                )}
+      <Box sx={{ padding: 2 }}>
+        <Card variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Token</TableCell>
+                <TableCell align="right">Prob</TableCell>
+                {!onContinueGeneration ? null : <TableCell />}
               </TableRow>
-            ))}
-            <TableRow>
-              <TableCell colSpan={3} align="center">
-                <IconButton
-                  aria-label={"More"}
-                  size="small"
-                  onClick={onMoreLogprobs}
+            </TableHead>
+            <TableBody>
+              {logprob.top_logprobs.map((topLogprob, index) => (
+                <TableRow
+                  key={topLogprob.token_id}
+                  sx={{
+                    backgroundColor:
+                      index % 2 === 0 ? "action.hover" : "background.paper",
+                    "&>.MuiTableCell-root": {
+                      color:
+                        topLogprob.token === logprob.token
+                          ? "primary.main"
+                          : undefined,
+                    },
+                  }}
                 >
-                  <MoreHorizIcon fontSize="small" />
-                </IconButton>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </Card>
+                  <TableCell sx={{ minWidth: "120px" }}>
+                    <Box component="span" sx={{ whiteSpace: "pre-wrap" }}>
+                      {intersperse(
+                        [topLogprob.token],
+                        [
+                          ["\n", <code className="newline">{"\u21B5"}</code>],
+                          [" ", <code className="space">{"\u00B7"}</code>],
+                          ["\t", <code className="tab">{"\u2192"}</code>],
+                        ]
+                      )}
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">
+                    <code title={Math.exp(topLogprob.logprob).toString()}>
+                      {Math.exp(topLogprob.logprob).toFixed(4)}
+                    </code>
+                  </TableCell>
+                  {!onContinueGeneration ? null : (
+                    <TableCell sx={{ width: 0 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          onContinueGeneration?.(topLogprob.token_id);
+                          onClose?.();
+                        }}
+                      >
+                        <PlayArrowIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+              <TableRow>
+                <TableCell colSpan={3} align="center">
+                  <IconButton
+                    aria-label={"More"}
+                    size="small"
+                    onClick={onMoreLogprobs}
+                  >
+                    <MoreHorizIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
+      </Box>
     </Stack>
   );
 }
