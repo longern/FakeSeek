@@ -7,6 +7,7 @@ import InputIcon from "@mui/icons-material/Input";
 import OutputIcon from "@mui/icons-material/Output";
 import {
   Box,
+  Button,
   Card,
   Divider,
   IconButton,
@@ -214,7 +215,23 @@ function DatasetsPanel() {
   }, []);
 
   const datasetList =
-    datasets === null ? null : (
+    datasets === null ? null : datasets.length === 0 ? (
+      <Stack
+        spacing={2}
+        sx={{ height: "100%", justifyContent: "center", alignItems: "center" }}
+      >
+        <Typography
+          variant="body2"
+          color="textSecondary"
+          sx={{ userSelect: "none" }}
+        >
+          {t("No data")}
+        </Typography>
+        <Button variant="contained" size="small" onClick={handleCreateClick}>
+          {t("Create")}
+        </Button>
+      </Stack>
+    ) : (
       <List disablePadding>
         {datasets.map((dataset) => (
           <ListItem key={dataset.name} disablePadding>

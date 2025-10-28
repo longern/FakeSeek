@@ -14,11 +14,6 @@ import {
   Stack,
   SxProps,
   Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Tabs,
   Typography,
   useMediaQuery,
@@ -33,7 +28,7 @@ import { parseDataset } from "./DatasetEditor";
 import { DatasetRecord, EditableMessage } from "./DatasetRecordEditor";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
 import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
-import { formatBytes } from "./utils";
+import DatasetsTable from "./DatasetsTable";
 
 function TwoColumnLayout({
   left,
@@ -417,39 +412,11 @@ function EvaluationPanel() {
           />
         ) : (
           <Box sx={{ overflowY: "auto" }}>
-            <Table>
-              <TableHead
-                sx={{
-                  position: "sticky",
-                  top: 0,
-                  backgroundColor: "background.paper",
-                  zIndex: 1,
-                }}
-              >
-                <TableRow>
-                  <TableCell>{t("Name")}</TableCell>
-                  <TableCell>{t("Size")}</TableCell>
-                  <TableCell>{t("Last modified")}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {datasets?.map((dataset) => (
-                  <TableRow
-                    key={dataset.name}
-                    hover
-                    selected={selected === dataset.name}
-                    onClick={() => setSelected(dataset.name)}
-                    sx={{ cursor: "pointer" }}
-                  >
-                    <TableCell>{dataset.name}</TableCell>
-                    <TableCell>{formatBytes(dataset.size)}</TableCell>
-                    <TableCell>
-                      {new Date(dataset.lastModified).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DatasetsTable
+              datasets={datasets}
+              selected={selected}
+              setSelected={setSelected}
+            />
           </Box>
         )}
       </Stack>
