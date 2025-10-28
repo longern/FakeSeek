@@ -18,7 +18,7 @@ import { createContext, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import yaml from "yaml";
 
-import { useAppSelector } from "../../app/hooks";
+import { useCurrentPreset } from "../presets/hooks";
 import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
 import { convertFromHarmony, convertToHarmony } from "./utils";
 
@@ -67,11 +67,7 @@ function DatasetEditor({
   const [selected, setSelected] = useState(0);
   const [modified, setModified] = useState(false);
 
-  const currentPreset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current] ?? null
-  );
+  const currentPreset = useCurrentPreset();
   const [model, setModel] = useState(currentPreset?.defaultModel);
 
   const { t } = useTranslation("fineTuning");
@@ -179,7 +175,7 @@ function DatasetEditor({
                 {content === null
                   ? t("Loading...")
                   : content.length === 0
-                  ? t("No records")
+                  ? t("No data")
                   : t("Out of range")}
               </Typography>
             </Box>

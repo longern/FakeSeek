@@ -42,8 +42,9 @@ function AppDrawer({
   const conversations = useAppSelector(
     (state) => state.conversations.conversations
   );
+  const currentPresetId = useAppSelector((state) => state.presets.current);
   const dispatch = useAppDispatch();
-  const [showCoachingDialog, setShowCoachingDialog] = useState(false);
+  const [showFineTuningDialog, setShowFineTuningDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const { t } = useTranslation();
@@ -116,8 +117,9 @@ function AppDrawer({
           >
             <ListItem disablePadding>
               <ListItemButton
+                disabled={!currentPresetId}
                 onClick={() => {
-                  setShowCoachingDialog(true);
+                  setShowFineTuningDialog(true);
                   onClose();
                 }}
               >
@@ -138,14 +140,14 @@ function AppDrawer({
       <ErrorBoundary>
         <Suspense>
           <FineTuningDialog
-            open={showCoachingDialog}
+            open={showFineTuningDialog}
             onClose={() => {
               if (!navigator.storage || !navigator.storage.getDirectory) {
                 window.alert(t("opfs-not-supported"));
                 return;
               }
 
-              setShowCoachingDialog(false);
+              setShowFineTuningDialog(false);
             }}
           />
         </Suspense>

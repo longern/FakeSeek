@@ -18,6 +18,7 @@ import {
   ListItemButton,
   ListItemText,
   MenuItem,
+  OutlinedInput,
   Select,
   Stack,
   Typography,
@@ -55,6 +56,7 @@ function CreateFinetuneJobDialog({
 }) {
   const [baseModel, setBaseModel] = useState("");
   const [dataset, setDataset] = useState("");
+  const [suffix, setSuffix] = useState("");
   const [baseModels, setBaseModels] = useState<Array<Model>>([]);
   const [existingDatasets, setExistingDatasets] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
@@ -76,6 +78,7 @@ function CreateFinetuneJobDialog({
       await client.fineTuning.jobs.create({
         method: { type: "supervised" },
         model: baseModel,
+        suffix,
         training_file: uploaded.id,
       });
       onClose();
@@ -83,7 +86,7 @@ function CreateFinetuneJobDialog({
       setCreating(false);
       console.error("Failed to create fine-tuning job", e);
     }
-  }, [baseModel, currentPreset, dataset, onClose]);
+  }, [baseModel, currentPreset, dataset, onClose, suffix]);
 
   useEffect(() => {
     if (!open) return;
@@ -141,6 +144,22 @@ function CreateFinetuneJobDialog({
                 <MenuItem key={ds} value={ds} children={ds} />
               ))}
             </Select>
+          </FormControl>
+          <FormControl fullWidth>
+            <Typography
+              id="suffix-input-label"
+              variant="subtitle1"
+              gutterBottom
+            >
+              {t("Suffix")}
+            </Typography>
+            <OutlinedInput
+              id="suffix-input"
+              aria-describedby="suffix-input-label"
+              size="small"
+              value={suffix}
+              onChange={(event) => setSuffix(event.target.value)}
+            />
           </FormControl>
         </Stack>
       </DialogContent>

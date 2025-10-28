@@ -262,6 +262,11 @@ function DatasetRecordEditor({
                   variant="outlined"
                   size="small"
                   onClick={() => {
+                    if (generationAbortController) {
+                      generationAbortController.abort();
+                      return;
+                    }
+
                     const abortController = new AbortController();
                     setGenerationAbortController(abortController);
                     handleGenerate(abortController.signal).finally(() =>

@@ -19,6 +19,7 @@ export default {
       "Greedy decoding": "Greedy decoding",
       "Last modified": "Last modified",
       Rename: "Rename",
+      Suffix: "Suffix",
 
       cancelled: "Cancelled",
       failed: "Failed",
@@ -27,6 +28,8 @@ export default {
       succeeded: "Succeeded",
 
       "confirm-close-with-unsaved-changes": "Close without saving changes?",
+      "confirm-delete-assistant-message":
+        "Are you sure you want to delete this assistant message?",
       "confirm-delete-record": "Delete this record?",
     },
   },
@@ -50,6 +53,7 @@ export default {
       "Greedy decoding": "贪心解码",
       "Last modified": "最后修改时间",
       Rename: "重命名",
+      Suffix: "后缀",
 
       cancelled: "已取消",
       failed: "失败",
@@ -58,6 +62,7 @@ export default {
       succeeded: "成功",
 
       "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
+      "confirm-delete-assistant-message": "删除AI助手消息？",
       "confirm-delete-record": "删除此条数据？",
     },
   },

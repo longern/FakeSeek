@@ -33,7 +33,7 @@ function makeConfidenceMarks(selectedLogprob: TokenLogprobs) {
   const minConfidenceDelta = 0.2;
 
   let prevConfidence = undefined;
-  const marks = [] as Array<{ value: number; label: string }>;
+  const marks = [{ value: 1, label: "1" }];
 
   for (const logp of topLogprobs) {
     if (logp.logprob <= selectedLogprob.logprob) break;
