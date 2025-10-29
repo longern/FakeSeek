@@ -99,6 +99,9 @@ function CreateFinetuneJobDialog({
     setCreating(false);
   }, [open, currentPreset]);
 
+  const isSuffixValid = /^[a-zA-Z0-9-_]{0,50}$/.test(suffix);
+  const isFormValid = baseModel !== "" && dataset !== "" && isSuffixValid;
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{t("Create a fine-tuning job")}</DialogTitle>
@@ -159,6 +162,7 @@ function CreateFinetuneJobDialog({
               size="small"
               value={suffix}
               onChange={(event) => setSuffix(event.target.value)}
+              error={!isSuffixValid}
             />
           </FormControl>
         </Stack>
@@ -167,7 +171,7 @@ function CreateFinetuneJobDialog({
       <DialogActions>
         <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button
-          disabled={baseModel === "" || dataset === "" || creating}
+          disabled={!isFormValid || creating}
           onClick={handleCreate}
           variant="contained"
         >

@@ -58,7 +58,7 @@ function ModelMenu({
   onChange,
   sx,
 }: {
-  models?: string[] | null;
+  models?: string[];
   onChange: (model: string) => void;
   sx?: SxProps;
 }) {
@@ -216,6 +216,8 @@ function ComparePanel({
       .then((res) => {
         const modelNames = res.data.map((model) => model.id);
         setModels(modelNames);
+        const baseModels = modelNames.filter((name) => !name.startsWith("ft:"));
+        if (baseModels.length === 1) setBaseModel(baseModels[0]);
       })
       .catch((reason) => {
         console.error("Failed to fetch model list:", reason);
@@ -293,7 +295,9 @@ function ComparePanel({
                     {baseModel ?? t("Base model")}
                     {(!isMobile || tab === 0) && (
                       <ModelMenu
-                        models={models}
+                        models={models?.filter(
+                          (model) => !model.startsWith("ft:")
+                        )}
                         onChange={(model) => setBaseModel(model)}
                         sx={{
                           position: "absolute",
@@ -327,7 +331,9 @@ function ComparePanel({
                     {finetunedModel ?? t("Fine-tuned model")}
                     {(!isMobile || tab === 1) && (
                       <ModelMenu
-                        models={models}
+                        models={models?.filter((model) =>
+                          model.startsWith("ft:")
+                        )}
                         onChange={(model) => setFinetunedModel(model)}
                         sx={{
                           position: "absolute",
