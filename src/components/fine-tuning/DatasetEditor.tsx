@@ -103,6 +103,10 @@ function DatasetEditor({
   }, [content, datasetName]);
 
   useEffect(() => {
+    if (autoSave) handleSave();
+  }, [autoSave, handleSave]);
+
+  useEffect(() => {
     if (!open) return;
 
     if (!datasetName) {
@@ -192,8 +196,7 @@ function DatasetEditor({
                   return newContent;
                 });
 
-                if (autoSave) handleSave();
-                else setModified(true);
+                if (!autoSave) setModified(true);
               }}
             />
           )}

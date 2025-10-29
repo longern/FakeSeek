@@ -192,9 +192,9 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
   );
 
   return (
-    <Stack spacing={2} sx={{ padding: 2 }}>
-      {isCancellable && (
-        <Box>
+    <Stack sx={{ padding: 2 }}>
+      <Collapse in={isCancellable}>
+        <Box sx={{ marginBottom: 2 }}>
           <Button
             variant="outlined"
             color="inherit"
@@ -206,7 +206,8 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
             {t("Cancel")}
           </Button>
         </Box>
-      )}
+      </Collapse>
+
       <Box
         sx={{
           display: "grid",

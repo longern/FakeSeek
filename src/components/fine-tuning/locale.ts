@@ -18,6 +18,7 @@ export default {
       Generate: "Generate",
       "Greedy decoding": "Greedy decoding",
       "Last modified": "Last modified",
+      "No fine-tuning jobs found": "No fine-tuning jobs found",
       Rename: "Rename",
       Suffix: "Suffix",
 
@@ -52,6 +53,7 @@ export default {
       Generate: "生成",
       "Greedy decoding": "贪心解码",
       "Last modified": "最后修改时间",
+      "No fine-tuning jobs found": "未找到微调任务",
       Rename: "重命名",
       Suffix: "后缀",
 
