@@ -156,7 +156,7 @@ function MobileLayout({
   );
 }
 
-function CoachingDialog({
+function FineTuningDialog({
   open,
   onClose,
 }: {
@@ -271,4 +271,4 @@ function CoachingDialog({
   );
 }
 
-export default CoachingDialog;
+export default FineTuningDialog;

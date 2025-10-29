@@ -99,11 +99,11 @@ function ModelMenu({
 }
 
 function AssistantMessageRenderer({
-  content,
+  message,
 }: {
-  content?: DatasetRecord["completion"] | null;
+  message?: DatasetRecord["completion"] | null;
 }) {
-  return content === undefined ? null : content === null ? (
+  return message === undefined ? null : message === null ? (
     <Box
       sx={{
         display: "flex",
@@ -114,10 +114,10 @@ function AssistantMessageRenderer({
       <CircularProgress />
     </Box>
   ) : (
-    content[0].content && (
+    message[0].content && (
       <Box sx={{ padding: 1 }}>
         <Card variant="outlined" sx={{ borderRadius: 3, padding: 1 }}>
-          <Markdown>{content[0].content}</Markdown>
+          <Markdown>{message[0].content}</Markdown>
         </Card>
       </Box>
     )
@@ -243,7 +243,12 @@ function ComparePanel({
             {datasetName}
           </Typography>
         </Stack>
-        <Button variant="outlined" size="small" onClick={handleGenerateAll}>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={!baseModel || !finetunedModel}
+          onClick={handleGenerateAll}
+        >
           {t("Generate all")}
         </Button>
       </Box>
@@ -365,12 +370,12 @@ function ComparePanel({
             <TwoColumnLayout
               left={
                 <AssistantMessageRenderer
-                  content={baseCompletions?.[selectedRecordIndex]}
+                  message={baseCompletions?.[selectedRecordIndex]}
                 />
               }
               right={
                 <AssistantMessageRenderer
-                  content={finetunedCompletions?.[selectedRecordIndex]}
+                  message={finetunedCompletions?.[selectedRecordIndex]}
                 />
               }
               tab={tab}

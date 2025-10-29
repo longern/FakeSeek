@@ -85,7 +85,7 @@ export async function requestChatCompletionsAPI(
     { signal: options?.signal }
   );
 
-  const onStreamEvent = options?.onStreamEvent;
+  const onStreamEvent = options?.onStreamEvent ?? (() => {});
   let result: Response | undefined = undefined;
   let outputMessage: ResponseOutputMessage | undefined = undefined;
   let sequenceNumber = 0;
@@ -110,7 +110,7 @@ export async function requestChatCompletionsAPI(
         tool_choice: "auto",
       };
 
-      onStreamEvent?.(result.id, {
+      onStreamEvent(result.id, {
         type: "response.created",
         response: structuredClone(result),
         sequence_number: sequenceNumber++,
@@ -123,7 +123,7 @@ export async function requestChatCompletionsAPI(
         content: [],
         status: "in_progress",
       };
-      onStreamEvent?.(result.id, {
+      onStreamEvent(result.id, {
         type: "response.output_item.added",
         output_index: outputIndex,
         item: structuredClone(outputMessage),
@@ -136,7 +136,7 @@ export async function requestChatCompletionsAPI(
         text: "",
         annotations: [],
       };
-      onStreamEvent?.(result.id, {
+      onStreamEvent(result.id, {
         type: "response.content_part.added",
         item_id: result.output[outputIndex]?.id || "",
         output_index: outputIndex,
@@ -149,7 +149,7 @@ export async function requestChatCompletionsAPI(
 
     const delta = chunk.choices[0].delta;
     if ("images" in delta && Array.isArray(delta.images)) {
-      onStreamEvent?.(result.id, {
+      onStreamEvent(result.id, {
         type: "response.content_part.done",
         item_id: result.output[outputIndex]?.id || "",
         output_index: outputIndex,
@@ -163,7 +163,7 @@ export async function requestChatCompletionsAPI(
       });
 
       outputMessage!.status = "completed";
-      onStreamEvent?.(result.id, {
+      onStreamEvent(result.id, {
         type: "response.output_item.done",
         output_index: outputIndex++,
         item: outputMessage!,
@@ -185,14 +185,14 @@ export async function requestChatCompletionsAPI(
         } as ResponseOutputItem.ImageGenerationCall;
         result.output.push(item);
 
-        onStreamEvent?.(result.id, {
+        onStreamEvent(result.id, {
           type: "response.output_item.added",
           output_index: outputIndex,
           item,
           sequence_number: sequenceNumber++,
         });
 
-        onStreamEvent?.(result.id, {
+        onStreamEvent(result.id, {
           type: "response.output_item.done",
           output_index: outputIndex++,
           item,
@@ -209,7 +209,7 @@ export async function requestChatCompletionsAPI(
       };
       result.output.push(outputMessage);
 
-      onStreamEvent?.(result.id, {
+      onStreamEvent(result.id, {
         type: "response.output_item.added",
         output_index: outputIndex,
         item: structuredClone(outputMessage),
@@ -223,7 +223,7 @@ export async function requestChatCompletionsAPI(
       };
       outputMessage.content.push(contentPart);
 
-      onStreamEvent?.(result.id, {
+      onStreamEvent(result.id, {
         type: "response.content_part.added",
         item_id: result.output[outputIndex]?.id || "",
         output_index: outputIndex,
@@ -233,7 +233,7 @@ export async function requestChatCompletionsAPI(
       });
     }
 
-    onStreamEvent?.(result.id, {
+    onStreamEvent(result.id, {
       type: "response.output_text.delta",
       output_index: outputIndex,
       content_index: 0,
@@ -248,7 +248,7 @@ export async function requestChatCompletionsAPI(
 
   if (!result) throw new Error("No response received");
 
-  onStreamEvent?.(result.id, {
+  onStreamEvent(result.id, {
     type: "response.content_part.done",
     item_id: result.output[outputIndex]?.id || "",
     output_index: outputIndex,
@@ -258,7 +258,7 @@ export async function requestChatCompletionsAPI(
   });
 
   outputMessage!.status = "completed";
-  onStreamEvent?.(result.id, {
+  onStreamEvent(result.id, {
     type: "response.output_item.done",
     output_index: outputIndex++,
     item: outputMessage!,
@@ -266,7 +266,7 @@ export async function requestChatCompletionsAPI(
   });
 
   result.status = "completed";
-  onStreamEvent?.(result.id, {
+  onStreamEvent(result.id, {
     type: "response.completed",
     response: result,
     sequence_number: sequenceNumber++,

@@ -11,20 +11,10 @@ import { add as addConversation, conversationsSlice } from "./conversations";
 import { db } from "./db";
 import {
   add as addMessage,
-  addReasoningSummaryPart,
   addResponse,
   ChatMessage,
-  codeInterpreterCallCodeDelta,
-  contentPartAdded,
-  contentPartDelta,
-  contentPartDone,
-  functionCallArgumentsDelta,
-  mcpCallArgumentsDelta,
   messagesSlice,
-  outputItemAdded,
-  outputItemDone,
-  reasoningSummaryTextDelta,
-  reasoningTextDelta,
+  reduceEvent,
   set as setMessages,
 } from "./messages";
 import type { AppState } from "./store";
@@ -159,26 +149,16 @@ export const dbMiddleware: Middleware<{}, AppState> =
         return result;
       }
 
-      case "messages/update":
+      case "messages/patch":
         setTimeout(() => {
           const { id, patch } = action.payload;
           db.messages.update(id, patch);
         }, 50);
         break;
 
-      case outputItemAdded.type:
-      case outputItemDone.type:
-      case contentPartAdded.type:
-      case contentPartDelta.type:
-      case contentPartDone.type:
-      case reasoningTextDelta.type:
-      case addReasoningSummaryPart.type:
-      case reasoningSummaryTextDelta.type:
-      case functionCallArgumentsDelta.type:
-      case mcpCallArgumentsDelta.type:
-      case codeInterpreterCallCodeDelta.type: {
+      case reduceEvent.type: {
         const result = next(action);
-        const responseId = action.payload.responseId;
+        const responseId = action.payload.id;
         const message = store.getState().messages.messages[responseId];
         if (!message) {
           console.error("Message not found in state:", responseId);

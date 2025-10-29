@@ -13,34 +13,15 @@ import { requestResponsesAPI } from "./api-modes/responses";
 import { CreateResponseParams } from "./api-modes/types";
 import {
   add as addMessage,
-  addReasoningSummaryPart,
   addResponse,
   ChatMessage,
-  codeInterpreterCallCodeDelta,
-  contentPartAdded,
-  contentPartDelta,
-  contentPartDone,
-  functionCallArgumentsDelta,
-  mcpCallArgumentsDelta,
-  outputItemAdded,
-  outputItemDone,
-  reasoningSummaryTextDelta,
-  reasoningTextDelta,
-  update as updateMessage,
+  reduceEvent,
 } from "./messages";
+import {
+  FunctionCallOutputCompletedEvent,
+  FunctionCallOutputIncompleteEvent,
+} from "./reducer";
 import { AppDispatch, createAppAsyncThunk } from "./store";
-
-interface FunctionCallOutputCompletedEvent {
-  item: ResponseInputItem.FunctionCallOutput;
-  output_index: number;
-  type: "response.functioin_call_output.completed";
-}
-
-interface FunctionCallOutputIncompleteEvent {
-  item: ResponseInputItem.FunctionCallOutput;
-  output_index: number;
-  type: "response.functioin_call_output.incomplete";
-}
 
 function getRequestAPI(apiMode: "responses" | "chat-completions") {
   const adapters = {
@@ -63,80 +44,8 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
         dispatch(addResponse({ ...event.response, timestamp: Date.now() }));
         break;
 
-      case "response.completed":
-        dispatch(
-          updateMessage({
-            id: event.response.id,
-            patch: {
-              status: event.response.status,
-              usage: event.response.usage,
-            },
-          })
-        );
-        break;
-
-      case "response.output_item.added":
-        if (!event.item.id) event.item.id = crypto.randomUUID();
-        dispatch(outputItemAdded({ responseId, event }));
-        break;
-
-      case "response.output_item.done": {
-        dispatch(outputItemDone({ responseId, event }));
-        break;
-      }
-
-      case "response.content_part.added":
-        dispatch(contentPartAdded({ responseId, event }));
-        break;
-
-      case "response.content_part.done":
-        dispatch(contentPartDone({ responseId, event }));
-        break;
-
-      case "response.output_text.delta":
-        dispatch(contentPartDelta({ responseId, event }));
-        break;
-
-      case "response.reasoning_text.delta":
-        dispatch(reasoningTextDelta({ responseId, event }));
-        break;
-
-      case "response.reasoning_summary_part.added":
-        dispatch(addReasoningSummaryPart({ responseId, event }));
-        break;
-
-      case "response.reasoning_summary_text.delta":
-        dispatch(reasoningSummaryTextDelta({ responseId, event }));
-        break;
-
-      case "response.function_call_arguments.delta":
-        dispatch(functionCallArgumentsDelta({ responseId, event }));
-        break;
-
-      case "response.functioin_call_output.completed":
-        dispatch(
-          updateMessage({
-            id: event.item.id!,
-            patch: { status: "completed", output: event.item.output },
-          })
-        );
-        break;
-
-      case "response.functioin_call_output.incomplete":
-        dispatch(
-          updateMessage({
-            id: event.item.id!,
-            patch: { status: "incomplete", output: event.item.output },
-          })
-        );
-        break;
-
-      case "response.mcp_call_arguments.delta":
-        dispatch(mcpCallArgumentsDelta({ responseId, event }));
-        break;
-
-      case "response.code_interpreter_call_code.delta":
-        dispatch(codeInterpreterCallCodeDelta({ responseId, event }));
+      default:
+        dispatch(reduceEvent({ id: responseId, event }));
         break;
     }
   };
