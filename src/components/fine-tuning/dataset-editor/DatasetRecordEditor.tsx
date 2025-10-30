@@ -31,7 +31,7 @@ import {
   useForward,
   useGenerate,
   useMoreLogprobs,
-} from "./hooks";
+} from "../hooks";
 import AssistantMessageEditor from "./AssistantMessageEditor";
 import CompletionTokensRenderer from "./CompletionTokensRenderer";
 import { TokenLogprobs } from "./MessageViewer";

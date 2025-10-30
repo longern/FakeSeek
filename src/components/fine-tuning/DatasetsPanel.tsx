@@ -30,7 +30,7 @@ import yaml from "yaml";
 import {
   getDatasetDirectoryHandle,
   OpenDatasetEditorContext,
-} from "./DatasetEditor";
+} from "./dataset-editor/DatasetEditor";
 import { formatBytes } from "./utils";
 
 export interface DatasetFile {

@@ -23,8 +23,11 @@ import { Activity, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Markdown } from "../Markdown";
 import { useCurrentPreset } from "../presets/hooks";
-import { parseDataset } from "./DatasetEditor";
-import { DatasetRecord, EditableMessage } from "./DatasetRecordEditor";
+import { parseDataset } from "./dataset-editor/DatasetEditor";
+import {
+  DatasetRecord,
+  EditableMessage,
+} from "./dataset-editor/DatasetRecordEditor";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
 import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
 import DatasetsTable from "./DatasetsTable";

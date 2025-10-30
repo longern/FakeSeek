@@ -15,10 +15,10 @@ import {
 import React, { Activity, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Markdown } from "../Markdown";
+import { Markdown } from "../../Markdown";
 import type { DatasetRecord } from "./DatasetRecordEditor";
 import TextToggleButtonGroup from "./TextToggleButtonGroup";
-import { parseCompletion } from "./utils";
+import { parseCompletion } from "../utils";
 
 interface TokenRendererProps {
   anchors?: DatasetRecord["anchors"];
@@ -188,7 +188,7 @@ function AssistantMessageEditor({
         <Activity mode={viewer === "tokens" && !draft ? "visible" : "hidden"}>
           <TokensRenderer
             anchors={anchors}
-            onDraft={(draft) => setDraft(draft)}
+            onDraft={setDraft}
             {...slotProps?.tokensRenderer}
           />
         </Activity>

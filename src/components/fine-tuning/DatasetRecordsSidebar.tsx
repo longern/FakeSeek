@@ -7,7 +7,7 @@ import {
   ListItemText,
   Slide,
 } from "@mui/material";
-import { DatasetRecord } from "./DatasetRecordEditor";
+import type { DatasetRecord } from "./dataset-editor/DatasetRecordEditor";
 
 function DatasetRecordsSidebar({
   in: open,

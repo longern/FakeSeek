@@ -17,8 +17,6 @@ import {
 } from "@mui/material";
 import React, { useCallback, useMemo, useState } from "react";
 
-import AnchorEditor, { AnchorEditorProps } from "./AnchorEditor";
-
 function SpanTypography(props: TypographyProps) {
   return <Typography component="span" {...props} />;
 }
@@ -151,13 +149,13 @@ export type TokenLogprobs = {
 
 export function LogprobPopover({
   logprob,
-  slotProps,
+  anchorEditor,
   onClose,
   onContinueGeneration,
   onMoreLogprobs,
 }: {
   logprob: TokenLogprobs;
-  slotProps?: { anchorEditor?: AnchorEditorProps };
+  anchorEditor?: React.ReactNode;
   onClose?: () => void;
   onContinueGeneration?: (tokenId: number) => void;
   onMoreLogprobs?: () => void;
@@ -167,7 +165,7 @@ export function LogprobPopover({
       sx={{ minWidth: { xs: "320px", sm: "400px" } }}
       divider={<Divider />}
     >
-      {slotProps?.anchorEditor && <AnchorEditor {...slotProps?.anchorEditor} />}
+      {anchorEditor}
 
       <Box sx={{ padding: 2 }}>
         <Card variant="outlined">

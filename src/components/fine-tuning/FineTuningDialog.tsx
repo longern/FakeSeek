@@ -23,7 +23,9 @@ import { Transition } from "react-transition-group";
 
 import DatasetsPanel from "./DatasetsPanel";
 import FineTuningJobsPanel from "./FineTuningJobsPanel";
-import DatasetEditor, { OpenDatasetEditorContext } from "./DatasetEditor";
+import DatasetEditor, {
+  OpenDatasetEditorContext,
+} from "./dataset-editor/DatasetEditor";
 import EvaluationPanel from "./EvaluationPanel";
 
 function DesktopLayout({

@@ -1,6 +1,7 @@
 import { Alert, alpha } from "@mui/material";
 import React, { useEffect, useState } from "react";
 
+import AnchorEditor from "./AnchorEditor";
 import type { DatasetRecord } from "./DatasetRecordEditor";
 import { LogprobPopover, TokenLogprobs, TokensViewer } from "./MessageViewer";
 
@@ -109,37 +110,42 @@ function CompletionTokensRenderer({
 
     const confidenceMarks = makeConfidenceMarks(selectedLogprob);
 
+    const anchorEditor = (
+      <AnchorEditor
+        anchored={(anchors ?? []).some((p) => p.token_index === selected)}
+        onChange={(value) =>
+          onAnchorsChanged?.((anchors) =>
+            toggleAnchor(
+              anchors,
+              {
+                token_index: selected,
+                token_id: logprobs[selected].token_id,
+              },
+              value
+            )
+          )
+        }
+        confidence={
+          anchors?.find((p) => p.token_index === selected)?.confidence
+        }
+        onConfidenceChange={(newConfidence) =>
+          onAnchorsChanged?.((anchors) =>
+            anchors?.map((anc) =>
+              anc.token_index === selected
+                ? { ...anc, confidence: newConfidence ?? undefined }
+                : anc
+            )
+          )
+        }
+        marks={confidenceMarks}
+      />
+    );
+
     return (
       <LogprobPopover
         logprob={logprobs[selected]}
         onClose={onClose}
-        slotProps={{
-          anchorEditor: {
-            anchored: (anchors ?? []).some((p) => p.token_index === selected),
-            onChange: (value) =>
-              onAnchorsChanged?.((anchors) =>
-                toggleAnchor(
-                  anchors,
-                  {
-                    token_index: selected,
-                    token_id: logprobs[selected].token_id,
-                  },
-                  value
-                )
-              ),
-            confidence: anchors?.find((p) => p.token_index === selected)
-              ?.confidence,
-            onConfidenceChange: (newConfidence) =>
-              onAnchorsChanged?.((anchors) =>
-                anchors?.map((anc) =>
-                  anc.token_index === selected
-                    ? { ...anc, confidence: newConfidence ?? undefined }
-                    : anc
-                )
-              ),
-            marks: confidenceMarks,
-          },
-        }}
+        anchorEditor={anchorEditor}
         onContinueGeneration={async (tokenId: number) => {
           try {
             const draft = await onContinueGeneration?.({

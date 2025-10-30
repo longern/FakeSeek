@@ -18,10 +18,10 @@ import { createContext, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import yaml from "yaml";
 
-import { useCurrentPreset } from "../presets/hooks";
+import { useCurrentPreset } from "../../presets/hooks";
 import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
-import { getTokenizer } from "./hooks";
-import { convertFromHarmony, convertToHarmony } from "./utils";
+import { getTokenizer } from "../hooks";
+import { convertFromHarmony, convertToHarmony } from "../utils";
 
 export const OpenDatasetEditorContext = createContext<
   (datasetName: string | undefined, onClose?: () => void) => void
