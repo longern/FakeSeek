@@ -26,25 +26,21 @@ interface TokenRendererProps {
   [key: string]: any;
 }
 
+type CompletionMessage = DatasetRecord["completion"][number];
+
 function AssistantMessageEditor({
   completion,
-  role = "assistant",
   anchors,
-  hideLogprobs,
   applyChatTemplate,
   onChange,
   onDelete,
   slots,
   slotProps,
 }: {
-  completion: DatasetRecord["completion"][number];
-  role?: string;
+  completion: CompletionMessage;
   anchors?: DatasetRecord["anchors"];
-  hideLogprobs?: boolean;
-  applyChatTemplate?: (
-    completion: DatasetRecord["completion"][number]
-  ) => Promise<string>;
-  onChange?: (newValue: DatasetRecord["completion"][number]) => void;
+  applyChatTemplate?: (completion: CompletionMessage) => Promise<string>;
+  onChange?: (newValue: CompletionMessage) => void;
   onDelete?: () => void;
   slots?: { tokensRenderer?: React.ComponentType<TokenRendererProps> };
   slotProps?: { tokensRenderer?: any };
@@ -82,7 +78,7 @@ function AssistantMessageEditor({
       >
         <Stack direction="row" sx={{ alignItems: "center" }}>
           <Typography variant="subtitle2" sx={{ textTransform: "capitalize" }}>
-            {role}
+            {completion.role}
           </Typography>
           <TextToggleButtonGroup
             size="small"
@@ -98,7 +94,7 @@ function AssistantMessageEditor({
           >
             <ToggleButton value="markdown">MD</ToggleButton>
             <ToggleButton value="raw">Raw</ToggleButton>
-            {!hideLogprobs && <ToggleButton value="tokens">Tok</ToggleButton>}
+            <ToggleButton value="tokens">Tok</ToggleButton>
           </TextToggleButtonGroup>
           <Box sx={{ flexGrow: 1 }} />
           <Stack direction="row" spacing={0.5}>

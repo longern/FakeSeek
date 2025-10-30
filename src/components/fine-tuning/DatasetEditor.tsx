@@ -20,6 +20,7 @@ import yaml from "yaml";
 
 import { useCurrentPreset } from "../presets/hooks";
 import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
+import { getTokenizer } from "./hooks";
 import { convertFromHarmony, convertToHarmony } from "./utils";
 
 export const OpenDatasetEditorContext = createContext<
@@ -52,6 +53,31 @@ export function parseDataset(content: string) {
   return { model, dataset };
 }
 
+async function saveDataset(
+  content: Array<DatasetRecord>,
+  datasetName: string,
+  model?: string
+) {
+  const dataset = model
+    ? content.map((record) => ({
+        ...record,
+        prompt: convertFromHarmony(model, record.prompt),
+        completion: convertFromHarmony(model, record.completion),
+      }))
+    : content;
+  const document = new yaml.Document(dataset);
+  if (model) document.commentBefore = ` Model: ${model}`;
+  const documentString = document.toString({ lineWidth: 0 });
+
+  const dir = await getDatasetDirectoryHandle();
+  const fileHandle = await dir.getFileHandle(datasetName, {
+    create: true,
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(documentString);
+  await writable.close();
+}
+
 function DatasetEditor({
   open,
   onClose,
@@ -81,26 +107,9 @@ function DatasetEditor({
   const handleSave = useCallback(async () => {
     if (!datasetName || content === null) return;
 
-    const dataset = model
-      ? content.map((record) => ({
-          ...record,
-          prompt: convertFromHarmony(model, record.prompt),
-          completion: convertFromHarmony(model, record.completion),
-        }))
-      : content;
-    const document = new yaml.Document(dataset);
-    if (model) document.commentBefore = ` Model: ${model}`;
-    const documentString = document.toString({ lineWidth: 0 });
-
-    const dir = await getDatasetDirectoryHandle();
-    const fileHandle = await dir.getFileHandle(datasetName, {
-      create: true,
-    });
-    const writable = await fileHandle.createWritable();
-    await writable.write(documentString);
-    await writable.close();
+    await saveDataset(content, datasetName, model);
     setModified(false);
-  }, [content, datasetName]);
+  }, [content, datasetName, model]);
 
   useEffect(() => {
     if (autoSave) handleSave();
@@ -118,11 +127,16 @@ function DatasetEditor({
       const fileHandle = await dir.getFileHandle(datasetName, { create: true });
       const file = await fileHandle.getFile();
       const text = await file.text();
-      const { model, dataset } = text
+      const { model: modelFromFile, dataset } = text
         ? parseDataset(text)
         : { dataset: [] as DatasetRecord[] };
       setContent(dataset);
-      if (model) setModel(model);
+      if (modelFromFile) setModel(modelFromFile);
+
+      // Preload tokenizer
+      const model = modelFromFile ?? currentPreset?.defaultModel;
+      if (model) getTokenizer(model).catch(() => {});
+
       setSelected(0);
       setModified(false);
     });

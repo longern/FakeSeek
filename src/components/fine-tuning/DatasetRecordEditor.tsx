@@ -286,7 +286,6 @@ function DatasetRecordEditor({
               </Divider>
             ) : (
               <AssistantMessageEditor
-                role={record.completion[0].role}
                 completion={record.completion[0]}
                 anchors={record.anchors}
                 onChange={(newValue) =>

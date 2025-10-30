@@ -85,7 +85,7 @@ function CompletionTokensRenderer({
     lazyTokens()
       .then(setTokens)
       .catch((error) => setError(error.toString()));
-  }, [lazyTokens, lazyLogprobs]);
+  }, [lazyTokens]);
 
   useEffect(() => {
     if (!lazyLogprobs) return;
@@ -131,13 +131,11 @@ function CompletionTokensRenderer({
               ?.confidence,
             onConfidenceChange: (newConfidence) =>
               onAnchorsChanged?.((anchors) =>
-                anchors === undefined
-                  ? undefined
-                  : anchors.map((anc) =>
-                      anc.token_index === selected
-                        ? { ...anc, confidence: newConfidence ?? undefined }
-                        : anc
-                    )
+                anchors?.map((anc) =>
+                  anc.token_index === selected
+                    ? { ...anc, confidence: newConfidence ?? undefined }
+                    : anc
+                )
               ),
             marks: confidenceMarks,
           },
