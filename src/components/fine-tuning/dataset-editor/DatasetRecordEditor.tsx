@@ -4,7 +4,6 @@ import {
   Button,
   Card,
   CircularProgress,
-  Collapse,
   Container,
   Divider,
   IconButton,
@@ -114,26 +113,25 @@ export function EditableMessage({
         </Stack>
       </MessageHeader>
 
-      <Box sx={{ paddingX: 2, paddingTop: 1, paddingBottom: 2 }}>
-        {typeof content === "string" ? (
-          <Collapse in={editing} collapsedSize={32}>
-            <InputBase
-              inputRef={inputRef}
-              multiline
-              readOnly={!editing}
-              minRows={3}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onBlur={(event) => {
-                if (event.relatedTarget === editButtonRef.current) return;
-                if (editing && value !== content) onChange?.(value);
-                setEditing(false);
-              }}
-              fullWidth
-            />
-          </Collapse>
-        ) : (
-          content.map((part, i) =>
+      {typeof content === "string" ? (
+        <InputBase
+          inputRef={inputRef}
+          multiline
+          readOnly={!editing}
+          minRows={2}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={(event) => {
+            if (event.relatedTarget === editButtonRef.current) return;
+            if (editing && value !== content) onChange?.(value);
+            setEditing(false);
+          }}
+          fullWidth
+          sx={{ paddingX: 2, paddingTop: 1, paddingBottom: 2 }}
+        />
+      ) : (
+        <Box sx={{ paddingX: 2, paddingTop: 1, paddingBottom: 2 }}>
+          {content.map((part, i) =>
             part.type === "text" ? (
               <Typography
                 key={i}
@@ -152,9 +150,9 @@ export function EditableMessage({
                 sx={{ maxWidth: "100%" }}
               />
             ) : null
-          )
-        )}
-      </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

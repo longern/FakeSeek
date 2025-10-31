@@ -201,7 +201,7 @@ function DatasetsPanel() {
     setAnchorEl(null);
     if (!selectedDataset) return;
     const confirmed = window.confirm(
-      t("confirm-delete-dataset", { name: selectedDataset })
+      t("confirm-delete-dataset", { name: selectedDataset.name })
     );
     if (!confirmed) return;
     await deleteDataset(selectedDataset.name);
