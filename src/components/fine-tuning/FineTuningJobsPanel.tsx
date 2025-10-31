@@ -477,7 +477,7 @@ function FinetunePanel() {
                           }}
                         >
                           <ListItemText
-                            primary={job.id}
+                            primary={job.fine_tuned_model || job.id}
                             secondary={new Date(
                               job.created_at * 1000
                             ).toLocaleString()}

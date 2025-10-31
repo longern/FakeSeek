@@ -1,5 +1,4 @@
 import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
 import {
   Box,
   Button,
@@ -33,7 +32,9 @@ import {
   useGenerate,
   useMoreLogprobs,
 } from "../hooks";
-import AssistantMessageEditor from "./AssistantMessageEditor";
+import AssistantMessageEditor, {
+  MessageHeader,
+} from "./AssistantMessageEditor";
 import CompletionTokensRenderer from "./CompletionTokensRenderer";
 import { TokenLogprobs } from "./MessageViewer";
 
@@ -72,6 +73,7 @@ export function EditableMessage({
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(content);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const editButtonRef = useRef<HTMLButtonElement>(null);
 
   const { t } = useTranslation("fineTuning");
 
@@ -81,19 +83,7 @@ export function EditableMessage({
 
   return (
     <Box>
-      <Box
-        sx={{
-          paddingX: 2,
-          paddingY: 1,
-          position: stickyHeader ? "sticky" : undefined,
-          top: 0,
-          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-          borderTopLeftRadius: "12px",
-          borderTopRightRadius: "12px",
-          backgroundColor: "background.paper",
-          zIndex: 1,
-        }}
-      >
+      <MessageHeader sx={{ position: stickyHeader ? "sticky" : "static" }}>
         <Stack direction="row" sx={{ alignItems: "center" }}>
           <Typography variant="subtitle2" sx={{ textTransform: "capitalize" }}>
             {role}
@@ -102,25 +92,28 @@ export function EditableMessage({
           <Stack direction="row" spacing={0.5}>
             {!readonly && (
               <IconButton
+                ref={editButtonRef}
                 aria-label={editing ? t("Save") : t("Edit")}
                 size="small"
-                onClick={() => {
-                  if (editing && value !== content) onChange?.(value);
-                  else inputRef.current?.focus();
-                  setEditing(!editing);
-                }}
+                color={editing ? "primary" : "default"}
                 sx={{ marginTop: -1, marginRight: -1 }}
+                onClick={() => {
+                  if (editing) {
+                    setEditing(false);
+                    if (value !== content) onChange?.(value);
+                  } else {
+                    setEditing(true);
+                    setTimeout(() => inputRef.current?.focus(), 0);
+                  }
+                }}
               >
-                {editing ? (
-                  <SaveIcon fontSize="small" />
-                ) : (
-                  <EditIcon fontSize="small" />
-                )}
+                <EditIcon fontSize="small" />
               </IconButton>
             )}
           </Stack>
         </Stack>
-      </Box>
+      </MessageHeader>
+
       <Box sx={{ paddingX: 2, paddingTop: 1, paddingBottom: 2 }}>
         {typeof content === "string" ? (
           <Collapse in={editing} collapsedSize={32}>
@@ -131,7 +124,8 @@ export function EditableMessage({
               minRows={3}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              onBlur={() => {
+              onBlur={(event) => {
+                if (event.relatedTarget === editButtonRef.current) return;
                 if (editing && value !== content) onChange?.(value);
                 setEditing(false);
               }}
@@ -357,10 +351,7 @@ function DatasetRecordEditor({
                           .sort((a, b) => b[1] - a[1])
                           .map(([token, logprob], index) => ({
                             token,
-                            token_id: encodeSingleToken(
-                              tokenizer,
-                              logprobs.tokens![0]
-                            ),
+                            token_id: encodeSingleToken(tokenizer, token),
                             logprob,
                             rank: index + 1,
                           })),

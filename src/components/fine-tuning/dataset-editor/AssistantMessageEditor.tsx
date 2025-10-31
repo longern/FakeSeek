@@ -3,13 +3,15 @@ import {
   Alert,
   Box,
   Card,
+  CircularProgress,
   IconButton,
   InputBase,
   Stack,
+  styled,
   ToggleButton,
   Typography,
 } from "@mui/material";
-import React, { Activity, useState } from "react";
+import React, { Activity, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Markdown } from "../../Markdown";
@@ -24,6 +26,21 @@ interface TokenRendererProps {
 }
 
 type CompletionMessage = DatasetRecord["completion"][number];
+
+export const MessageHeader = styled(Box)(({ theme }) => ({
+  paddingLeft: theme.spacing(1.2),
+  paddingRight: theme.spacing(1.2),
+  [theme.breakpoints.up("sm")]: { paddingLeft: theme.spacing(2) },
+  paddingTop: theme.spacing(0.8),
+  paddingBottom: theme.spacing(0.8),
+  position: "sticky",
+  top: 0,
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  borderTopLeftRadius: "12px",
+  borderTopRightRadius: "12px",
+  backgroundColor: theme.palette.background.paper,
+  zIndex: 1,
+}));
 
 function AssistantMessageEditor({
   completion,
@@ -50,7 +67,9 @@ function AssistantMessageEditor({
   const [viewer, setViewer] = useState<"markdown" | "raw" | "tokens">(
     "markdown"
   );
-  const [editingCompletion, setEditingCompletion] = useState("");
+  const [editingCompletion, setEditingCompletion] = useState<string | null>(
+    null
+  );
   const [actions, setActions] = useState<{ render: () => React.ReactNode }>({
     render: () => null,
   });
@@ -58,21 +77,20 @@ function AssistantMessageEditor({
 
   const { t } = useTranslation("fineTuning");
 
+  const handleSaveRawEdit = useCallback(async () => {
+    if (editingCompletion === null || !applyChatTemplate) return;
+    try {
+      const originalCompletion = await applyChatTemplate(completion);
+      if (editingCompletion === originalCompletion) return;
+      onChange?.(parseCompletion(editingCompletion));
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, [applyChatTemplate, completion, editingCompletion, onChange]);
+
   return (
     <Card variant="outlined" sx={{ borderRadius: 3, overflow: "visible" }}>
-      <Box
-        sx={{
-          paddingX: 2,
-          paddingY: 1,
-          position: "sticky",
-          top: 0,
-          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-          borderTopLeftRadius: "12px",
-          borderTopRightRadius: "12px",
-          backgroundColor: "background.paper",
-          zIndex: 1,
-        }}
-      >
+      <MessageHeader>
         <Stack direction="row" sx={{ alignItems: "center" }}>
           <Typography variant="subtitle2" sx={{ textTransform: "capitalize" }}>
             {completion.role}
@@ -87,7 +105,7 @@ function AssistantMessageEditor({
               if (v === "raw")
                 applyChatTemplate!(completion).then(setEditingCompletion);
             }}
-            sx={{ marginLeft: 2 }}
+            sx={{ marginLeft: 1.5 }}
           >
             <ToggleButton value="markdown">MD</ToggleButton>
             <ToggleButton value="raw">Raw</ToggleButton>
@@ -112,7 +130,8 @@ function AssistantMessageEditor({
             </IconButton>
           </Stack>
         </Stack>
-      </Box>
+      </MessageHeader>
+
       <Box
         sx={{
           paddingX: 2,
@@ -124,22 +143,22 @@ function AssistantMessageEditor({
         {error && <Alert severity="error" children={error} />}
 
         <Activity mode={viewer === "raw" ? "visible" : "hidden"}>
-          <InputBase
-            value={editingCompletion}
-            multiline
-            fullWidth
-            sx={{ lineHeight: 1.5, padding: 0 }}
-            onChange={(event) => setEditingCompletion(event.target.value)}
-            onBlur={async () => {
-              try {
-                const originalCompletion = await applyChatTemplate!(completion);
-                if (editingCompletion === originalCompletion) return;
-                onChange?.(parseCompletion(editingCompletion));
-              } catch (e: any) {
-                setError(e.message);
-              }
-            }}
-          />
+          {editingCompletion === null ? (
+            <Box
+              sx={{ display: "flex", justifyContent: "center", paddingY: 2 }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : (
+            <InputBase
+              value={editingCompletion}
+              multiline
+              fullWidth
+              sx={{ lineHeight: 1.5, padding: 0 }}
+              onChange={(event) => setEditingCompletion(event.target.value)}
+              onBlur={handleSaveRawEdit}
+            />
+          )}
         </Activity>
 
         <Activity mode={viewer === "tokens" ? "visible" : "hidden"}>

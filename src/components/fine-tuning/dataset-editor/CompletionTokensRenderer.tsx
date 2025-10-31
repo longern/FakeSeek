@@ -1,6 +1,13 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import { Alert, alpha, IconButton, Typography } from "@mui/material";
+import {
+  Alert,
+  alpha,
+  Box,
+  CircularProgress,
+  IconButton,
+  Typography,
+} from "@mui/material";
 import React, { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -248,28 +255,30 @@ function CompletionTokensRenderer({
             {draft.text}
           </Typography>
         </>
+      ) : tokens === null ? (
+        <Box sx={{ display: "flex", justifyContent: "center", paddingY: 2 }}>
+          <CircularProgress />
+        </Box>
       ) : (
-        tokens && (
-          <TokensViewer
-            tokens={tokens}
-            slotProps={{
-              typography: ({ index }) => ({
-                sx: {
-                  color: anchors?.some((p) => p.token_index === index)
-                    ? "primary.main"
-                    : undefined,
-                  backgroundColor: (theme) =>
-                    logprobs &&
-                    alpha(
-                      theme.palette.secondary.main,
-                      convertLogprobToAlpha(logprobs[index].logprob)
-                    ),
-                },
-              }),
-              popover: { children: popoverChildren },
-            }}
-          />
-        )
+        <TokensViewer
+          tokens={tokens}
+          slotProps={{
+            typography: ({ index }) => ({
+              sx: {
+                color: anchors?.some((p) => p.token_index === index)
+                  ? "primary.main"
+                  : undefined,
+                backgroundColor: (theme) =>
+                  logprobs &&
+                  alpha(
+                    theme.palette.secondary.main,
+                    convertLogprobToAlpha(logprobs[index].logprob)
+                  ),
+              },
+            }),
+            popover: { children: popoverChildren },
+          }}
+        />
       )}
     </>
   );
