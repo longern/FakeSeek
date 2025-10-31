@@ -4,8 +4,8 @@ import { useCallback } from "react";
 
 import { useAppSelector } from "../../app/hooks";
 import { useCurrentPreset } from "../presets/hooks";
-import { DatasetRecord } from "./DatasetRecordEditor";
-import { TokenLogprobs } from "./MessageViewer";
+import { DatasetRecord } from "./dataset-editor/DatasetRecordEditor";
+import { TokenLogprobs } from "./dataset-editor/MessageViewer";
 import { convertFromHarmony } from "./utils";
 
 const TOKENIZER_CACHE: Record<string, PreTrainedTokenizer> = {};

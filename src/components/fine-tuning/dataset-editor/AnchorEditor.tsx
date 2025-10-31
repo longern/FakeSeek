@@ -68,7 +68,7 @@ function AnchorEditor({
               variant="body2"
               sx={{ flexShrink: 0, width: "32px", textAlign: "right" }}
             >
-              {uncontrolledConfidence.toFixed(2)}
+              {uncontrolledConfidence.toFixed(3)}
             </Typography>
           </Stack>
           <Box sx={{ marginTop: 1, paddingX: 1 }}>
@@ -76,7 +76,7 @@ function AnchorEditor({
               value={uncontrolledConfidence}
               min={0}
               max={1}
-              step={0.01}
+              step={0.001}
               marks={marks}
               onChangeCommitted={(_, value) => onConfidenceChange?.(value)}
               onChange={(_, value) => setUncontrolledConfidence(value)}

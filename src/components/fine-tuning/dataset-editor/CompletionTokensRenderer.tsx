@@ -1,6 +1,10 @@
-import { Alert, alpha } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import { Alert, alpha, IconButton, Typography } from "@mui/material";
+import React, { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
+import { parseCompletion } from "../utils";
 import AnchorEditor from "./AnchorEditor";
 import type { DatasetRecord } from "./DatasetRecordEditor";
 import { LogprobPopover, TokenLogprobs, TokensViewer } from "./MessageViewer";
@@ -56,20 +60,22 @@ function makeConfidenceMarks(selectedLogprob: TokenLogprobs) {
 
 function CompletionTokensRenderer({
   anchors,
-  onDraft,
+  setActions,
   lazyTokens,
   lazyLogprobs,
   onAnchorsChanged,
+  onChange,
   onContinueGeneration,
   onMoreLogprobs,
 }: {
   anchors?: DatasetRecord["anchors"];
-  onDraft?: (draft: { text: string; prefix: string }) => void;
+  setActions: (actions: { render: () => React.ReactNode }) => void;
   lazyTokens: () => Promise<Array<string>>;
   lazyLogprobs?: () => Promise<Array<TokenLogprobs>>;
   onAnchorsChanged?: React.Dispatch<
     React.SetStateAction<DatasetRecord["anchors"]>
   >;
+  onChange?: (newValue: DatasetRecord["completion"][number]) => void;
   onContinueGeneration?: (token: {
     tokenIndex: number;
     tokenId: number;
@@ -80,7 +86,52 @@ function CompletionTokensRenderer({
   const [logprobs, setLogprobs] = useState<Array<TokenLogprobs> | undefined>(
     undefined
   );
+  const [draft, setDraft] = useState<
+    { text: string; prefix: string } | undefined
+  >(undefined);
   const [error, setError] = useState("");
+
+  const { t } = useTranslation("fineTuning");
+
+  const hasDraft = draft !== undefined;
+
+  const handleApplyDraft = useEffectEvent(() => {
+    if (!draft) return;
+    onChange?.(parseCompletion(draft.prefix + draft.text));
+    setDraft(undefined);
+  });
+
+  const actions = useMemo(
+    () => ({
+      render: () =>
+        hasDraft && (
+          <>
+            <IconButton
+              size="small"
+              aria-label={t("Apply draft")}
+              onClick={handleApplyDraft}
+              color="success"
+            >
+              <CheckIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              aria-label={t("Discard draft")}
+              onClick={() => setDraft(undefined)}
+              color="error"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </>
+        ),
+    }),
+    [hasDraft, t]
+  );
+
+  useEffect(() => {
+    setActions(actions);
+    return () => setActions({ render: () => null });
+  }, [actions, setActions]);
 
   useEffect(() => {
     lazyTokens()
@@ -152,7 +203,7 @@ function CompletionTokensRenderer({
               tokenIndex: selected,
               tokenId: tokenId,
             });
-            if (draft) onDraft?.(draft);
+            if (draft) setDraft(draft);
           } catch (error: any) {
             setError(error.toString());
           }
@@ -180,26 +231,45 @@ function CompletionTokensRenderer({
         <Alert severity="error" onClose={() => setError("")} children={error} />
       )}
 
-      {tokens && (
-        <TokensViewer
-          tokens={tokens}
-          slotProps={{
-            typography: ({ index }) => ({
-              sx: {
-                color: anchors?.some((p) => p.token_index === index)
-                  ? "primary.main"
-                  : undefined,
-                backgroundColor: (theme) =>
-                  logprobs &&
-                  alpha(
-                    theme.palette.secondary.main,
-                    convertLogprobToAlpha(logprobs[index].logprob)
-                  ),
-              },
-            }),
-            popover: { children: popoverChildren },
-          }}
-        />
+      {draft ? (
+        <>
+          <Typography component="span" whiteSpace="pre-wrap">
+            {draft.prefix}
+          </Typography>
+          <Typography
+            component="span"
+            whiteSpace="pre-wrap"
+            sx={{
+              backgroundColor: (theme) =>
+                alpha(theme.palette.success.main, 0.12),
+              color: "text.secondary",
+            }}
+          >
+            {draft.text}
+          </Typography>
+        </>
+      ) : (
+        tokens && (
+          <TokensViewer
+            tokens={tokens}
+            slotProps={{
+              typography: ({ index }) => ({
+                sx: {
+                  color: anchors?.some((p) => p.token_index === index)
+                    ? "primary.main"
+                    : undefined,
+                  backgroundColor: (theme) =>
+                    logprobs &&
+                    alpha(
+                      theme.palette.secondary.main,
+                      convertLogprobToAlpha(logprobs[index].logprob)
+                    ),
+                },
+              }),
+              popover: { children: popoverChildren },
+            }}
+          />
+        )
       )}
     </>
   );

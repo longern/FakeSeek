@@ -8,6 +8,7 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  Tooltip,
   useMediaQuery,
 } from "@mui/material";
 import { lazy, Suspense, useState } from "react";
@@ -115,19 +116,25 @@ function AppDrawer({
               "& .MuiListItemButton-root": { borderRadius: 2 },
             }}
           >
-            <ListItem disablePadding>
-              <ListItemButton
-                disabled={!currentPresetId}
-                onClick={() => {
-                  setShowFineTuningDialog(true);
-                  onClose();
-                }}
-              >
-                <ListItemText
-                  primary={t("Fine-tuning", { ns: "fineTuning" })}
-                />
-              </ListItemButton>
-            </ListItem>
+            <Tooltip
+              title={currentPresetId ? undefined : t("No preset selected")}
+              placement="right"
+              arrow
+            >
+              <ListItem disablePadding>
+                <ListItemButton
+                  disabled={!currentPresetId}
+                  onClick={() => {
+                    setShowFineTuningDialog(true);
+                    onClose();
+                  }}
+                >
+                  <ListItemText
+                    primary={t("Fine-tuning", { ns: "fineTuning" })}
+                  />
+                </ListItemButton>
+              </ListItem>
+            </Tooltip>
             <ListItem disablePadding>
               <ListItemButton onClick={() => setShowSettingsDialog(true)}>
                 <ListItemText primary={t("Settings")} />

@@ -1,9 +1,6 @@
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Alert,
-  alpha,
   Box,
   Card,
   IconButton,
@@ -22,7 +19,7 @@ import { parseCompletion } from "../utils";
 
 interface TokenRendererProps {
   anchors?: DatasetRecord["anchors"];
-  onDraft: (draft: { text: string; prefix: string }) => void;
+  setActions: (actions: () => { render: React.ReactNode }) => void;
   [key: string]: any;
 }
 
@@ -54,9 +51,9 @@ function AssistantMessageEditor({
     "markdown"
   );
   const [editingCompletion, setEditingCompletion] = useState("");
-  const [draft, setDraft] = useState<
-    { text: string; prefix: string } | undefined
-  >(undefined);
+  const [actions, setActions] = useState<{ render: () => React.ReactNode }>({
+    render: () => null,
+  });
   const [error, setError] = useState("");
 
   const { t } = useTranslation("fineTuning");
@@ -97,30 +94,9 @@ function AssistantMessageEditor({
             <ToggleButton value="tokens">Tok</ToggleButton>
           </TextToggleButtonGroup>
           <Box sx={{ flexGrow: 1 }} />
-          <Stack direction="row" spacing={0.5}>
-            {draft && (
-              <>
-                <IconButton
-                  size="small"
-                  aria-label={t("Apply draft")}
-                  onClick={() => {
-                    onChange?.(parseCompletion(draft.prefix + draft.text));
-                    setDraft(undefined);
-                  }}
-                  color="success"
-                >
-                  <CheckIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  aria-label={t("Discard draft")}
-                  onClick={() => setDraft(undefined)}
-                  color="error"
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </>
-            )}
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+            {actions.render()}
+
             <IconButton
               size="small"
               aria-label={t("Delete assistant message")}
@@ -147,25 +123,6 @@ function AssistantMessageEditor({
       >
         {error && <Alert severity="error" children={error} />}
 
-        {draft ? (
-          <>
-            <Typography component="span" whiteSpace="pre-wrap">
-              {draft.prefix}
-            </Typography>
-            <Typography
-              component="span"
-              whiteSpace="pre-wrap"
-              sx={{
-                backgroundColor: (theme) =>
-                  alpha(theme.palette.success.main, 0.12),
-                color: "text.secondary",
-              }}
-            >
-              {draft.text}
-            </Typography>
-          </>
-        ) : null}
-
         <Activity mode={viewer === "raw" ? "visible" : "hidden"}>
           <InputBase
             value={editingCompletion}
@@ -185,10 +142,11 @@ function AssistantMessageEditor({
           />
         </Activity>
 
-        <Activity mode={viewer === "tokens" && !draft ? "visible" : "hidden"}>
+        <Activity mode={viewer === "tokens" ? "visible" : "hidden"}>
           <TokensRenderer
             anchors={anchors}
-            onDraft={setDraft}
+            setActions={setActions}
+            onChange={onChange}
             {...slotProps?.tokensRenderer}
           />
         </Activity>

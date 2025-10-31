@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CircularProgress,
+  Collapse,
   Container,
   Divider,
   IconButton,
@@ -122,18 +123,21 @@ export function EditableMessage({
       </Box>
       <Box sx={{ paddingX: 2, paddingTop: 1, paddingBottom: 2 }}>
         {typeof content === "string" ? (
-          <InputBase
-            inputRef={inputRef}
-            multiline
-            readOnly={!editing}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onBlur={() => {
-              if (editing && value !== content) onChange?.(value);
-              setEditing(false);
-            }}
-            fullWidth
-          />
+          <Collapse in={editing} collapsedSize={32}>
+            <InputBase
+              inputRef={inputRef}
+              multiline
+              readOnly={!editing}
+              minRows={3}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onBlur={() => {
+                if (editing && value !== content) onChange?.(value);
+                setEditing(false);
+              }}
+              fullWidth
+            />
+          </Collapse>
         ) : (
           content.map((part, i) =>
             part.type === "text" ? (
