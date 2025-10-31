@@ -16,6 +16,7 @@ export default {
       "Finished at": "Finished at",
       "Found {{count}} results": "Found {{count}} results",
       Generate: "Generate",
+      "Generate all": "Generate all",
       "Greedy decoding": "Greedy decoding",
       "Last modified": "Last modified",
       "No fine-tuning jobs found": "No fine-tuning jobs found",
@@ -31,6 +32,7 @@ export default {
       "confirm-close-with-unsaved-changes": "Close without saving changes?",
       "confirm-delete-assistant-message":
         "Are you sure you want to delete this assistant message?",
+      "confirm-delete-dataset": "Delete this dataset?\n{{name}}",
       "confirm-delete-record": "Delete this record?",
     },
   },
@@ -51,6 +53,7 @@ export default {
       "Finished at": "完成时间",
       "Found {{count}} results": "找到 {{count}} 个结果",
       Generate: "生成",
+      "Generate all": "全部生成",
       "Greedy decoding": "贪心解码",
       "Last modified": "最后修改时间",
       "No fine-tuning jobs found": "未找到微调任务",
@@ -65,6 +68,7 @@ export default {
 
       "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
       "confirm-delete-assistant-message": "删除AI助手消息？",
+      "confirm-delete-dataset": "删除此数据集？\n{{name}}",
       "confirm-delete-record": "删除此条数据？",
     },
   },
