@@ -5,7 +5,10 @@ import {
   alpha,
   Box,
   CircularProgress,
+  Divider,
   IconButton,
+  Popover,
+  Stack,
   Typography,
 } from "@mui/material";
 import React, { useEffect, useEffectEvent, useMemo, useState } from "react";
@@ -14,7 +17,12 @@ import { useTranslation } from "react-i18next";
 import { parseCompletion } from "../utils";
 import AnchorEditor from "./AnchorEditor";
 import type { DatasetRecord } from "./DatasetRecordEditor";
-import { LogprobPopover, TokenLogprobs, TokensViewer } from "./MessageViewer";
+import {
+  LogprobTable,
+  TokenList,
+  TokenListItem,
+  TokenLogprobs,
+} from "./MessageViewer";
 
 function toggleAnchor(
   anchors: DatasetRecord["anchors"] | undefined,
@@ -77,7 +85,7 @@ function CompletionTokensRenderer({
 }: {
   anchors?: DatasetRecord["anchors"];
   setActions: (actions: { render: () => React.ReactNode }) => void;
-  lazyTokens: () => Promise<Array<string>>;
+  lazyTokens: () => Promise<{ tokens: Array<string>; tokenIds: Array<number> }>;
   lazyLogprobs?: () => Promise<Array<TokenLogprobs>>;
   onAnchorsChanged?: React.Dispatch<
     React.SetStateAction<DatasetRecord["anchors"]>
@@ -89,13 +97,20 @@ function CompletionTokensRenderer({
   }) => Promise<{ text: string; prefix: string }>;
   onMoreLogprobs?: (tokenIndex: number) => Promise<TokenLogprobs>;
 }) {
-  const [tokens, setTokens] = useState<Array<string> | null>(null);
+  const [tokens, setTokens] = useState<{
+    tokens: Array<string>;
+    tokenIds: Array<number>;
+  } | null>(null);
   const [logprobs, setLogprobs] = useState<Array<TokenLogprobs> | undefined>(
     undefined
   );
   const [draft, setDraft] = useState<
     { text: string; prefix: string } | undefined
   >(undefined);
+  const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(
+    null
+  );
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [error, setError] = useState("");
 
   const { t } = useTranslation("fineTuning");
@@ -135,6 +150,22 @@ function CompletionTokensRenderer({
     [hasDraft, t]
   );
 
+  const selectedToken = useMemo(() => {
+    if (selectedTokenIndex === null) return null;
+
+    return {
+      index: selectedTokenIndex,
+      token: tokens!.tokens![selectedTokenIndex],
+      tokenId: tokens!.tokenIds![selectedTokenIndex],
+      logprob: logprobs?.[selectedTokenIndex],
+      anchored: (anchors ?? []).some(
+        (p) => p.token_index === selectedTokenIndex
+      ),
+      confidence: anchors?.find((p) => p.token_index === selectedTokenIndex)
+        ?.confidence,
+    };
+  }, [selectedTokenIndex, logprobs, tokens, anchors]);
+
   useEffect(() => {
     setActions(actions);
     return () => setActions({ render: () => null });
@@ -155,82 +186,6 @@ function CompletionTokensRenderer({
   }, [lazyLogprobs]);
 
   const convertLogprobToAlpha = (x: number) => (1 - Math.exp(x)) * 0.4;
-
-  const popoverChildren = ({
-    selected,
-    onClose,
-  }: {
-    selected: number;
-    onClose: () => void;
-  }) => {
-    if (!logprobs) return null;
-    const selectedLogprob = logprobs[selected];
-
-    const confidenceMarks = makeConfidenceMarks(selectedLogprob);
-
-    const anchorEditor = (
-      <AnchorEditor
-        anchored={(anchors ?? []).some((p) => p.token_index === selected)}
-        onChange={(value) =>
-          onAnchorsChanged?.((anchors) =>
-            toggleAnchor(
-              anchors,
-              {
-                token_index: selected,
-                token_id: logprobs[selected].token_id,
-              },
-              value
-            )
-          )
-        }
-        confidence={
-          anchors?.find((p) => p.token_index === selected)?.confidence
-        }
-        onConfidenceChange={(newConfidence) =>
-          onAnchorsChanged?.((anchors) =>
-            anchors?.map((anc) =>
-              anc.token_index === selected
-                ? { ...anc, confidence: newConfidence ?? undefined }
-                : anc
-            )
-          )
-        }
-        marks={confidenceMarks}
-      />
-    );
-
-    return (
-      <LogprobPopover
-        logprob={logprobs[selected]}
-        onClose={onClose}
-        anchorEditor={anchorEditor}
-        onContinueGeneration={async (tokenId: number) => {
-          try {
-            const draft = await onContinueGeneration?.({
-              tokenIndex: selected,
-              tokenId: tokenId,
-            });
-            if (draft) setDraft(draft);
-          } catch (error: any) {
-            setError(error.toString());
-          }
-        }}
-        onMoreLogprobs={async () => {
-          if (!onMoreLogprobs) return;
-          try {
-            const logprob = await onMoreLogprobs(selected);
-            setLogprobs((prevLogprobs) => {
-              return prevLogprobs?.map((lp, index) =>
-                index === selected ? logprob : lp
-              );
-            });
-          } catch (error: any) {
-            setError(error.toString());
-          }
-        }}
-      />
-    );
-  };
 
   return (
     <>
@@ -260,25 +215,107 @@ function CompletionTokensRenderer({
           <CircularProgress />
         </Box>
       ) : (
-        <TokensViewer
-          tokens={tokens}
-          slotProps={{
-            typography: ({ index }) => ({
-              sx: {
-                color: anchors?.some((p) => p.token_index === index)
-                  ? "primary.main"
-                  : undefined,
-                backgroundColor: (theme) =>
-                  logprobs &&
-                  alpha(
-                    theme.palette.secondary.main,
-                    convertLogprobToAlpha(logprobs[index].logprob)
-                  ),
-              },
-            }),
-            popover: { children: popoverChildren },
-          }}
-        />
+        <>
+          <TokenList>
+            {tokens.tokens.map((token, index) => (
+              <TokenListItem
+                key={index}
+                token={token}
+                sx={{
+                  color: anchors?.some((p) => p.token_index === index)
+                    ? "primary.main"
+                    : undefined,
+                  backgroundColor: (theme) =>
+                    logprobs &&
+                    alpha(
+                      theme.palette.secondary.main,
+                      convertLogprobToAlpha(logprobs[index].logprob)
+                    ),
+                }}
+                onClick={(event) => {
+                  setSelectedTokenIndex(index);
+                  setAnchorEl(event.currentTarget);
+                }}
+              />
+            ))}
+          </TokenList>
+
+          <Popover
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+            anchorEl={anchorEl}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+          >
+            {selectedToken && (
+              <Stack
+                sx={{ minWidth: { xs: "320px", sm: "400px" } }}
+                divider={<Divider />}
+              >
+                <AnchorEditor
+                  anchored={selectedToken.anchored}
+                  onChange={(value) => {
+                    const anchor = {
+                      token_index: selectedToken.index,
+                      token_id: selectedToken.tokenId,
+                    };
+                    onAnchorsChanged?.((anchors) =>
+                      toggleAnchor(anchors, anchor, value)
+                    );
+                  }}
+                  confidence={selectedToken.confidence}
+                  onConfidenceChange={(newConfidence) =>
+                    onAnchorsChanged?.((anchors) =>
+                      anchors?.map((anc) =>
+                        anc.token_index === selectedToken.index
+                          ? { ...anc, confidence: newConfidence ?? undefined }
+                          : anc
+                      )
+                    )
+                  }
+                  marks={
+                    selectedToken?.logprob &&
+                    makeConfidenceMarks(selectedToken.logprob)
+                  }
+                />
+
+                {selectedToken.logprob && (
+                  <Box sx={{ padding: 2 }}>
+                    <LogprobTable
+                      logprob={selectedToken.logprob}
+                      onContinueGeneration={async () => {
+                        setAnchorEl(null);
+                        try {
+                          const draft = await onContinueGeneration?.({
+                            tokenIndex: selectedToken.index,
+                            tokenId: selectedToken.tokenId,
+                          });
+                          if (draft) setDraft(draft);
+                        } catch (error: any) {
+                          setError(error.toString());
+                        }
+                      }}
+                      onMoreLogprobs={async () => {
+                        if (!onMoreLogprobs) return;
+                        try {
+                          const logprob = await onMoreLogprobs(
+                            selectedToken.index
+                          );
+                          setLogprobs((prevLogprobs) => {
+                            return prevLogprobs?.map((lp, index) =>
+                              index === selectedToken.index ? logprob : lp
+                            );
+                          });
+                        } catch (error: any) {
+                          setError(error.toString());
+                        }
+                      }}
+                    />
+                  </Box>
+                )}
+              </Stack>
+            )}
+          </Popover>
+        </>
       )}
     </>
   );

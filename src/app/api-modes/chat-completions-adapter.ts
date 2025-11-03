@@ -103,6 +103,7 @@ export async function requestChatCompletionsAPI(
         error: null,
         incomplete_details: null,
         metadata: null,
+        status: "in_progress",
         temperature: options?.temperature || null,
         top_p: null,
         tools: options?.tools ?? [],

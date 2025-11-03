@@ -71,11 +71,16 @@ function responseReducer(
         break;
       }
 
-      case "response.content_part.done":
-        const doneMessage = response.output[event.output_index];
+      case "response.content_part.done": {
+        const outputIndex = Math.min(
+          event.output_index,
+          response.output.length - 1
+        );
+        const doneMessage = response.output[outputIndex];
         if (doneMessage.type !== "message") return;
         doneMessage.content[event.content_index] = event.part as any;
         break;
+      }
 
       case "response.output_text.delta":
         const outMessage = response.output[event.output_index];

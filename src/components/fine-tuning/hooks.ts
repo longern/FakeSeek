@@ -85,9 +85,9 @@ export async function tokenizeCompletion({
     prompt,
     completion,
   });
-  const completionIds = tokenizer.encode(completionText);
-  const tokens = completionIds.map((id) => tokenizer.decode([id], {}));
-  return tokens;
+  const tokenIds = tokenizer.encode(completionText);
+  const tokens = tokenIds.map((id) => tokenizer.decode([id], {}));
+  return { tokens, tokenIds };
 }
 
 export function useGenerate() {
