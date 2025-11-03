@@ -111,6 +111,10 @@ function CompletionTokensRenderer({
     null
   );
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [continueToken, setContinueToken] = useState<{
+    tokenIndex: number;
+    tokenId: number;
+  } | null>(null);
   const [error, setError] = useState("");
 
   const { t } = useTranslation("fineTuning");
@@ -119,6 +123,24 @@ function CompletionTokensRenderer({
 
   const handleApplyDraft = useEffectEvent(() => {
     if (!draft) return;
+
+    // Auto-anchor if new token is not the top predicted token
+    if (
+      selectedToken !== null &&
+      continueToken !== null &&
+      onAnchorsChanged &&
+      selectedToken.index === continueToken.tokenIndex
+    ) {
+      onAnchorsChanged((anchors) => {
+        const topTokenId = selectedToken.logprob?.top_logprobs?.[0].token_id;
+        return toggleAnchor(
+          anchors?.filter((p) => p.token_index < selectedToken.index),
+          { token_index: selectedToken.index, token_id: continueToken.tokenId },
+          topTokenId !== continueToken.tokenId
+        );
+      });
+    }
+
     onChange?.(parseCompletion(draft.prefix + draft.text));
     setDraft(undefined);
   });
@@ -139,7 +161,10 @@ function CompletionTokensRenderer({
             <IconButton
               size="small"
               aria-label={t("Discard draft")}
-              onClick={() => setDraft(undefined)}
+              onClick={() => {
+                setDraft(undefined);
+                setContinueToken(null);
+              }}
               color="error"
             >
               <CloseIcon fontSize="small" />
@@ -282,13 +307,17 @@ function CompletionTokensRenderer({
                   <Box sx={{ padding: 2 }}>
                     <LogprobTable
                       logprob={selectedToken.logprob}
-                      onContinueGeneration={async () => {
+                      onContinueGeneration={async (tokenId) => {
                         setAnchorEl(null);
+                        const continueToken = {
+                          tokenIndex: selectedToken.index,
+                          tokenId,
+                        };
+                        setContinueToken(continueToken);
                         try {
-                          const draft = await onContinueGeneration?.({
-                            tokenIndex: selectedToken.index,
-                            tokenId: selectedToken.tokenId,
-                          });
+                          const draft = await onContinueGeneration?.(
+                            continueToken
+                          );
                           if (draft) setDraft(draft);
                         } catch (error: any) {
                           setError(error.toString());

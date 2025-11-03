@@ -206,7 +206,7 @@ function DatasetEditor({
                 setContent((prev) => {
                   if (!prev) return prev;
                   const newContent = [...prev];
-                  newContent[selected] = newRecord;
+                  newContent[selected] = newRecord(prev[selected]);
                   return newContent;
                 });
 

@@ -164,7 +164,7 @@ function DatasetRecordEditor({
 }: {
   record: DatasetRecord;
   model?: string;
-  onChange: (record: DatasetRecord) => void;
+  onChange: (record: (prev: DatasetRecord) => DatasetRecord) => void;
 }) {
   const [generationAbortController, setGenerationAbortController] = useState<
     AbortController | undefined
@@ -187,11 +187,10 @@ function DatasetRecordEditor({
           ? message.reasoning_content
           : undefined;
 
-      const newContent = {
-        ...record,
+      onChange?.((prev) => ({
+        ...prev,
         completion: [{ role: "assistant", content: message.content, thinking }],
-      };
-      onChange?.(newContent);
+      }));
     },
     [generate, record]
   );
@@ -241,12 +240,14 @@ function DatasetRecordEditor({
                   content={msg.content}
                   stickyHeader
                   onChange={(newValue) => {
-                    const newContent = { ...record };
-                    newContent.prompt[i] = {
-                      ...newContent.prompt[i],
-                      content: newValue,
-                    };
-                    onChange?.(newContent);
+                    onChange?.((prev) => {
+                      const newContent = { ...prev };
+                      newContent.prompt[i] = {
+                        ...newContent.prompt[i],
+                        content: newValue,
+                      };
+                      return newContent;
+                    });
                   }}
                 />
               ))}
@@ -285,10 +286,13 @@ function DatasetRecordEditor({
                 completion={record.completion[0]}
                 anchors={record.anchors}
                 onChange={(newValue) =>
-                  onChange?.({ ...record, completion: [newValue] })
+                  onChange?.((prev) => ({ ...prev, completion: [newValue] }))
                 }
                 onDelete={() =>
-                  onChange?.({ ...record, completion: undefined as any })
+                  onChange?.((prev) => ({
+                    ...prev,
+                    completion: undefined as any,
+                  }))
                 }
                 applyChatTemplate={() =>
                   completionApplyTemplate({
@@ -305,14 +309,19 @@ function DatasetRecordEditor({
                     anchors: record.anchors,
                     lazyTokens,
                     lazyLogprobs,
+                    onChange: (newValue) =>
+                      onChange?.((prev) => ({
+                        ...prev,
+                        completion: [newValue],
+                      })),
                     onAnchorsChanged: (newValue) => {
-                      onChange?.({
-                        ...record,
+                      onChange?.((prev) => ({
+                        ...prev,
                         anchors:
                           typeof newValue === "function"
                             ? newValue(record.anchors)
                             : newValue,
-                      });
+                      }));
                     },
                     onContinueGeneration: async ({ tokenIndex, tokenId }) => {
                       const { prefix, token, choice } =
