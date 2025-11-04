@@ -23,7 +23,7 @@ import { Activity, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Markdown } from "../Markdown";
 import { useCurrentPreset } from "../presets/hooks";
-import { parseDataset } from "./dataset-editor/DatasetEditor";
+import { parseDataset } from "./dataset-editor/utils";
 import {
   DatasetRecord,
   EditableMessage,

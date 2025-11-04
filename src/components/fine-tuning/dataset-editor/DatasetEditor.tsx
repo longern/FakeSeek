@@ -14,44 +14,15 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { createContext, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import yaml from "yaml";
 
 import { useCurrentPreset } from "../../presets/hooks";
 import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
 import { getTokenizer } from "../hooks";
-import { convertFromHarmony, convertToHarmony } from "../utils";
-
-export const OpenDatasetEditorContext = createContext<
-  (datasetName: string | undefined, onClose?: () => void) => void
->(() => {});
-
-export async function getDatasetDirectoryHandle() {
-  const root = await navigator.storage.getDirectory();
-  const fineTuningDirHandle = await root.getDirectoryHandle(".coaching", {
-    create: true,
-  });
-  const datasetDirectoryHandle = await fineTuningDirHandle.getDirectoryHandle(
-    "datasets",
-    { create: true }
-  );
-  return datasetDirectoryHandle;
-}
-
-export function parseDataset(content: string) {
-  const parsed = yaml.parseDocument(content);
-  const match = parsed.commentBefore?.match(/Model:\s*(\S+)/);
-  const model = match ? match[1] : undefined;
-  let dataset = parsed.toJS() as Array<DatasetRecord>;
-  if (model)
-    dataset = dataset.map((record) => ({
-      ...record,
-      prompt: convertToHarmony(model, record.prompt),
-      completion: convertToHarmony(model, record.completion),
-    }));
-  return { model, dataset };
-}
+import { convertFromHarmony } from "../utils";
+import { getDatasetDirectoryHandle, parseDataset } from "./utils";
 
 async function saveDataset(
   content: Array<DatasetRecord>,

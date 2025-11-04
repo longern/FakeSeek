@@ -2,6 +2,7 @@ import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import {
   Box,
   Button,
+  CircularProgress,
   Divider,
   Drawer,
   List,
@@ -27,7 +28,8 @@ import { ErrorBoundary } from "./fine-tuning/utils";
 const addCommentIcon = (
   <AddCommentOutlinedIcon sx={{ transform: "scaleX(-1)" }} />
 );
-const FineTuningDialog = lazy(() => import("./fine-tuning/FineTuningDialog"));
+const fineTuningDialogPromise = import("./fine-tuning/FineTuningDialog");
+const FineTuningDialog = lazy(() => fineTuningDialogPromise);
 
 function AppDrawer({
   open,
@@ -145,7 +147,26 @@ function AppDrawer({
       </Drawer>
 
       <ErrorBoundary>
-        <Suspense>
+        <Suspense
+          fallback={
+            showFineTuningDialog && (
+              <Box
+                sx={{
+                  position: "fixed",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  display: "flex",
+                  padding: 2,
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  borderRadius: 2,
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            )
+          }
+        >
           <FineTuningDialog
             open={showFineTuningDialog}
             onClose={() => {
