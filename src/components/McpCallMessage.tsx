@@ -14,10 +14,12 @@ import {
   Typography,
 } from "@mui/material";
 import { ResponseInputItem } from "openai/resources/responses/responses.mjs";
-import { useMemo, useState } from "react";
+import { lazy, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Markdown } from "./Markdown";
+const Markdown = lazy(() =>
+  import("./Markdown").then((mod) => ({ default: mod.Markdown }))
+);
 
 function formatMcpError(
   error:

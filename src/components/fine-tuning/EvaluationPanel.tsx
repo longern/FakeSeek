@@ -19,18 +19,29 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import OpenAI from "openai";
-import { Activity, useCallback, useEffect, useState } from "react";
+import {
+  Activity,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { Markdown } from "../Markdown";
+
 import { useCurrentPreset } from "../presets/hooks";
-import { parseDataset } from "./dataset-editor/utils";
 import {
   DatasetRecord,
   EditableMessage,
 } from "./dataset-editor/DatasetRecordEditor";
+import { parseDataset } from "./dataset-editor/utils";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
 import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
 import DatasetsTable from "./DatasetsTable";
+
+const Markdown = lazy(() =>
+  import("../Markdown").then((mod) => ({ default: mod.Markdown }))
+);
 
 function TwoColumnLayout({
   left,
@@ -128,7 +139,9 @@ function AssistantMessageRenderer({
     message[0].content && (
       <Box sx={{ padding: 1 }}>
         <Card variant="outlined" sx={{ borderRadius: 3, padding: 1 }}>
-          <Markdown>{message[0].content}</Markdown>
+          <Suspense fallback={message[0].content}>
+            <Markdown>{message[0].content}</Markdown>
+          </Suspense>
         </Card>
       </Box>
     )

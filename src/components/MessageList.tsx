@@ -32,15 +32,27 @@ import {
   ResponseOutputText,
   ResponseReasoningItem,
 } from "openai/resources/responses/responses.mjs";
-import { useCallback, useEffect, useMemo, useState, ElementType } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  ElementType,
+  lazy,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 
-import Markdown, { CodeBox } from "./Markdown";
 import { useAppSelector } from "../app/hooks";
 import { ChatMessage } from "../app/messages";
 import ResponseItem from "./ResponseItem";
+
+const markdownPromise = import("./Markdown");
+const Markdown = lazy(() => markdownPromise);
+const CodeBox = lazy(() =>
+  markdownPromise.then((mod) => ({ default: mod.CodeBox }))
+);
 
 export function UserMessage({
   message,

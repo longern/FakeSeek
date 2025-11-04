@@ -11,13 +11,14 @@ import {
   ToggleButton,
   Typography,
 } from "@mui/material";
-import React, { Activity, useCallback, useState } from "react";
+import React, { Activity, lazy, Suspense, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Markdown } from "../../Markdown";
 import type { DatasetRecord } from "./DatasetRecordEditor";
 import TextToggleButtonGroup from "./TextToggleButtonGroup";
 import { parseCompletion } from "../utils";
+
+const Markdown = lazy(() => import("../../Markdown"));
 
 interface TokenRendererProps {
   anchors?: DatasetRecord["anchors"];
@@ -183,7 +184,9 @@ function AssistantMessageEditor({
           >
             {completion.thinking}
           </Typography>
-          <Markdown>{completion.content!}</Markdown>
+          <Suspense fallback={completion.content}>
+            <Markdown>{completion.content!}</Markdown>
+          </Suspense>
         </Activity>
       </Box>
     </Card>

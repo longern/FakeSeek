@@ -21,12 +21,11 @@ import {
   Typography,
 } from "@mui/material";
 import { Response } from "openai/resources/responses/responses.mjs";
-import { ElementType, Fragment, useCallback, useState } from "react";
+import { ElementType, Fragment, lazy, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
 
 import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "../app/tools-definitions";
-import { CodeBox } from "./Markdown";
 import { McpCallContent } from "./McpCallMessage";
 import {
   AssistantMessage,
@@ -35,6 +34,10 @@ import {
   RunPythonContent,
 } from "./MessageList";
 import { CreateResponseParams } from "../app/api-modes/types";
+
+const CodeBox = lazy(() =>
+  import("./Markdown").then((mod) => ({ default: mod.CodeBox }))
+);
 
 function formatTimestamp(timestamp: number) {
   const date = new Date(timestamp);
