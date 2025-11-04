@@ -2,7 +2,6 @@ import type { PreTrainedTokenizer } from "@huggingface/transformers";
 import OpenAI from "openai";
 import { useCallback } from "react";
 
-import { useAppSelector } from "../../app/hooks";
 import { useCurrentPreset } from "../presets/hooks";
 import { DatasetRecord } from "./dataset-editor/DatasetRecordEditor";
 import { TokenLogprobs } from "./dataset-editor/MessageViewer";
@@ -125,11 +124,7 @@ export function useGenerate() {
 }
 
 export function useForward() {
-  const currentPreset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current] ?? null
-  );
+  const currentPreset = useCurrentPreset();
 
   const forward = useCallback(
     async ({
@@ -214,11 +209,7 @@ export function useForward() {
 }
 
 export function useContinueGeneration() {
-  const currentPreset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current] ?? null
-  );
+  const currentPreset = useCurrentPreset();
 
   const continueGeneration = useCallback(
     async ({
@@ -282,11 +273,7 @@ export function useContinueGeneration() {
 }
 
 export function useMoreLogprobs() {
-  const currentPreset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current] ?? null
-  );
+  const currentPreset = useCurrentPreset();
 
   const moreLogprobs = useCallback(
     async ({

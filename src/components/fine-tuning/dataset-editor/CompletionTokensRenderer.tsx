@@ -1,9 +1,7 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import SaveIcon from "@mui/icons-material/Save";
 import {
   Alert,
   alpha,
@@ -11,11 +9,9 @@ import {
   CircularProgress,
   Divider,
   IconButton,
-  InputBase,
   Popover,
   Stack,
   SwipeableDrawer,
-  SxProps,
   Typography,
   useMediaQuery,
 } from "@mui/material";
@@ -37,6 +33,7 @@ import {
   TokenListItem,
   TokenLogprobs,
 } from "./MessageViewer";
+import TokenEditor from "./TokenEditor";
 
 function toggleAnchor(
   anchors: DatasetRecord["anchors"] | undefined,
@@ -85,68 +82,6 @@ function makeConfidenceMarks(selectedLogprob: TokenLogprobs) {
   }
 
   return marks;
-}
-
-function TokenEditor({
-  token,
-  onChange,
-  previousToken,
-  nextToken,
-  sx,
-}: {
-  token: string;
-  onChange: (newToken: string) => void;
-  previousToken?: string;
-  nextToken?: string;
-  sx?: SxProps;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-
-  const { t } = useTranslation("fineTuning");
-
-  useEffect(() => {
-    setEditing(false);
-  }, [token]);
-
-  return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={sx}>
-      {editing ? (
-        <InputBase
-          name="token-editor-input"
-          placeholder={token}
-          autoFocus
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-      ) : (
-        <Box>
-          <Box component="span" sx={{ opacity: 0.2 }}>
-            {previousToken}
-          </Box>
-          <Box component="span">{token}</Box>
-          <Box component="span" sx={{ opacity: 0.2 }}>
-            {nextToken}
-          </Box>
-        </Box>
-      )}
-      <IconButton
-        size="small"
-        aria-label={editing ? t("Save token") : t("Edit token")}
-        onClick={() => {
-          if (editing) value && onChange(value);
-          else setValue("");
-          setEditing(!editing);
-        }}
-      >
-        {editing ? (
-          <SaveIcon fontSize="small" />
-        ) : (
-          <EditIcon fontSize="small" />
-        )}
-      </IconButton>
-    </Stack>
-  );
 }
 
 function CompletionTokensRenderer({
@@ -479,7 +414,27 @@ function CompletionTokensRenderer({
               onOpen={() => {}}
               disableSwipeToOpen
               anchor="bottom"
+              slotProps={{
+                paper: {
+                  sx: {
+                    borderTopLeftRadius: "12px",
+                    borderTopRightRadius: "12px",
+                  },
+                },
+              }}
             >
+              <Box sx={{ borderTopLeftRadius: 8, borderTopRightRadius: 8 }}>
+                <Box
+                  sx={{
+                    width: "40px",
+                    height: "4px",
+                    backgroundColor: "divider",
+                    mx: "auto",
+                    marginTop: 1,
+                    borderRadius: "2px",
+                  }}
+                />
+              </Box>
               {popoverChildren}
             </SwipeableDrawer>
           ) : (

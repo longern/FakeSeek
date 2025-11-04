@@ -33,6 +33,8 @@ export default {
       "confirm-delete-assistant-message":
         "Are you sure you want to delete this assistant message?",
       "confirm-delete-dataset": "Delete this dataset?\n{{name}}",
+      "confirm-delete-finetuned-model":
+        "Delete this fine-tuned model?\n{{model}}",
       "confirm-delete-record": "Delete this record?",
     },
   },
@@ -69,6 +71,7 @@ export default {
       "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
       "confirm-delete-assistant-message": "删除AI助手消息？",
       "confirm-delete-dataset": "删除此数据集？\n{{name}}",
+      "confirm-delete-finetuned-model": "删除此微调模型？\n{{model}}",
       "confirm-delete-record": "删除此条数据？",
     },
   },

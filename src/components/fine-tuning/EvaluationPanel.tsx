@@ -61,11 +61,13 @@ function ModelMenu({
   onChange,
   sx,
 }: {
-  models?: string[];
+  models: string[] | null;
   onChange: (model: string) => void;
   sx?: SxProps;
 }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const { t } = useTranslation("fineTuning");
 
   return (
     <>
@@ -84,18 +86,24 @@ function ModelMenu({
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        {models?.map((model) => (
-          <MenuItem
-            key={model}
-            value={model}
-            onClick={() => {
-              onChange(model);
-              setAnchorEl(null);
-            }}
-          >
-            {model}
-          </MenuItem>
-        ))}
+        {models === null ? (
+          <CircularProgress />
+        ) : models.length === 0 ? (
+          <MenuItem disabled>{t("No data")}</MenuItem>
+        ) : (
+          models.map((model) => (
+            <MenuItem
+              key={model}
+              value={model}
+              onClick={() => {
+                onChange(model);
+                setAnchorEl(null);
+              }}
+            >
+              {model}
+            </MenuItem>
+          ))
+        )}
       </Menu>
     </>
   );
@@ -150,6 +158,9 @@ function ComparePanel({
   const currentPreset = useCurrentPreset();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("md"));
   const { t } = useTranslation("fineTuning");
+
+  const finetunedModels =
+    models && models.filter((model) => model.startsWith("ft:"));
 
   const handleGenerateAll = useCallback(async () => {
     const prompt = records?.[selectedRecordIndex].prompt;
@@ -298,9 +309,10 @@ function ComparePanel({
                     {baseModel ?? t("Base model")}
                     {(!isMobile || tab === 0) && (
                       <ModelMenu
-                        models={models?.filter(
-                          (model) => !model.startsWith("ft:")
-                        )}
+                        models={
+                          models &&
+                          models.filter((model) => !model.startsWith("ft:"))
+                        }
                         onChange={(model) => setBaseModel(model)}
                         sx={{
                           position: "absolute",
@@ -334,9 +346,7 @@ function ComparePanel({
                     {finetunedModel ?? t("Fine-tuned model")}
                     {(!isMobile || tab === 1) && (
                       <ModelMenu
-                        models={models?.filter((model) =>
-                          model.startsWith("ft:")
-                        )}
+                        models={finetunedModels}
                         onChange={(model) => setFinetunedModel(model)}
                         sx={{
                           position: "absolute",
