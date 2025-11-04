@@ -38,7 +38,7 @@ function AnchorEditor({
 
   return (
     <Stack>
-      <Box sx={{ paddingX: 2, paddingY: 1.5 }}>
+      <Box sx={{ paddingY: 1, paddingRight: 1, paddingLeft: 2 }}>
         <Stack
           direction="row"
           sx={{ justifyContent: "space-between", alignItems: "center" }}
@@ -46,7 +46,6 @@ function AnchorEditor({
           <Typography id="anchor-button">{t("Anchor")}</Typography>
           <IconButton
             aria-labelledby="anchor-button"
-            size="small"
             {...(anchored
               ? { color: "primary", onClick: () => onChange?.(false) }
               : { onClick: () => onChange?.(true) })}

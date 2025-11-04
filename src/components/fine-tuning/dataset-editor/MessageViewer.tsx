@@ -2,11 +2,12 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import {
   Box,
-  Card,
   IconButton,
+  Paper,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   Typography,
@@ -112,8 +113,12 @@ export function LogprobTable({
   onMoreLogprobs?: () => void;
 }) {
   return (
-    <Card variant="outlined">
-      <Table size="small">
+    <TableContainer
+      component={Paper}
+      variant="outlined"
+      sx={{ maxHeight: "400px" }}
+    >
+      <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
             <TableCell>Token</TableCell>
@@ -121,6 +126,7 @@ export function LogprobTable({
             {!onContinueGeneration ? null : <TableCell />}
           </TableRow>
         </TableHead>
+
         <TableBody>
           {logprob.top_logprobs.map((topLogprob, index) => (
             <TableRow
@@ -167,19 +173,22 @@ export function LogprobTable({
               )}
             </TableRow>
           ))}
-          <TableRow>
-            <TableCell colSpan={3} align="center">
-              <IconButton
-                aria-label={"More"}
-                size="small"
-                onClick={onMoreLogprobs}
-              >
-                <MoreHorizIcon fontSize="small" />
-              </IconButton>
-            </TableCell>
-          </TableRow>
+
+          {onMoreLogprobs && (
+            <TableRow>
+              <TableCell colSpan={3} align="center">
+                <IconButton
+                  aria-label={"More"}
+                  size="small"
+                  onClick={onMoreLogprobs}
+                >
+                  <MoreHorizIcon fontSize="small" />
+                </IconButton>
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
-    </Card>
+    </TableContainer>
   );
 }

@@ -1,5 +1,9 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import SaveIcon from "@mui/icons-material/Save";
 import {
   Alert,
   alpha,
@@ -7,11 +11,21 @@ import {
   CircularProgress,
   Divider,
   IconButton,
+  InputBase,
   Popover,
   Stack,
+  SwipeableDrawer,
+  SxProps,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
-import React, { useEffect, useEffectEvent, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import { parseCompletion } from "../utils";
@@ -73,6 +87,68 @@ function makeConfidenceMarks(selectedLogprob: TokenLogprobs) {
   return marks;
 }
 
+function TokenEditor({
+  token,
+  onChange,
+  previousToken,
+  nextToken,
+  sx,
+}: {
+  token: string;
+  onChange: (newToken: string) => void;
+  previousToken?: string;
+  nextToken?: string;
+  sx?: SxProps;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+
+  const { t } = useTranslation("fineTuning");
+
+  useEffect(() => {
+    setEditing(false);
+  }, [token]);
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="center" sx={sx}>
+      {editing ? (
+        <InputBase
+          name="token-editor-input"
+          placeholder={token}
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      ) : (
+        <Box>
+          <Box component="span" sx={{ opacity: 0.2 }}>
+            {previousToken}
+          </Box>
+          <Box component="span">{token}</Box>
+          <Box component="span" sx={{ opacity: 0.2 }}>
+            {nextToken}
+          </Box>
+        </Box>
+      )}
+      <IconButton
+        size="small"
+        aria-label={editing ? t("Save token") : t("Edit token")}
+        onClick={() => {
+          if (editing) value && onChange(value);
+          else setValue("");
+          setEditing(!editing);
+        }}
+      >
+        {editing ? (
+          <SaveIcon fontSize="small" />
+        ) : (
+          <EditIcon fontSize="small" />
+        )}
+      </IconButton>
+    </Stack>
+  );
+}
+
 function CompletionTokensRenderer({
   anchors,
   setActions,
@@ -116,6 +192,7 @@ function CompletionTokensRenderer({
     tokenId: number;
   } | null>(null);
   const [error, setError] = useState("");
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const { t } = useTranslation("fineTuning");
 
@@ -125,17 +202,16 @@ function CompletionTokensRenderer({
     if (!draft) return;
 
     // Auto-anchor if new token is not the top predicted token
-    if (
-      selectedToken !== null &&
-      continueToken !== null &&
-      onAnchorsChanged &&
-      selectedToken.index === continueToken.tokenIndex
-    ) {
+    if (continueToken !== null && onAnchorsChanged) {
       onAnchorsChanged((anchors) => {
-        const topTokenId = selectedToken.logprob?.top_logprobs?.[0].token_id;
+        const logprob = logprobs?.[continueToken.tokenIndex];
+        const topTokenId = logprob?.top_logprobs?.[0].token_id;
         return toggleAnchor(
-          anchors?.filter((p) => p.token_index < selectedToken.index),
-          { token_index: selectedToken.index, token_id: continueToken.tokenId },
+          anchors?.filter((p) => p.token_index < continueToken.tokenIndex),
+          {
+            token_index: continueToken.tokenIndex,
+            token_id: continueToken.tokenId,
+          },
           topTokenId !== continueToken.tokenId
         );
       });
@@ -191,6 +267,43 @@ function CompletionTokensRenderer({
     };
   }, [selectedTokenIndex, logprobs, tokens, anchors]);
 
+  const handleContinueGeneration = useCallback(
+    async (tokenId: number) => {
+      if (selectedToken === null) return;
+      setAnchorEl(null);
+      const continueToken = {
+        tokenIndex: selectedToken.index,
+        tokenId,
+      };
+      setContinueToken(continueToken);
+      try {
+        const draft = await onContinueGeneration?.(continueToken);
+        if (draft) setDraft(draft);
+      } catch (error: any) {
+        setError(error.toString());
+      }
+    },
+    [onContinueGeneration, selectedToken]
+  );
+
+  const handleMoreLogprobs = useCallback(async () => {
+    if (!onMoreLogprobs || !selectedToken) return;
+    try {
+      const logprob = await onMoreLogprobs(selectedToken.index);
+      setLogprobs((prevLogprobs) => {
+        return prevLogprobs?.map((lp, index) =>
+          index !== selectedToken.index
+            ? lp
+            : { ...lp, top_logprobs: logprob.top_logprobs }
+        );
+      });
+    } catch (error: any) {
+      setError(error.toString());
+    }
+  }, [onMoreLogprobs, selectedToken]);
+
+  const handleChangeToken = useCallback(async () => {}, []);
+
   useEffect(() => {
     setActions(actions);
     return () => setActions({ render: () => null });
@@ -211,6 +324,98 @@ function CompletionTokensRenderer({
   }, [lazyLogprobs]);
 
   const convertLogprobToAlpha = (x: number) => (1 - Math.exp(x)) * 0.4;
+
+  const popoverChildren = selectedToken && (
+    <Stack
+      key={selectedToken.index}
+      sx={{ minWidth: { xs: "320px", sm: "400px" } }}
+      divider={<Divider />}
+    >
+      <Stack sx={{ padding: 1 }} direction="row" alignItems="center">
+        <IconButton
+          aria-label={t("Previous token")}
+          disabled={selectedToken.index === 0}
+          onClick={() => {
+            setSelectedTokenIndex((index) =>
+              index !== null && index > 0 ? index - 1 : index
+            );
+          }}
+        >
+          <NavigateBeforeIcon fontSize="small" />
+        </IconButton>
+        <TokenEditor
+          token={selectedToken.token}
+          previousToken={
+            selectedToken.index > 0
+              ? tokens!.tokens![selectedToken.index - 1]
+              : undefined
+          }
+          nextToken={
+            selectedToken.index < tokens!.tokens.length - 1
+              ? tokens!.tokens![selectedToken.index + 1]
+              : undefined
+          }
+          onChange={handleChangeToken}
+          sx={{ flexGrow: 1, justifyContent: "center" }}
+        />
+        <IconButton
+          aria-label={t("Next token")}
+          disabled={
+            tokens === null || selectedToken.index === tokens.tokens.length - 1
+          }
+          onClick={() => {
+            setSelectedTokenIndex((index) =>
+              index !== null &&
+              tokens !== null &&
+              index < tokens.tokens.length - 1
+                ? index + 1
+                : index
+            );
+          }}
+        >
+          <NavigateNextIcon fontSize="small" />
+        </IconButton>
+      </Stack>
+
+      <AnchorEditor
+        anchored={selectedToken.anchored}
+        onChange={(value) => {
+          const anchor = {
+            token_index: selectedToken.index,
+            token_id: selectedToken.tokenId,
+          };
+          onAnchorsChanged?.((anchors) => toggleAnchor(anchors, anchor, value));
+        }}
+        confidence={selectedToken.confidence}
+        onConfidenceChange={(newConfidence) =>
+          onAnchorsChanged?.((anchors) =>
+            anchors?.map((anc) =>
+              anc.token_index === selectedToken.index
+                ? { ...anc, confidence: newConfidence ?? undefined }
+                : anc
+            )
+          )
+        }
+        marks={
+          selectedToken?.logprob && makeConfidenceMarks(selectedToken.logprob)
+        }
+      />
+
+      {selectedToken.logprob && (
+        <Box sx={{ padding: 1.5 }}>
+          <LogprobTable
+            logprob={selectedToken.logprob}
+            onContinueGeneration={handleContinueGeneration}
+            onMoreLogprobs={
+              !onMoreLogprobs || selectedToken.logprob.top_logprobs.length >= 20
+                ? undefined
+                : handleMoreLogprobs
+            }
+          />
+        </Box>
+      )}
+    </Stack>
+  );
 
   return (
     <>
@@ -265,85 +470,29 @@ function CompletionTokensRenderer({
             ))}
           </TokenList>
 
-          <Popover
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-            anchorEl={anchorEl}
-            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-          >
-            {selectedToken && (
-              <Stack
-                sx={{ minWidth: { xs: "320px", sm: "400px" } }}
-                divider={<Divider />}
-              >
-                <AnchorEditor
-                  anchored={selectedToken.anchored}
-                  onChange={(value) => {
-                    const anchor = {
-                      token_index: selectedToken.index,
-                      token_id: selectedToken.tokenId,
-                    };
-                    onAnchorsChanged?.((anchors) =>
-                      toggleAnchor(anchors, anchor, value)
-                    );
-                  }}
-                  confidence={selectedToken.confidence}
-                  onConfidenceChange={(newConfidence) =>
-                    onAnchorsChanged?.((anchors) =>
-                      anchors?.map((anc) =>
-                        anc.token_index === selectedToken.index
-                          ? { ...anc, confidence: newConfidence ?? undefined }
-                          : anc
-                      )
-                    )
-                  }
-                  marks={
-                    selectedToken?.logprob &&
-                    makeConfidenceMarks(selectedToken.logprob)
-                  }
-                />
-
-                {selectedToken.logprob && (
-                  <Box sx={{ padding: 2 }}>
-                    <LogprobTable
-                      logprob={selectedToken.logprob}
-                      onContinueGeneration={async (tokenId) => {
-                        setAnchorEl(null);
-                        const continueToken = {
-                          tokenIndex: selectedToken.index,
-                          tokenId,
-                        };
-                        setContinueToken(continueToken);
-                        try {
-                          const draft = await onContinueGeneration?.(
-                            continueToken
-                          );
-                          if (draft) setDraft(draft);
-                        } catch (error: any) {
-                          setError(error.toString());
-                        }
-                      }}
-                      onMoreLogprobs={async () => {
-                        if (!onMoreLogprobs) return;
-                        try {
-                          const logprob = await onMoreLogprobs(
-                            selectedToken.index
-                          );
-                          setLogprobs((prevLogprobs) => {
-                            return prevLogprobs?.map((lp, index) =>
-                              index === selectedToken.index ? logprob : lp
-                            );
-                          });
-                        } catch (error: any) {
-                          setError(error.toString());
-                        }
-                      }}
-                    />
-                  </Box>
-                )}
-              </Stack>
-            )}
-          </Popover>
+          {isMobile ? (
+            <SwipeableDrawer
+              container={document.getElementById("dataset-editor-dialog")}
+              open={Boolean(anchorEl)}
+              onClose={() => setAnchorEl(null)}
+              onTransitionEnd={() => !anchorEl && setSelectedTokenIndex(null)}
+              onOpen={() => {}}
+              disableSwipeToOpen
+              anchor="bottom"
+            >
+              {popoverChildren}
+            </SwipeableDrawer>
+          ) : (
+            <Popover
+              open={Boolean(anchorEl)}
+              onClose={() => setAnchorEl(null)}
+              onTransitionEnd={() => !anchorEl && setSelectedTokenIndex(null)}
+              anchorEl={anchorEl}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            >
+              {popoverChildren}
+            </Popover>
+          )}
         </>
       )}
     </>

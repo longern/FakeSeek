@@ -149,7 +149,12 @@ function DatasetEditor({
   }, [open, datasetName]);
 
   return (
-    <Dialog open={open} onClose={confirmClose} fullScreen>
+    <Dialog
+      id="dataset-editor-dialog"
+      open={open}
+      onClose={confirmClose}
+      fullScreen
+    >
       <DialogTitle sx={{ padding: 0, backgroundColor: "background.default" }}>
         <Toolbar disableGutters>
           <IconButton
