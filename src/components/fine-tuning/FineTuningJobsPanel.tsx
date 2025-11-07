@@ -29,6 +29,7 @@ import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
 import { Model } from "openai/resources/models.mjs";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import yaml from "yaml";
 
 import type { Preset } from "../../app/presets";
 import { useCurrentPreset } from "../presets/hooks";
@@ -44,6 +45,31 @@ function getClientFromPreset(currentPreset: Preset | null) {
     apiKey: currentPreset.apiKey,
     baseURL: currentPreset.baseURL,
     dangerouslyAllowBrowser: true,
+  });
+}
+
+function convertYamlFileToJsonl(yamlFile: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const content = reader.result as string;
+        const data = yaml.parse(content);
+        const jsonlContent = Array.isArray(data)
+          ? data.map((record: any) => JSON.stringify(record)).join("\n")
+          : JSON.stringify(data);
+        const jsonlFile = new File([jsonlContent], yamlFile.name, {
+          type: "application/jsonl",
+        });
+        resolve(jsonlFile);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = () => {
+      reject(reader.error);
+    };
+    reader.readAsText(yamlFile);
   });
 }
 
@@ -64,27 +90,29 @@ function CreateFinetuneJobDialog({
   const { t } = useTranslation("fineTuning");
 
   const handleCreate = useCallback(async () => {
-    const datasetContent = await readDataset(dataset);
-    const file = new File([datasetContent], dataset, {
-      type: "application/yaml",
-    });
+    const datasetFile = await readDataset(dataset);
+    const jsonlFile = await convertYamlFileToJsonl(datasetFile);
     setCreating(true);
-    const client = getClientFromPreset(currentPreset);
-    const uploaded = await client.files.create({
-      file,
-      purpose: "fine-tune",
-    });
+
     try {
+      const client = getClientFromPreset(currentPreset);
+
+      const uploaded = await client.files.create({
+        file: jsonlFile,
+        purpose: "fine-tune",
+      });
+
       await client.fineTuning.jobs.create({
-        method: { type: "supervised" },
+        method: { type: "lawf" as any },
         model: baseModel,
         suffix,
         training_file: uploaded.id,
       });
       onClose();
     } catch (e) {
-      setCreating(false);
       console.error("Failed to create fine-tuning job", e);
+    } finally {
+      setCreating(false);
     }
   }, [baseModel, currentPreset, dataset, onClose, suffix]);
 

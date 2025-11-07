@@ -132,8 +132,9 @@ function DatasetsPanel() {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const handleCreateClick = useCallback(() => {
-    const name = window.prompt(t("Enter dataset name (without .yml suffix)"));
+    let name = window.prompt(t("Enter dataset name"));
     if (!name) return;
+    name = name.replace(/\.yml$/i, "").trim();
     if (!name.match(/^[a-zA-Z0-9_\-]+$/)) {
       window.alert(t("Invalid dataset name"));
       return;
