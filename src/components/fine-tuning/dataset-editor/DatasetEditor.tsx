@@ -16,38 +16,11 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import yaml from "yaml";
 
 import { useCurrentPreset } from "../../presets/hooks";
 import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
 import { getTokenizer } from "../hooks";
-import { convertFromHarmony } from "../utils";
-import { getDatasetDirectoryHandle, parseDataset } from "./utils";
-
-async function saveDataset(
-  content: Array<DatasetRecord>,
-  datasetName: string,
-  model?: string
-) {
-  const dataset = model
-    ? content.map((record) => ({
-        ...record,
-        prompt: convertFromHarmony(model, record.prompt),
-        completion: convertFromHarmony(model, record.completion),
-      }))
-    : content;
-  const document = new yaml.Document(dataset);
-  if (model) document.commentBefore = ` Model: ${model}`;
-  const documentString = document.toString({ lineWidth: 0 });
-
-  const dir = await getDatasetDirectoryHandle();
-  const fileHandle = await dir.getFileHandle(datasetName, {
-    create: true,
-  });
-  const writable = await fileHandle.createWritable();
-  await writable.write(documentString);
-  await writable.close();
-}
+import { getDatasetDirectoryHandle, parseDataset, saveDataset } from "./utils";
 
 function DatasetEditor({
   open,
@@ -89,8 +62,11 @@ function DatasetEditor({
   useEffect(() => {
     if (!open) return;
 
+    setModified(false);
+
     if (!datasetName) {
       setContent([]);
+      setModel(currentPreset?.defaultModel);
       return;
     }
 
@@ -102,14 +78,13 @@ function DatasetEditor({
         ? parseDataset(text)
         : { dataset: [] as DatasetRecord[] };
       setContent(dataset);
-      if (modelFromFile) setModel(modelFromFile);
+      setModel(modelFromFile ?? currentPreset?.defaultModel);
 
       // Preload tokenizer
       const model = modelFromFile ?? currentPreset?.defaultModel;
       if (model) getTokenizer(model).catch(() => {});
 
       setSelected(0);
-      setModified(false);
     });
 
     const oldTitle = document.title;
