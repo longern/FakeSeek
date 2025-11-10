@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { Transition } from "react-transition-group";
 
 import DatasetsPanel from "./DatasetsPanel";
-import EvaluationPanel from "./EvaluationPanel";
+import EvaluationPanel from "./evals/EvaluationPanel";
 import FineTuningJobsPanel from "./FineTuningJobsPanel";
 import DatasetEditor from "./dataset-editor/DatasetEditor";
 import { OpenDatasetEditorContext } from "./dataset-editor/utils";

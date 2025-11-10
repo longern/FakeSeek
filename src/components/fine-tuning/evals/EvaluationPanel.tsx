@@ -1,4 +1,3 @@
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import {
@@ -9,10 +8,7 @@ import {
   Container,
   Divider,
   IconButton,
-  Menu,
-  MenuItem,
   Stack,
-  SxProps,
   Tab,
   Tabs,
   Typography,
@@ -20,41 +16,39 @@ import {
 } from "@mui/material";
 import OpenAI from "openai";
 import {
-  Activity,
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+  EasyInputMessage,
+  Response,
+  ResponseInputContent,
+} from "openai/resources/responses/responses.mjs";
+import { Activity, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCurrentPreset } from "../presets/hooks";
+import responseReducer from "@/app/reducer";
+import { getRequestAPI } from "@/app/thunks";
+import { useCurrentPreset } from "@/components/presets/hooks";
+import ResponseItem from "@/components/ResponseItem";
 import {
   DatasetRecord,
   EditableMessage,
-} from "./dataset-editor/DatasetRecordEditor";
-import { parseDataset } from "./dataset-editor/utils";
+} from "../dataset-editor/DatasetRecordEditor";
+import { parseDataset } from "../dataset-editor/utils";
+import { DatasetFile, listDatasets, readDatasetText } from "../DatasetsPanel";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
-import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
 import DatasetsTable from "./DatasetsTable";
-
-const Markdown = lazy(() =>
-  import("../Markdown").then((mod) => ({ default: mod.Markdown }))
-);
+import ModelMenu from "./ModelMenu";
 
 function TwoColumnLayout({
+  variant,
   left,
   right,
   tab,
 }: {
+  variant: "side-by-side" | "tabbed";
   left: React.ReactNode;
   right: React.ReactNode;
   tab: number;
 }) {
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("md"));
-
-  return !isMobile ? (
+  return variant === "side-by-side" ? (
     <Stack direction="row">
       <Box sx={{ flexBasis: "50%", flexShrink: 0, minWidth: 0 }}>{left}</Box>
       <Box sx={{ flexBasis: "50%", flexShrink: 0, minWidth: 0 }}>{right}</Box>
@@ -67,85 +61,34 @@ function TwoColumnLayout({
   );
 }
 
-function ModelMenu({
-  models,
-  onChange,
-  sx,
-}: {
-  models: string[] | null;
-  onChange: (model: string) => void;
-  sx?: SxProps;
-}) {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const { t } = useTranslation("fineTuning");
-
-  return (
-    <>
-      <IconButton
-        size="small"
-        onClick={(event) => setAnchorEl(event.currentTarget)}
-        sx={sx}
-      >
-        <ArrowDropDownIcon />
-      </IconButton>
-
-      <Menu
-        open={Boolean(anchorEl)}
-        anchorEl={anchorEl}
-        onClose={() => setAnchorEl(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        {models === null ? (
-          <CircularProgress />
-        ) : models.length === 0 ? (
-          <MenuItem disabled>{t("No data")}</MenuItem>
-        ) : (
-          models.map((model) => (
-            <MenuItem
-              key={model}
-              value={model}
-              onClick={() => {
-                onChange(model);
-                setAnchorEl(null);
-              }}
-            >
-              {model}
-            </MenuItem>
-          ))
-        )}
-      </Menu>
-    </>
-  );
-}
-
-function AssistantMessageRenderer({
-  message,
-}: {
-  message?: DatasetRecord["completion"] | null;
-}) {
-  return message === undefined ? null : message === null ? (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        padding: 2,
-      }}
-    >
-      <CircularProgress />
-    </Box>
-  ) : (
-    message[0].content && (
-      <Box sx={{ padding: 1 }}>
-        <Card variant="outlined" sx={{ borderRadius: 3, padding: 1 }}>
-          <Suspense fallback={message[0].content}>
-            <Markdown>{message[0].content}</Markdown>
-          </Suspense>
-        </Card>
-      </Box>
-    )
-  );
+function normMessage(
+  prompt: {
+    role: string;
+    content:
+      | string
+      | Array<
+          { type: "text"; text: string } | { type: "image"; image: string }
+        >;
+  }[]
+): EasyInputMessage[] {
+  return prompt.map((part) => ({
+    type: "message",
+    role: part.role as "user" | "assistant" | "system" | "developer",
+    content: Array.isArray(part.content)
+      ? part.content.map((item): ResponseInputContent => {
+          switch (item.type) {
+            case "text":
+              return { type: "input_text", text: item.text };
+            case "image":
+              return {
+                type: "input_image",
+                image_url: item.image,
+                detail: "auto",
+              };
+          }
+        })
+      : part.content,
+  }));
 }
 
 function ComparePanel({
@@ -161,12 +104,12 @@ function ComparePanel({
   const [finetunedModel, setFinetunedModel] = useState<string | null>(null);
   const [tab, setTab] = useState(0);
   const [records, setRecords] = useState<DatasetRecord[] | null>(null);
-  const [baseCompletions, setBaseCompletions] = useState<Array<
-    DatasetRecord["completion"] | null
-  > | null>(null);
-  const [finetunedCompletions, setFinetunedCompletions] = useState<Array<
-    DatasetRecord["completion"] | null
-  > | null>(null);
+  const [baseResponses, setBaseResponses] = useState<
+    Array<(Response & { timestamp: number }) | null>
+  >([]);
+  const [finetunedResponses, setFinetunedResponses] = useState<
+    Array<(Response & { timestamp: number }) | null>
+  >([]);
   const [selectedRecordIndex, setSelectedRecordIndex] = useState<number>(0);
   const currentPreset = useCurrentPreset();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("md"));
@@ -179,49 +122,65 @@ function ComparePanel({
     const prompt = records?.[selectedRecordIndex].prompt;
     if (!prompt) return;
 
-    const client = new OpenAI({
+    const requestAPI = getRequestAPI(currentPreset?.apiMode ?? "responses");
+
+    setBaseResponses((responses) => {
+      const newResponses = [...responses];
+      newResponses[selectedRecordIndex] = null;
+      return newResponses;
+    });
+    requestAPI(normMessage(prompt), {
+      model: baseModel ?? "gpt-oss-120b",
       apiKey: currentPreset?.apiKey,
       baseURL: currentPreset?.baseURL,
-      dangerouslyAllowBrowser: true,
+      temperature: 0,
+      onStreamEvent: (_, event) => {
+        setBaseResponses((responses) => {
+          const newResponses = [...responses];
+          const oldValue = newResponses[selectedRecordIndex];
+          if (event.type === "response.created")
+            newResponses[selectedRecordIndex] = Object.assign(event.response, {
+              timestamp: Date.now(),
+            });
+          else if (oldValue) {
+            newResponses[selectedRecordIndex] = {
+              ...responseReducer(oldValue, event),
+              timestamp: oldValue.timestamp,
+            };
+          }
+          return newResponses;
+        });
+      },
     });
 
-    setBaseCompletions((completions) => {
-      const newCompletions = completions ? [...completions] : [];
-      newCompletions[selectedRecordIndex] = null;
-      return newCompletions;
+    setFinetunedResponses((responses) => {
+      const newResponses = responses ? [...responses] : [];
+      newResponses[selectedRecordIndex] = null;
+      return newResponses;
     });
-    client.chat.completions
-      .create({
-        model: baseModel ?? "gpt-oss-120b",
-        messages: prompt as any,
-        temperature: 0,
-      })
-      .then((completion) => {
-        setBaseCompletions((completions) => {
-          const newCompletions = completions ? [...completions] : [];
-          newCompletions[selectedRecordIndex] = [completion.choices[0].message];
-          return newCompletions;
+    requestAPI(normMessage(prompt), {
+      model: finetunedModel!,
+      apiKey: currentPreset?.apiKey,
+      baseURL: currentPreset?.baseURL,
+      temperature: 0,
+      onStreamEvent: (_, event) => {
+        setFinetunedResponses((responses) => {
+          const newResponses = responses ? [...responses] : [];
+          const oldValue = newResponses[selectedRecordIndex];
+          if (event.type === "response.created")
+            newResponses[selectedRecordIndex] = Object.assign(event.response, {
+              timestamp: Date.now(),
+            });
+          else if (oldValue) {
+            newResponses[selectedRecordIndex] = {
+              ...responseReducer(oldValue, event),
+              timestamp: oldValue.timestamp,
+            };
+          }
+          return newResponses;
         });
-      });
-
-    setFinetunedCompletions((completions) => {
-      const newCompletions = completions ? [...completions] : [];
-      newCompletions[selectedRecordIndex] = null;
-      return newCompletions;
+      },
     });
-    client.chat.completions
-      .create({
-        model: finetunedModel ?? "gpt-oss-120b",
-        messages: prompt as any,
-        temperature: 0,
-      })
-      .then((completion) => {
-        setFinetunedCompletions((completions) => {
-          const newCompletions = completions ? [...completions] : [];
-          newCompletions[selectedRecordIndex] = [completion.choices[0].message];
-          return newCompletions;
-        });
-      });
   }, [records, selectedRecordIndex, baseModel, finetunedModel, currentPreset]);
 
   useEffect(() => {
@@ -296,7 +255,7 @@ function ComparePanel({
           setSelectedRecordIndex={setSelectedRecordIndex}
         />
 
-        <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
+        <Box sx={{ flexGrow: 1, overflowY: "auto", paddingBottom: 1 }}>
           <Box
             sx={{
               position: "sticky",
@@ -380,7 +339,7 @@ function ComparePanel({
             <Divider />
           </Box>
 
-          <Container sx={{ padding: 1 }}>
+          <Container sx={{ marginY: 1, paddingX: 1 }}>
             {(records?.[selectedRecordIndex].prompt ?? []).map((part, i) => (
               <Card
                 key={i}
@@ -392,27 +351,58 @@ function ComparePanel({
             ))}
           </Container>
 
-          <Box
-            sx={{
-              position: "sticky",
-              top: 0,
-              backgroundColor: "background.paper",
-            }}
-          >
-            <TwoColumnLayout
-              left={
-                <AssistantMessageRenderer
-                  message={baseCompletions?.[selectedRecordIndex]}
-                />
-              }
-              right={
-                <AssistantMessageRenderer
-                  message={finetunedCompletions?.[selectedRecordIndex]}
-                />
-              }
-              tab={tab}
-            />
-          </Box>
+          <TwoColumnLayout
+            variant={isMobile ? "tabbed" : "side-by-side"}
+            left={
+              baseResponses[selectedRecordIndex] !== undefined && (
+                <Card
+                  variant="outlined"
+                  sx={{ marginX: 1, padding: 1, borderRadius: 3 }}
+                >
+                  {baseResponses[selectedRecordIndex] === null ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        paddingY: 2,
+                      }}
+                    >
+                      <CircularProgress />
+                    </Box>
+                  ) : (
+                    <ResponseItem
+                      response={baseResponses[selectedRecordIndex]}
+                    />
+                  )}
+                </Card>
+              )
+            }
+            right={
+              finetunedResponses[selectedRecordIndex] !== undefined && (
+                <Card
+                  variant="outlined"
+                  sx={{ marginX: 1, padding: 1, borderRadius: 3 }}
+                >
+                  {finetunedResponses[selectedRecordIndex] === null ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        paddingY: 2,
+                      }}
+                    >
+                      <CircularProgress />
+                    </Box>
+                  ) : (
+                    <ResponseItem
+                      response={finetunedResponses[selectedRecordIndex]}
+                    />
+                  )}
+                </Card>
+              )
+            }
+            tab={tab}
+          />
         </Box>
       </Stack>
     </Stack>

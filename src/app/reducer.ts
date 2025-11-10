@@ -78,26 +78,40 @@ function responseReducer(
         );
         const doneMessage = response.output[outputIndex];
         if (doneMessage.type !== "message") return;
-        doneMessage.content[event.content_index] = event.part as any;
+        const contentIndex = Math.min(
+          event.content_index,
+          doneMessage.content.length - 1
+        );
+        doneMessage.content[contentIndex] = event.part as any;
         break;
       }
 
-      case "response.output_text.delta":
+      case "response.output_text.delta": {
         const outMessage = response.output[event.output_index];
         if (outMessage?.type !== "message" || outMessage.role !== "assistant")
           return;
-        const outPart = outMessage.content[event.content_index];
-        if (outPart?.type !== "output_text") return;
+        const contentIndex = Math.min(
+          event.content_index,
+          outMessage.content.length - 1
+        );
+        const outPart = outMessage.content[contentIndex];
+        if (outPart.type !== "output_text") return;
         outPart.text += event.delta;
         break;
+      }
 
-      case "response.reasoning_text.delta":
+      case "response.reasoning_text.delta": {
         const reasoningMessage = response.output[event.output_index];
-        if (reasoningMessage.type !== "reasoning") return;
-        const reasoningPart = reasoningMessage.content?.[event.content_index];
-        if (!reasoningPart) return;
+        if (reasoningMessage.type !== "reasoning" || !reasoningMessage.content)
+          return;
+        const contentIndex = Math.min(
+          event.content_index,
+          reasoningMessage.content.length - 1
+        );
+        const reasoningPart = reasoningMessage.content[contentIndex];
         reasoningPart.text += event.delta;
         break;
+      }
 
       case "response.reasoning_summary_part.added": {
         const resp = response.output[event.output_index];

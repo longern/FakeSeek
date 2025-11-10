@@ -7,7 +7,7 @@ import {
   ListItemText,
   Slide,
 } from "@mui/material";
-import type { DatasetRecord } from "./dataset-editor/DatasetRecordEditor";
+import type { DatasetRecord } from "../dataset-editor/DatasetRecordEditor";
 
 function DatasetRecordsSidebar({
   in: open,
@@ -45,7 +45,10 @@ function DatasetRecordsSidebar({
               <ListItem key={index} disablePadding>
                 <ListItemButton
                   selected={index === selectedRecordIndex}
-                  onClick={() => setSelectedRecordIndex(index)}
+                  onClick={() => {
+                    setSelectedRecordIndex(index);
+                    onClose?.();
+                  }}
                 >
                   <ListItemText primary={`#${index + 1}`} />
                 </ListItemButton>

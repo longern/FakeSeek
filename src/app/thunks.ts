@@ -23,7 +23,7 @@ import {
 } from "./reducer";
 import { AppDispatch, createAppAsyncThunk } from "./store";
 
-function getRequestAPI(apiMode: "responses" | "chat-completions") {
+export function getRequestAPI(apiMode: "responses" | "chat-completions") {
   const adapters = {
     responses: requestResponsesAPI,
     "chat-completions": requestChatCompletionsAPI as typeof requestResponsesAPI,

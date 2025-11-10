@@ -312,8 +312,8 @@ function ResponseItem({
       {response.error ? (
         <Alert severity="error">{response.error.message}</Alert>
       ) : (
-        response.output.map((message) => (
-          <Fragment key={message.id}>
+        response.output.map((message, index) => (
+          <Fragment key={`${index}-${message.id}`}>
             {message.type === "message" ? (
               message.role === "assistant" ? (
                 <AssistantMessage

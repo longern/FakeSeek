@@ -7,8 +7,8 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
-import { DatasetFile } from "./DatasetsPanel";
-import { formatBytes } from "./utils";
+import { DatasetFile } from "../DatasetsPanel";
+import { formatBytes } from "../utils";
 
 function DatasetsTable({
   datasets,
