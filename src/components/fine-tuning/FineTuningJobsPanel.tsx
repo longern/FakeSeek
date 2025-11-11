@@ -340,6 +340,13 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
             : new Date(selectedJob.finished_at * 1000).toLocaleString()}
         </Typography>
       </Box>
+
+      {selectedJob.error && (
+        <>
+          <Divider sx={{ marginY: 2 }} />
+          <Typography color="error">{selectedJob.error.message}</Typography>
+        </>
+      )}
     </Stack>
   );
 }
