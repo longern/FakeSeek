@@ -29,6 +29,7 @@ export default {
       running: "Running",
       succeeded: "Succeeded",
 
+      "confirm-cancel-finetune-job": "Cancel fine-tuning job {{id}}?",
       "confirm-close-with-unsaved-changes": "Close without saving changes?",
       "confirm-delete-assistant-message":
         "Are you sure you want to delete this assistant message?",
@@ -68,6 +69,7 @@ export default {
       running: "运行中",
       succeeded: "成功",
 
+      "confirm-cancel-finetune-job": "取消微调任务 {{id}}？",
       "confirm-close-with-unsaved-changes": "关闭并放弃未保存的更改？",
       "confirm-delete-assistant-message": "删除AI助手消息？",
       "confirm-delete-dataset": "删除此数据集？\n{{name}}",

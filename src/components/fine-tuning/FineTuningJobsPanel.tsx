@@ -231,6 +231,11 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
             variant="outlined"
             color="inherit"
             onClick={() => {
+              const confirmed = window.confirm(
+                t("confirm-cancel-finetune-job", { id: selectedJob.id })
+              );
+              if (!confirmed) return;
+
               const client = getClientFromPreset(currentPreset);
               client.fineTuning.jobs.cancel(selectedJob.id);
             }}
@@ -407,7 +412,9 @@ function FinetunePanel() {
     )
       return;
 
-    const interval = setInterval(async () => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    const intervalCallback = async () => {
       const job = await retrieveJob(selectedJobId);
       if (!job) return;
       setFinetuneJobs((prevJobs) => {
@@ -415,7 +422,11 @@ function FinetunePanel() {
         return prevJobs.map((j) => (j.id === job.id ? job : j));
       });
       if (finalStatuses.includes(job.status)) clearInterval(interval);
-    }, 10000);
+    };
+
+    intervalCallback();
+    interval = setInterval(intervalCallback, 10000);
+
     return () => clearInterval(interval);
   }, [selectedJobId, finetuneJobs, retrieveJob]);
 
