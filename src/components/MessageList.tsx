@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Collapse,
   Dialog,
+  Divider,
   IconButton,
   Link,
   List,
@@ -83,9 +84,9 @@ export function UserMessage({
             maxWidth: "100%",
             overflowWrap: "break-word",
             minWidth: "48px",
-            padding: "8px 12px",
+            padding: "10px 16px",
             backgroundColor: "#eff6ff",
-            borderRadius: "20px",
+            borderRadius: "22px",
             whiteSpace: "pre-wrap",
           }}
           onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
@@ -381,26 +382,51 @@ export function ReasoningContent({
 
   return (
     <>
-      <Button
-        variant="outlined"
-        size="small"
-        sx={{ marginTop: 1.5, paddingX: 1.5 }}
+      <Link
+        component="button"
+        underline="none"
+        sx={{
+          marginTop: 1,
+          paddingY: 0.5,
+          display: "flex",
+          gap: 1,
+          alignItems: "center",
+          fontSize: "0.925rem",
+          color: "text.secondary",
+          transition: "color 0.25s ease-in-out",
+          ":hover": { color: "rgba(0, 0, 0, 0.4)" },
+          ":active": { color: "rgba(0, 0, 0, 0.35)" },
+        }}
         onClick={() => setExpanded((expanded) => !expanded)}
       >
-        {reasoning ? t("Thinking...") : t("Thinking finished")}
-        {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-      </Button>
-      <Collapse in={expanded} unmountOnExit>
+        {reasoning ? t("Thinking...") : t("Thought")}
+        <Box
+          component="span"
+          sx={{
+            display: "inline-flex",
+            transform: expanded ? "rotate(0)" : "rotate(-90deg)",
+            transition: "transform 0.25s ease-in-out",
+          }}
+        >
+          <ExpandMoreIcon fontSize="small" />
+        </Box>
+      </Link>
+
+      <Collapse in={expanded} timeout={150} unmountOnExit>
         <Box
           color="text.secondary"
           sx={{
-            marginTop: -0.5,
+            position: "relative",
+            marginTop: -1,
             marginBottom: -1,
-            paddingLeft: 1,
-            borderLeft: "2px solid #ddd",
+            paddingLeft: 2.5,
             fontSize: "0.875rem",
           }}
         >
+          <Divider
+            orientation="vertical"
+            sx={{ position: "absolute", left: "6px" }}
+          />
           {content.map((part, index) => (
             <Markdown key={index}>{part.text}</Markdown>
           ))}
