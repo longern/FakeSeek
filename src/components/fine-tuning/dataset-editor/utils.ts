@@ -10,7 +10,7 @@ export const OpenDatasetEditorContext = createContext<
 
 export async function getDatasetDirectoryHandle() {
   const root = await navigator.storage.getDirectory();
-  const fineTuningDirHandle = await root.getDirectoryHandle(".coaching", {
+  const fineTuningDirHandle = await root.getDirectoryHandle(".fine-tuning", {
     create: true,
   });
   const datasetDirectoryHandle = await fineTuningDirHandle.getDirectoryHandle(
