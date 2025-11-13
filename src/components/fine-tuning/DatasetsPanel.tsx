@@ -150,24 +150,30 @@ function DatasetsPanel() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json,.jsonl,.yaml,.yml";
+    input.multiple = true;
     input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+      const files = (e.target as HTMLInputElement).files;
+      if (!files) return;
 
-      const importName = file.name.replace(/\.(jsonl|json|yaml|yml)$/, ".yml");
-      try {
-        const importContent = await convertToYaml(file);
+      for (const file of files) {
+        try {
+          const importName = file.name.replace(
+            /\.(jsonl|json|yaml|yml)$/,
+            ".yml"
+          );
+          const importContent = await convertToYaml(file);
 
-        const datasetDirHandle = await getDatasetDirectoryHandle();
-        const destHandle = await datasetDirHandle.getFileHandle(importName, {
-          create: true,
-        });
-        const writable = await destHandle.createWritable();
-        await writable.write(importContent);
-        await writable.close();
-      } catch (e) {
-        window.alert(`Failed to import dataset: ${(e as Error).message}`);
-        return;
+          const datasetDirHandle = await getDatasetDirectoryHandle();
+          const destHandle = await datasetDirHandle.getFileHandle(importName, {
+            create: true,
+          });
+          const writable = await destHandle.createWritable();
+          await writable.write(importContent);
+          await writable.close();
+        } catch (e) {
+          window.alert(`Failed to import dataset: ${(e as Error).message}`);
+          return;
+        }
       }
 
       const newDatasets = await listDatasets();

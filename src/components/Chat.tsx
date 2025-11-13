@@ -36,10 +36,14 @@ import {
   requestSearchImage,
 } from "../app/thunks";
 import AppDrawer from "./AppDrawer";
-import AnnotationDialog from "./fine-tuning/AnnotationDialog";
+import AddToDatasetDialog from "./fine-tuning/AddToDatasetDialog";
 import InputArea, { Abortable } from "./InputArea";
 import MessageList, { UserMessageContextMenu } from "./MessageList";
-import { ResponseActions, ResponseContextMenu } from "./ResponseItem";
+import {
+  ResponseActions,
+  ResponseContextMenu,
+  SelectTextDialog,
+} from "./ResponseItem";
 import { CreateResponseParams } from "../app/api-modes/types";
 
 function useAbortablePromise() {
@@ -84,8 +88,11 @@ function Main({
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
+    payload: { message: ChatMessage; selectedPart?: number };
+  } | null>(null);
+  const [selectTextDialog, setSelectTextDialog] = useState<{
     payload: {
-      message: ChatMessage;
+      message: Response & { timestamp: number };
       selectedPart?: number;
     };
   } | null>(null);
@@ -259,7 +266,7 @@ function Main({
         </Container>
       </Box>
 
-      <AnnotationDialog
+      <AddToDatasetDialog
         open={Boolean(coachingMessages)}
         onClose={() => setCoachingMessages(null)}
         prevMessages={coachingMessages}
@@ -291,6 +298,17 @@ function Main({
           contextMenu.payload.message.object === "response"
         }
         onClose={() => setContextMenu(null)}
+        onSelectText={() => {
+          setSelectTextDialog({
+            payload: {
+              message: contextMenu!.payload.message as Response & {
+                timestamp: number;
+              },
+              selectedPart: contextMenu!.payload.selectedPart,
+            },
+          });
+          setContextMenu(null);
+        }}
         anchorPosition={contextMenu}
         payload={
           contextMenu !== null &&
@@ -301,6 +319,12 @@ function Main({
             : undefined
         }
         onRetryClick={() => handleRetry(contextMenu!.payload.message)}
+      />
+
+      <SelectTextDialog
+        open={selectTextDialog !== null}
+        onClose={() => setSelectTextDialog(null)}
+        payload={selectTextDialog?.payload}
       />
     </Stack>
   );

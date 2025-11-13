@@ -10,6 +10,8 @@ import {
   Box,
   Button,
   Dialog,
+  DialogContent,
+  DialogTitle,
   Divider,
   IconButton,
   InputBase,
@@ -58,16 +60,72 @@ function formatTimestamp(timestamp: number) {
   }
 }
 
+export function SelectTextDialog({
+  open,
+  onClose,
+  payload,
+}: {
+  open: boolean;
+  onClose: () => void;
+  payload?: {
+    message: Response & { timestamp: number };
+    selectedPart?: number;
+  };
+}) {
+  const { t } = useTranslation();
+
+  if (!payload) return null;
+
+  return (
+    <Dialog fullScreen open={open} onClose={onClose}>
+      <DialogTitle sx={{ padding: 0, backgroundColor: "background.default" }}>
+        <Toolbar disableGutters>
+          <IconButton aria-label="Close" size="large" onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+          <Typography
+            variant="subtitle1"
+            sx={{ flexGrow: 1, textAlign: "center" }}
+          >
+            {t("Select Text")}
+          </Typography>
+          <Box sx={{ width: "48px" }} />
+        </Toolbar>
+      </DialogTitle>
+
+      <DialogContent dividers sx={{ padding: 0 }}>
+        <InputBase
+          multiline
+          fullWidth
+          value={payload.message.output
+            .flatMap((message) =>
+              message.type !== "message"
+                ? []
+                : message.content.map((part) =>
+                    part.type === "output_text" ? part.text : part.refusal
+                  )
+            )
+            .join("\n")}
+          slotProps={{ input: { readOnly: true } }}
+          sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ResponseContextMenu({
   open,
   anchorPosition,
   onClose,
   payload,
+  onSelectText,
   onRetryClick,
 }: {
   open: boolean;
   anchorPosition: { mouseX: number; mouseY: number } | null;
   onClose: () => void;
+  onSelectText: () => void;
   payload?: {
     message: Response & { timestamp: number };
     selectedPart?: number;
@@ -89,6 +147,7 @@ export function ResponseContextMenu({
       )
       .join("\n");
     navigator.clipboard.writeText(content);
+    onClose();
   }, [payload]);
 
   return (
@@ -112,7 +171,7 @@ export function ResponseContextMenu({
         </MenuItem>
         <MenuItem
           onClick={() => {
-            setShowSelection(true);
+            onSelectText();
             onClose();
           }}
         >

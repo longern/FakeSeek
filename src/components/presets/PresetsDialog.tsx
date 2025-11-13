@@ -35,12 +35,13 @@ function PresetsDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const [showPresetEditor, setShowPresetEditor] = useState(false);
+  const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
+
   const presets = useAppSelector((state) => state.presets);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
-  const [showPresetEditor, setShowPresetEditor] = useState(false);
-  const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
 
   return (
     <>

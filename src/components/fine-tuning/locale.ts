@@ -1,9 +1,11 @@
 export default {
   en: {
     fineTuning: {
+      "Add to Dataset": "Add to Dataset",
       "Base model": "Base model",
       Confidence: "Confidence",
       "Create a fine-tuning job": "Create a fine-tuning job",
+      "Create dataset": "Create dataset",
       "Created at": "Created at",
       Dataset: "Dataset",
       Datasets: "Datasets",
@@ -41,9 +43,11 @@ export default {
   },
   "zh-CN": {
     fineTuning: {
+      "Add to Dataset": "添加到数据集",
       "Base model": "基底模型",
       Confidence: "置信度",
       "Create a fine-tuning job": "创建微调任务",
+      "Create dataset": "创建数据集",
       "Created at": "创建时间",
       Dataset: "数据集",
       Datasets: "数据集",
