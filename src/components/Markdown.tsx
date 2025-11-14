@@ -1,4 +1,3 @@
-import { css } from "@emotion/css";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
@@ -163,41 +162,31 @@ export function CodeBox({
 
 export const Markdown = memo(({ children }: { children: string }) => {
   return (
-    <ReactMarkdown
+    <Box
+      component={ReactMarkdown}
       remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[rehypeKatex]}
-      className={css`
-        line-height: 1.75em;
-        & p,
-        & ul,
-        & ol {
-          margin-top: 0.8em;
-          margin-bottom: 0.8em;
-        }
-        & ul {
-          padding-left: 1.75em;
-        }
-        & li > p,
-        & li > ul,
-        & li > ol {
-          margin-top: 4px;
-          margin-bottom: 4px;
-        }
-        & .katex-display {
-          margin-top: 0.5em;
-          margin-bottom: 0.5em;
-          padding-top: 0.5em;
-          padding-bottom: 0.5em;
-          overflow-x: auto;
-        }
-      `}
+      sx={{
+        lineHeight: "1.75em",
+        "& p, & ul, & ol": { marginTop: "0.8em", marginBottom: "0.8em" },
+        "& ul": { paddingLeft: " 1.75em" },
+        "& li > p, & li > ul, & li > ol": {
+          marginTop: "4px",
+          marginBottom: "4px",
+        },
+        "& .katex-display": {
+          marginY: "0.5em",
+          paddingY: "0.5em",
+          overflowX: "auto",
+        },
+      }}
       components={{
-        a: ({ node, ref, ...props }) => (
+        a: ({ node, ref, ...props }: any) => (
           <Link {...props} target="_blank" rel="noopener noreferrer">
             {props.children}
           </Link>
         ),
-        pre: ({ node, children, ref, ...props }) => {
+        pre: ({ node, children, ref, ...props }: any) => {
           const fallback = <pre {...props}>{children}</pre>;
           const isObject = typeof children === "object" && children !== null;
           if (!isObject || !("type" in children) || children.type !== "code")
@@ -216,7 +205,7 @@ export const Markdown = memo(({ children }: { children: string }) => {
       }}
     >
       {preprocessLaTeX(children)}
-    </ReactMarkdown>
+    </Box>
   );
 });
 

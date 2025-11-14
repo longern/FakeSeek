@@ -1,4 +1,3 @@
-import { css } from "@emotion/css";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -19,10 +18,7 @@ import {
 } from "openai/resources/responses/responses.mjs";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import ScrollToBottom, {
-  useAtBottom,
-  useScrollToBottom,
-} from "react-scroll-to-bottom";
+import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
 import { change as changeConversation } from "../app/conversations";
 import { addMessageThunk } from "../app/db-middleware";
@@ -98,8 +94,7 @@ function Main({
     };
   }>({ open: false });
   const dispatch = useAppDispatch();
-  const [atBottom] = useAtBottom();
-  const scrollToBottom = useScrollToBottom();
+  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
   const { t } = useTranslation();
 
@@ -193,7 +188,7 @@ function Main({
   );
 
   return (
-    <Stack sx={{ minHeight: "100%" }}>
+    <Stack sx={{ flexGrow: 1 }}>
       <Container
         component="main"
         maxWidth="md"
@@ -247,7 +242,7 @@ function Main({
         }}
       >
         <Container maxWidth="md" disableGutters sx={{ position: "relative" }}>
-          <Fade in={!atBottom}>
+          <Fade in={!isAtBottom}>
             <IconButton
               size="small"
               sx={{
@@ -398,14 +393,14 @@ function Chat() {
             </IconButton>
           </Toolbar>
         ) : null}
-        <ScrollToBottom
-          className={css`
-            flex-grow: 1;
-            min-height: 0;
-          `}
-        >
-          <Main abortable={abortable} setAbortable={setAbortable} />
-        </ScrollToBottom>
+        <Box component={StickToBottom} sx={{ flexGrow: 1, minHeight: 0 }}>
+          <Box
+            component={StickToBottom.Content}
+            sx={{ display: "flex", flexDirection: "column", minHeight: "100%" }}
+          >
+            <Main abortable={abortable} setAbortable={setAbortable} />
+          </Box>
+        </Box>
       </Stack>
     </Stack>
   );
