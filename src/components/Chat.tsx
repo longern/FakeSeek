@@ -42,7 +42,7 @@ import MessageList, { UserMessageContextMenu } from "./MessageList";
 import {
   ResponseActions,
   ResponseContextMenu,
-  SelectTextDialog,
+  SelectTextDrawer,
 } from "./ResponseItem";
 import { CreateResponseParams } from "../app/api-modes/types";
 
@@ -90,12 +90,13 @@ function Main({
     mouseY: number;
     payload: { message: ChatMessage; selectedPart?: number };
   } | null>(null);
-  const [selectTextDialog, setSelectTextDialog] = useState<{
-    payload: {
+  const [selectTextDrawer, setSelectTextDrawer] = useState<{
+    open: boolean;
+    payload?: {
       message: Response & { timestamp: number };
       selectedPart?: number;
     };
-  } | null>(null);
+  }>({ open: false });
   const dispatch = useAppDispatch();
   const [atBottom] = useAtBottom();
   const scrollToBottom = useScrollToBottom();
@@ -299,7 +300,8 @@ function Main({
         }
         onClose={() => setContextMenu(null)}
         onSelectText={() => {
-          setSelectTextDialog({
+          setSelectTextDrawer({
+            open: true,
             payload: {
               message: contextMenu!.payload.message as Response & {
                 timestamp: number;
@@ -321,10 +323,15 @@ function Main({
         onRetryClick={() => handleRetry(contextMenu!.payload.message)}
       />
 
-      <SelectTextDialog
-        open={selectTextDialog !== null}
-        onClose={() => setSelectTextDialog(null)}
-        payload={selectTextDialog?.payload}
+      <SelectTextDrawer
+        open={selectTextDrawer.open}
+        onClose={() =>
+          setSelectTextDrawer((prev) => ({ ...prev, open: false }))
+        }
+        onTransitionEnd={() => {
+          setSelectTextDrawer((prev) => (prev.open ? prev : { open: false }));
+        }}
+        payload={selectTextDrawer.payload}
       />
     </Stack>
   );

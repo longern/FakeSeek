@@ -19,6 +19,7 @@ import {
   Menu,
   MenuItem,
   Stack,
+  SwipeableDrawer,
   Toolbar,
   Typography,
 } from "@mui/material";
@@ -60,13 +61,15 @@ function formatTimestamp(timestamp: number) {
   }
 }
 
-export function SelectTextDialog({
+export function SelectTextDrawer({
   open,
   onClose,
+  onTransitionEnd,
   payload,
 }: {
   open: boolean;
   onClose: () => void;
+  onTransitionEnd?: () => void;
   payload?: {
     message: Response & { timestamp: number };
     selectedPart?: number;
@@ -74,43 +77,67 @@ export function SelectTextDialog({
 }) {
   const { t } = useTranslation();
 
-  if (!payload) return null;
-
   return (
-    <Dialog fullScreen open={open} onClose={onClose}>
-      <DialogTitle sx={{ padding: 0, backgroundColor: "background.default" }}>
+    <SwipeableDrawer
+      anchor="bottom"
+      open={open}
+      onClose={onClose}
+      onOpen={() => {}}
+      onTransitionEnd={onTransitionEnd}
+      disableSwipeToOpen
+      slotProps={{
+        paper: {
+          sx: {
+            minHeight: "50%",
+            maxHeight: "90%",
+            borderTopLeftRadius: "16px",
+            borderTopRightRadius: "16px",
+          },
+        },
+      }}
+    >
+      <Stack sx={{ height: "100%", minHeight: 0 }}>
         <Toolbar disableGutters>
-          <IconButton aria-label="Close" size="large" onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
+          <Box sx={{ width: "48px" }} />
           <Typography
             variant="subtitle1"
-            sx={{ flexGrow: 1, textAlign: "center" }}
+            align="center"
+            sx={{ flexGrow: 1, fontWeight: 500 }}
           >
             {t("Select Text")}
           </Typography>
-          <Box sx={{ width: "48px" }} />
+          <IconButton aria-label="Close" size="large" onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
         </Toolbar>
-      </DialogTitle>
 
-      <DialogContent dividers sx={{ padding: 0 }}>
-        <InputBase
-          multiline
-          fullWidth
-          value={payload.message.output
-            .flatMap((message) =>
-              message.type !== "message"
-                ? []
-                : message.content.map((part) =>
-                    part.type === "output_text" ? part.text : part.refusal
-                  )
-            )
-            .join("\n")}
-          slotProps={{ input: { readOnly: true } }}
-          sx={{ height: "100%", padding: 2, alignItems: "flex-start" }}
-        />
-      </DialogContent>
-    </Dialog>
+        <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
+          {payload && (
+            <InputBase
+              multiline
+              fullWidth
+              value={payload.message.output
+                .flatMap((message) =>
+                  message.type !== "message"
+                    ? []
+                    : message.content.map((part) =>
+                        part.type === "output_text" ? part.text : part.refusal
+                      )
+                )
+                .join("\n")}
+              slotProps={{ input: { readOnly: true } }}
+              sx={{
+                height: "100%",
+                minHeight: 0,
+                padding: 2,
+                alignItems: "flex-start",
+                lineHeight: 1.75,
+              }}
+            />
+          )}
+        </Box>
+      </Stack>
+    </SwipeableDrawer>
   );
 }
 
