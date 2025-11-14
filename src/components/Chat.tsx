@@ -1,6 +1,6 @@
 import { css } from "@emotion/css";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
   Box,
@@ -259,7 +259,7 @@ function Main({
               }}
               onClick={() => scrollToBottom()}
             >
-              <ArrowDownwardIcon fontSize="small" />
+              <ExpandMoreIcon fontSize="small" />
             </IconButton>
           </Fade>
           {inputArea}

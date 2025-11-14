@@ -85,7 +85,7 @@ export function UserMessage({
             overflowWrap: "break-word",
             minWidth: "48px",
             padding: "10px 16px",
-            backgroundColor: "#eff6ff",
+            backgroundColor: "#edf3fe",
             borderRadius: "22px",
             whiteSpace: "pre-wrap",
           }}
