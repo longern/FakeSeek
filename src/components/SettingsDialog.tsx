@@ -85,6 +85,7 @@ function SettingsDialog({
         </Typography>
         <Box sx={{ width: 48 }} />
       </Toolbar>
+
       <DialogContent
         sx={{
           padding: 2.5,
@@ -106,10 +107,27 @@ function SettingsDialog({
               </ListItemButton>
             </ListItem>
           </SettingsBlock>
+
           <SettingsBlock subheader={t("App")}>
             <ListItem disablePadding>
               <ListItemButton onClick={() => {}}>
                 <ListItemText primary={t("Language")} />
+                <NavigateNextIcon color="disabled" />
+              </ListItemButton>
+            </ListItem>
+          </SettingsBlock>
+
+          <SettingsBlock subheader={t("Connections")}>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={async () => {
+                  const remoteHost = window.prompt("Enter new remote host");
+                  if (remoteHost === null) return;
+                  const { env } = await import("@huggingface/transformers");
+                  env.remoteHost = remoteHost;
+                }}
+              >
+                <ListItemText primary={t("HuggingFace remote host")} />
                 <NavigateNextIcon color="disabled" />
               </ListItemButton>
             </ListItem>

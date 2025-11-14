@@ -185,11 +185,10 @@ function DatasetsPanel() {
   const handleCopyClick = useCallback(async () => {
     setAnchorEl(null);
     if (!selectedDataset) return;
-    const newName = window.prompt(
-      t("Enter new dataset name (without .yml suffix)")
-    );
-    if (!newName) return;
-    await copyDataset(selectedDataset.name, `${newName}.yml`);
+    const newName = window.prompt(t("Enter dataset name"));
+    const baseName = newName?.replace(/\.yml$/i, "").trim();
+    if (!baseName) return;
+    await copyDataset(selectedDataset.name, `${baseName}.yml`);
     const newDatasets = await listDatasets();
     setDatasets(newDatasets);
     setSelectedDataset(undefined);
