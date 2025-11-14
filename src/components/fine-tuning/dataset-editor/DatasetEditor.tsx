@@ -38,7 +38,7 @@ function DatasetEditor({
   const [modified, setModified] = useState(false);
 
   const currentPreset = useCurrentPreset();
-  const [model, setModel] = useState(currentPreset?.defaultModel);
+  const [model, setModel] = useState<string | undefined>(undefined);
 
   const { t } = useTranslation("fineTuning");
 

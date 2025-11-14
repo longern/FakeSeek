@@ -15,11 +15,7 @@ import { useTranslation } from "react-i18next";
 import { ChatMessage } from "@/app/messages";
 import { DatasetFile, listDatasets, readDatasetText } from "./DatasetsPanel";
 import { DatasetRecord } from "./dataset-editor/DatasetRecordEditor";
-import {
-  getDatasetDirectoryHandle,
-  parseDataset,
-  saveDataset,
-} from "./dataset-editor/utils";
+import { parseDataset, saveDataset } from "./dataset-editor/utils";
 import DatasetsTable from "./evals/DatasetsTable";
 
 function toDatasetRecord({
@@ -118,16 +114,7 @@ async function appendToDataset({
       tools,
     })
   );
-  saveDataset(dataset, selectedDataset, model);
-
-  const newDatasetContent = document.toString();
-  const dir = await getDatasetDirectoryHandle();
-  const fileHandle = await dir.getFileHandle(selectedDataset, {
-    create: true,
-  });
-  const writable = await fileHandle.createWritable();
-  await writable.write(newDatasetContent);
-  await writable.close();
+  await saveDataset(dataset, selectedDataset, model);
 }
 
 function AddToDatasetDialog({
@@ -169,8 +156,9 @@ function AddToDatasetDialog({
   };
 
   useEffect(() => {
+    if (!open) return;
     listDatasets().then(setDatasets);
-  }, []);
+  }, [open]);
 
   return (
     <Dialog

@@ -229,13 +229,13 @@ function DatasetRecordEditor({
       <Box sx={{ flexGrow: 1, minHeight: 0 }}>
         <Container sx={{ padding: 2 }}>
           <Stack spacing={2}>
-            <Card
-              variant="outlined"
-              sx={{ borderRadius: 3, overflow: "visible" }}
-            >
-              {record.prompt?.map((msg, i) => (
+            {record.prompt?.map((msg, i) => (
+              <Card
+                key={i}
+                variant="outlined"
+                sx={{ borderRadius: 3, overflow: "visible" }}
+              >
                 <EditableMessage
-                  key={i}
                   role={msg.role}
                   content={msg.content}
                   stickyHeader
@@ -250,8 +250,8 @@ function DatasetRecordEditor({
                     });
                   }}
                 />
-              ))}
-            </Card>
+              </Card>
+            ))}
 
             {!record.completion ? (
               <Divider>
