@@ -9,6 +9,7 @@ import {
   ResponseOutputItem,
   ResponseOutputMessage,
   ResponseOutputText,
+  ResponseReasoningItem,
   ResponseStreamEvent,
 } from "openai/resources/responses/responses.mjs";
 import { CreateResponseParams } from "./types";
@@ -87,10 +88,16 @@ export async function requestChatCompletionsAPI(
 
   const onStreamEvent = options?.onStreamEvent ?? (() => {});
   let result: Response | undefined = undefined;
+  let reasoningText: ResponseReasoningItem | undefined = undefined;
   let outputMessage: ResponseOutputMessage | undefined = undefined;
   let sequenceNumber = 0;
-  let outputIndex = 0;
+  let outputIndex = -1;
+  let isReasoning = true;
+
   for await (const chunk of response) {
+    if (chunk.choices.length === 0 || chunk.choices[0].delta.content === "")
+      continue;
+
     if (!result) {
       result = {
         id: crypto.randomUUID(),
@@ -116,36 +123,6 @@ export async function requestChatCompletionsAPI(
         response: structuredClone(result),
         sequence_number: sequenceNumber++,
       });
-
-      outputMessage = {
-        type: "message",
-        id: `msg_${crypto.randomUUID()}`,
-        role: "assistant",
-        content: [],
-        status: "in_progress",
-      };
-      onStreamEvent(result.id, {
-        type: "response.output_item.added",
-        output_index: outputIndex,
-        item: structuredClone(outputMessage),
-        sequence_number: sequenceNumber++,
-      });
-      result.output.push(outputMessage);
-
-      const contentPart: ResponseOutputText = {
-        type: "output_text",
-        text: "",
-        annotations: [],
-      };
-      onStreamEvent(result.id, {
-        type: "response.content_part.added",
-        item_id: result.output[outputIndex]?.id || "",
-        output_index: outputIndex,
-        content_index: 0,
-        part: structuredClone(contentPart),
-        sequence_number: sequenceNumber++,
-      });
-      outputMessage.content.push(contentPart);
     }
 
     const delta = chunk.choices[0].delta;
@@ -234,17 +211,103 @@ export async function requestChatCompletionsAPI(
       });
     }
 
-    onStreamEvent(result.id, {
-      type: "response.output_text.delta",
-      output_index: outputIndex,
-      content_index: 0,
-      item_id: result.output[outputIndex]?.id || "",
-      delta: chunk.choices[0].delta.content || "",
-      logprobs: [],
-      sequence_number: sequenceNumber++,
-    });
-    (outputMessage!.content[0]! as ResponseOutputText).text +=
-      chunk.choices[0].delta.content || "";
+    if (
+      "reasoning_content" in delta &&
+      typeof delta.reasoning_content === "string"
+    ) {
+      if (reasoningText === undefined) {
+        reasoningText = {
+          id: `rs_${crypto.randomUUID()}`,
+          type: "reasoning",
+          content: [{ type: "reasoning_text", text: "" }],
+          summary: [],
+        };
+
+        onStreamEvent(result.id, {
+          type: "response.output_item.added",
+          output_index: outputIndex++,
+          item: structuredClone(reasoningText),
+          sequence_number: sequenceNumber++,
+        });
+      }
+
+      onStreamEvent(result.id, {
+        type: "response.reasoning_text.delta",
+        output_index: outputIndex,
+        content_index: 0,
+        item_id: reasoningText.id,
+        delta: delta.reasoning_content,
+        sequence_number: sequenceNumber++,
+      });
+
+      reasoningText.content![0].text += delta.reasoning_content;
+    } else {
+      if (isReasoning) {
+        isReasoning = false;
+
+        if (reasoningText) {
+          onStreamEvent(result.id, {
+            type: "response.reasoning_text.done",
+            output_index: outputIndex,
+            item_id: reasoningText.id,
+            content_index: 0,
+            text: reasoningText.content![0].text,
+            sequence_number: sequenceNumber++,
+          });
+
+          onStreamEvent(result.id, {
+            type: "response.output_item.done",
+            output_index: outputIndex,
+            item: reasoningText,
+            sequence_number: sequenceNumber++,
+          });
+        }
+
+        outputIndex++;
+
+        outputMessage = {
+          type: "message",
+          id: `msg_${crypto.randomUUID()}`,
+          role: "assistant",
+          content: [],
+          status: "in_progress",
+        };
+        onStreamEvent(result.id, {
+          type: "response.output_item.added",
+          output_index: outputIndex,
+          item: structuredClone(outputMessage),
+          sequence_number: sequenceNumber++,
+        });
+        result.output.push(outputMessage);
+
+        const contentPart: ResponseOutputText = {
+          type: "output_text",
+          text: "",
+          annotations: [],
+        };
+        onStreamEvent(result.id, {
+          type: "response.content_part.added",
+          item_id: result.output[outputIndex]?.id || "",
+          output_index: outputIndex,
+          content_index: 0,
+          part: structuredClone(contentPart),
+          sequence_number: sequenceNumber++,
+        });
+        outputMessage.content.push(contentPart);
+      }
+
+      onStreamEvent(result.id, {
+        type: "response.output_text.delta",
+        output_index: outputIndex,
+        content_index: 0,
+        item_id: result.output[outputIndex]?.id || "",
+        delta: chunk.choices[0].delta.content || "",
+        logprobs: [],
+        sequence_number: sequenceNumber++,
+      });
+      (outputMessage!.content[0]! as ResponseOutputText).text +=
+        chunk.choices[0].delta.content || "";
+    }
   }
 
   if (!result) throw new Error("No response received");
