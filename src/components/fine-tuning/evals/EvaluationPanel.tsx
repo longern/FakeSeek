@@ -339,14 +339,18 @@ function ComparePanel({
             <Divider />
           </Box>
 
-          <Container sx={{ marginY: 1, paddingX: 1 }}>
+          <Container sx={{ paddingX: 1 }}>
             {(records?.[selectedRecordIndex].prompt ?? []).map((part, i) => (
               <Card
                 key={i}
                 variant="outlined"
-                sx={{ borderRadius: 3, overflow: "visible" }}
+                sx={{ marginY: 1, borderRadius: 3, overflow: "visible" }}
               >
-                <EditableMessage role="user" content={part.content} readonly />
+                <EditableMessage
+                  role={part.role}
+                  content={part.content}
+                  readonly
+                />
               </Card>
             ))}
           </Container>

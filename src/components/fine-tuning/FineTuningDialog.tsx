@@ -21,11 +21,13 @@ import { ElementType, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Transition } from "react-transition-group";
 
+import { useShowPresetsDialog } from "../presets/contexts";
+import { useCurrentPreset } from "../presets/hooks";
+import DatasetEditor from "./dataset-editor/DatasetEditor";
+import { OpenDatasetEditorContext } from "./dataset-editor/utils";
 import DatasetsPanel from "./DatasetsPanel";
 import EvaluationPanel from "./evals/EvaluationPanel";
 import FineTuningJobsPanel from "./FineTuningJobsPanel";
-import DatasetEditor from "./dataset-editor/DatasetEditor";
-import { OpenDatasetEditorContext } from "./dataset-editor/utils";
 
 function DesktopLayout({
   TabsComponent,
@@ -42,16 +44,17 @@ function DesktopLayout({
         sx={{
           width: "260px",
           flexShrink: 0,
-          padding: 1,
           backgroundColor: "#f9fbff",
         }}
       >
-        <Box sx={{ paddingBottom: 1 }}>
+        <Box sx={{ padding: 1 }}>
           <IconButton aria-label="Close" size="small" onClick={onClose}>
             <NavigateBeforeIcon />
           </IconButton>
         </Box>
-        <TabsComponent />
+        <Box sx={{ padding: 1, overflowY: "auto" }}>
+          <TabsComponent />
+        </Box>
       </Stack>
       <Box sx={{ flexGrow: 1, minWidth: 0 }}>{panel}</Box>
     </Stack>
@@ -169,6 +172,8 @@ function FineTuningDialog({
     datasetName: undefined as string | undefined,
     onClose: undefined as (() => void) | undefined,
   });
+  const currentPreset = useCurrentPreset();
+  const showPresetsDialog = useShowPresetsDialog();
 
   const { t } = useTranslation("fineTuning");
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -195,36 +200,52 @@ function FineTuningDialog({
     () =>
       ({ onTabClick }: { onTabClick?: () => void }) =>
         (
-          <Card elevation={0} sx={{ borderRadius: 3 }}>
-            <List
-              disablePadding
-              sx={{
-                "& .MuiListItemButton-root": {
-                  minHeight: isMobile ? "60px" : undefined,
-                },
-                "& .MuiListItemButton-root.Mui-selected": {
-                  backgroundColor: "#dbeafe",
-                },
-              }}
-            >
-              {Object.entries(tabsMapping).map(([slug, verbose]) => (
-                <ListItem key={slug} disablePadding>
-                  <ListItemButton
-                    onClick={() => {
-                      setCurrentTab(slug as keyof typeof tabsMapping);
-                      onTabClick?.();
-                    }}
-                    selected={isMobile ? false : currentTab === slug}
-                  >
-                    <ListItemText primary={verbose} />
-                    {isMobile && <NavigateNextIcon />}
+          <Stack
+            spacing={2}
+            sx={{
+              "& .MuiListItemButton-root": {
+                minHeight: isMobile ? "60px" : undefined,
+              },
+              "& .MuiListItemButton-root.Mui-selected": {
+                backgroundColor: "#dbeafe",
+              },
+            }}
+          >
+            <Card elevation={0} sx={{ borderRadius: 3 }}>
+              <List disablePadding>
+                <ListItem disablePadding>
+                  <ListItemButton onClick={showPresetsDialog}>
+                    <ListItemText
+                      primary={t("Current preset")}
+                      secondary={currentPreset?.presetName}
+                    />
+                    <NavigateNextIcon />
                   </ListItemButton>
                 </ListItem>
-              ))}
-            </List>
-          </Card>
+              </List>
+            </Card>
+
+            <Card elevation={0} sx={{ borderRadius: 3 }}>
+              <List disablePadding>
+                {Object.entries(tabsMapping).map(([slug, verbose]) => (
+                  <ListItem key={slug} disablePadding>
+                    <ListItemButton
+                      onClick={() => {
+                        setCurrentTab(slug as keyof typeof tabsMapping);
+                        onTabClick?.();
+                      }}
+                      selected={isMobile ? false : currentTab === slug}
+                    >
+                      <ListItemText primary={verbose} />
+                      {isMobile && <NavigateNextIcon />}
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Card>
+          </Stack>
         ),
-    [currentTab, tabsMapping]
+    [currentTab, currentPreset, tabsMapping]
   );
 
   const panel = !open ? null : currentTab === "datasets" ? (

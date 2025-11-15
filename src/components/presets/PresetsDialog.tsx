@@ -53,15 +53,7 @@ function PresetsDialog({
         maxWidth="sm"
         slotProps={{ paper: { sx: { backgroundColor: "background.default" } } }}
       >
-        <Toolbar
-          disableGutters
-          sx={{
-            position: "sticky",
-            top: 0,
-            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-            zIndex: 1,
-          }}
-        >
+        <Toolbar disableGutters>
           <IconButton aria-label="Close" size="large" onClick={onClose}>
             <NavigateBeforeIcon />
           </IconButton>
@@ -75,6 +67,7 @@ function PresetsDialog({
           <Box sx={{ width: 48 }} />
         </Toolbar>
         <DialogContent
+          dividers
           sx={{
             padding: 2.5,
             "& .MuiListItemButton-root": { minHeight: "60px" },
