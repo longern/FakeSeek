@@ -10,14 +10,13 @@ import {
   Box,
   Button,
   Dialog,
-  DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
   InputBase,
   ListItemIcon,
   Menu,
   MenuItem,
+  Snackbar,
   Stack,
   SwipeableDrawer,
   Toolbar,
@@ -159,6 +158,7 @@ export function ResponseContextMenu({
   };
   onRetryClick: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const [showSelection, setShowSelection] = useState(false);
 
   const { t } = useTranslation();
@@ -173,7 +173,7 @@ export function ResponseContextMenu({
             )
       )
       .join("\n");
-    navigator.clipboard.writeText(content);
+    navigator.clipboard.writeText(content).then(() => setCopied(true));
     onClose();
   }, [payload]);
 
@@ -219,6 +219,21 @@ export function ResponseContextMenu({
           {t("Retry")}
         </MenuItem>
       </Menu>
+
+      <Snackbar
+        open={copied}
+        onClose={() => setCopied(false)}
+        autoHideDuration={1500}
+        message={t("Copied")}
+        sx={{
+          top: "50%",
+          bottom: "unset",
+          left: "50%",
+          right: "unset",
+          transform: "translate(-50%)",
+        }}
+        slotProps={{ content: { sx: { borderRadius: "12px" } } }}
+      />
 
       {payload && (
         <Dialog
