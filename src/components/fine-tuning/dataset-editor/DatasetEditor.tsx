@@ -18,8 +18,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useCurrentPreset } from "../../presets/hooks";
-import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
 import { getTokenizer } from "../hooks";
+import DatasetRecordEditor, { DatasetRecord } from "./DatasetRecordEditor";
 import { getDatasetDirectoryHandle, parseDataset, saveDataset } from "./utils";
 
 function DatasetEditor({

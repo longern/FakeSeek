@@ -49,7 +49,9 @@ export function TokenListItem({
 
   return (
     <Typography component="span" className="TokenListItem-root" {...props}>
-      {interspersed}
+      {interspersed.map((part, i) => (
+        <React.Fragment key={i}>{part}</React.Fragment>
+      ))}
     </Typography>
   );
 }
@@ -151,7 +153,9 @@ export function LogprobTable({
                       [" ", <code className="space">{"\u00B7"}</code>],
                       ["\t", <code className="tab">{"\u2192"}</code>],
                     ]
-                  )}
+                  ).map((part, i) => (
+                    <React.Fragment key={i}>{part}</React.Fragment>
+                  ))}
                 </Box>
               </TableCell>
               <TableCell align="right">

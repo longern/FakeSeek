@@ -27,10 +27,8 @@ import responseReducer from "@/app/reducer";
 import { getRequestAPI } from "@/app/thunks";
 import { useCurrentPreset } from "@/components/presets/hooks";
 import ResponseItem from "@/components/ResponseItem";
-import {
-  DatasetRecord,
-  EditableMessage,
-} from "../dataset-editor/DatasetRecordEditor";
+import { DatasetRecord } from "../dataset-editor/DatasetRecordEditor";
+import EditableMessage from "../dataset-editor/EditableMessage";
 import { parseDataset } from "../dataset-editor/utils";
 import { DatasetFile, listDatasets, readDatasetText } from "../DatasetsPanel";
 import DatasetRecordsSidebar from "./DatasetRecordsSidebar";
