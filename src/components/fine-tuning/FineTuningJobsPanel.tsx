@@ -6,35 +6,25 @@ import {
   Chip,
   CircularProgress,
   Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
-  FormControl,
   IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
-  MenuItem,
-  OutlinedInput,
-  Select,
   Stack,
   Typography,
   useMediaQuery,
 } from "@mui/material";
 import OpenAI, { APIError } from "openai";
 import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
-import { Model } from "openai/resources/models.mjs";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import yaml from "yaml";
 
 import type { Preset } from "../../app/presets";
 import { useCurrentPreset } from "../presets/hooks";
-import { listDatasets, readDataset } from "./DatasetsPanel";
 import HFLogo from "./hf-logo.svg";
+import CreateFinetuneJobDialog from "./CreateFinetuneJobDialog";
 
 const NO_PRESET_ERROR = new Error("No preset selected");
 
@@ -46,173 +36,6 @@ function getClientFromPreset(currentPreset: Preset | null) {
     baseURL: currentPreset.baseURL,
     dangerouslyAllowBrowser: true,
   });
-}
-
-function convertYamlFileToJsonl(yamlFile: File): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const content = reader.result as string;
-        const data = yaml.parse(content);
-        const jsonlContent = Array.isArray(data)
-          ? data.map((record: any) => JSON.stringify(record)).join("\n")
-          : JSON.stringify(data);
-        const jsonlFile = new File([jsonlContent], yamlFile.name, {
-          type: "application/jsonl",
-        });
-        resolve(jsonlFile);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.onerror = () => {
-      reject(reader.error);
-    };
-    reader.readAsText(yamlFile);
-  });
-}
-
-function CreateFinetuneJobDialog({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [baseModel, setBaseModel] = useState("");
-  const [dataset, setDataset] = useState("");
-  const [suffix, setSuffix] = useState("");
-  const [baseModels, setBaseModels] = useState<Array<Model>>([]);
-  const [existingDatasets, setExistingDatasets] = useState<string[]>([]);
-  const [creating, setCreating] = useState(false);
-  const currentPreset = useCurrentPreset();
-  const { t } = useTranslation("fineTuning");
-
-  const handleCreate = useCallback(async () => {
-    const datasetFile = await readDataset(dataset);
-    const jsonlFile = await convertYamlFileToJsonl(datasetFile);
-    setCreating(true);
-
-    try {
-      const client = getClientFromPreset(currentPreset);
-
-      const uploaded = await client.files.create({
-        file: jsonlFile,
-        purpose: "fine-tune",
-      });
-
-      await client.fineTuning.jobs.create({
-        method: { type: "lawf" as any },
-        model: baseModel,
-        suffix,
-        training_file: uploaded.id,
-      });
-      onClose();
-    } catch (e) {
-      console.error("Failed to create fine-tuning job", e);
-    } finally {
-      setCreating(false);
-    }
-  }, [baseModel, currentPreset, dataset, onClose, suffix]);
-
-  useEffect(() => {
-    if (!open) return;
-    const client = getClientFromPreset(currentPreset);
-    client.models.list().then((modelsPage) => setBaseModels(modelsPage.data));
-    listDatasets().then((datasetFiles) =>
-      setExistingDatasets(datasetFiles.map((file) => file.name))
-    );
-    setDataset("");
-    setCreating(false);
-  }, [open, currentPreset]);
-
-  const isSuffixValid = /^[a-zA-Z0-9-_]{0,50}$/.test(suffix);
-  const isFormValid = baseModel !== "" && dataset !== "" && isSuffixValid;
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{t("Create a fine-tuning job")}</DialogTitle>
-
-      <DialogContent dividers>
-        <Stack spacing={2}>
-          <FormControl fullWidth>
-            <Typography
-              id="base-model-select-label"
-              variant="subtitle1"
-              gutterBottom
-            >
-              {t("Base model")}
-            </Typography>
-            <Select
-              labelId="base-model-select-label"
-              size="small"
-              value={baseModel}
-              required
-              onChange={(event) => setBaseModel(event.target.value)}
-            >
-              {baseModels.map((model) => (
-                <MenuItem key={model.id} value={model.id} children={model.id} />
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <Typography
-              id="dataset-select-label"
-              variant="subtitle1"
-              gutterBottom
-            >
-              {t("Dataset")}
-            </Typography>
-            <Select
-              labelId="dataset-select-label"
-              size="small"
-              value={dataset}
-              required
-              onChange={(event) => setDataset(event.target.value)}
-            >
-              {existingDatasets.map((ds) => (
-                <MenuItem key={ds} value={ds} children={ds} />
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <Typography
-              id="suffix-input-label"
-              variant="subtitle1"
-              gutterBottom
-            >
-              {t("Suffix")}
-            </Typography>
-            <OutlinedInput
-              id="suffix-input"
-              aria-describedby="suffix-input-label"
-              size="small"
-              value={suffix}
-              onChange={(event) => setSuffix(event.target.value)}
-              error={!isSuffixValid}
-            />
-          </FormControl>
-        </Stack>
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose}>{t("Cancel")}</Button>
-        <Button
-          disabled={!isFormValid || creating}
-          onClick={handleCreate}
-          variant="contained"
-        >
-          <Collapse in={creating} orientation="horizontal">
-            <Box sx={{ marginRight: 1, display: "flex" }}>
-              <CircularProgress size={16} />
-            </Box>
-          </Collapse>
-          {t("Create")}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
 }
 
 function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
@@ -402,15 +225,17 @@ function FinetunePanel() {
     listJobs();
   }, [listJobs]);
 
+  const selectedJob =
+    selectedJobId === null || !Array.isArray(finetuneJobs)
+      ? undefined
+      : finetuneJobs.find((j) => j.id === selectedJobId);
+
+  const isSelecitedJobFinal =
+    selectedJob &&
+    ["succeeded", "failed", "cancelled"].includes(selectedJob.status);
+
   useEffect(() => {
-    if (selectedJobId === null || !(finetuneJobs instanceof Array)) return;
-    const finalStatuses = ["succeeded", "failed", "cancelled"];
-    if (
-      finalStatuses.includes(
-        finetuneJobs.find((j) => j.id === selectedJobId)?.status ?? ""
-      )
-    )
-      return;
+    if (selectedJobId === null || isSelecitedJobFinal) return;
 
     let interval: ReturnType<typeof setInterval> | undefined;
 
@@ -421,19 +246,13 @@ function FinetunePanel() {
         if (!(prevJobs instanceof Array)) return prevJobs;
         return prevJobs.map((j) => (j.id === job.id ? job : j));
       });
-      if (finalStatuses.includes(job.status)) clearInterval(interval);
     };
 
     intervalCallback();
     interval = setInterval(intervalCallback, 10000);
 
     return () => clearInterval(interval);
-  }, [selectedJobId, finetuneJobs, retrieveJob]);
-
-  const selectedJob =
-    selectedJobId === null || !Array.isArray(finetuneJobs)
-      ? undefined
-      : finetuneJobs.find((j) => j.id === selectedJobId);
+  }, [selectedJobId, isSelecitedJobFinal, retrieveJob]);
 
   const selectedJobDetail = selectedJob && (
     <FinetuneJobDetail job={selectedJob} />
