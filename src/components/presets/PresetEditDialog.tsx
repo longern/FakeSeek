@@ -1,3 +1,8 @@
+import CheckIcon from "@mui/icons-material/Check";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import SaveIcon from "@mui/icons-material/Save";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import {
   Autocomplete,
   Box,
@@ -22,17 +27,12 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import SaveIcon from "@mui/icons-material/Save";
-import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { useTranslation } from "react-i18next";
+import OpenAI from "openai";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useAppSelector } from "../../app/hooks";
 import { Preset } from "../../app/presets";
-import OpenAI from "openai";
 
 function PresetEditDialog({
   open,
@@ -54,6 +54,7 @@ function PresetEditDialog({
     useState<HTMLElement | null>(null);
   const presets = useAppSelector((state) => state.presets);
   const [modelCandidates, setModelCandidates] = useState<string[]>([]);
+  const [modelHelperText, setModelHelperText] = useState<string>("");
   const [modelInputValue, setModelInputValue] = useState("");
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -71,11 +72,14 @@ function PresetEditDialog({
     });
 
     try {
+      setModelCandidates([]);
+      setModelHelperText("");
       const models = await client.models.list();
       setModelCandidates(models.data.map((m) => m.id));
     } catch (e) {
-      console.error("Failed to load models", e);
-      setModelCandidates([]);
+      if (e instanceof OpenAI.APIError)
+        setModelHelperText(`API Error: ${e.status}`);
+      else console.error("Failed to load models", e);
     }
   }, [preset?.apiKey, preset?.baseURL]);
 
@@ -214,7 +218,12 @@ function PresetEditDialog({
                   freeSolo
                   fullWidth
                   renderInput={(params) => (
-                    <TextField label={t("Default model")} {...params} />
+                    <TextField
+                      label={t("Default model")}
+                      error={Boolean(modelHelperText)}
+                      helperText={modelHelperText}
+                      {...params}
+                    />
                   )}
                   onFocus={loadModelCandidates}
                 />
