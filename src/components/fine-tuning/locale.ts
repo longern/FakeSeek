@@ -40,6 +40,8 @@ export default {
       "confirm-delete-finetuned-model":
         "Delete this fine-tuned model?\n{{model}}",
       "confirm-delete-record": "Delete this record?",
+      "model-not-found-warning":
+        'The model "{{datasetModel}}" used by the dataset was not found in the current preset "{{presetName}}."',
     },
   },
   "zh-CN": {
@@ -81,6 +83,8 @@ export default {
       "confirm-delete-dataset": "删除此数据集？\n{{name}}",
       "confirm-delete-finetuned-model": "删除此微调模型？\n{{model}}",
       "confirm-delete-record": "删除此条数据？",
+      "model-not-found-warning":
+        '数据集使用的模型 "{{datasetModel}}" 在当前预设 "{{presetName}}" 中未找到。',
     },
   },
 };

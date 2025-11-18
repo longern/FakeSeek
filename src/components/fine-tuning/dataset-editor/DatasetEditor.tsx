@@ -3,6 +3,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import SaveIcon from "@mui/icons-material/Save";
 import {
+  Alert,
   Box,
   Dialog,
   DialogActions,
@@ -10,10 +11,12 @@ import {
   DialogTitle,
   IconButton,
   Pagination,
+  Snackbar,
   Stack,
   Toolbar,
   Typography,
 } from "@mui/material";
+import OpenAI from "openai";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -37,8 +40,9 @@ function DatasetEditor({
   const [selected, setSelected] = useState(0);
   const [modified, setModified] = useState(false);
 
-  const currentPreset = useCurrentPreset();
   const [model, setModel] = useState<string | undefined>(undefined);
+  const [showModelWarning, setShowModelWarning] = useState(false);
+  const currentPreset = useCurrentPreset();
 
   const { t } = useTranslation("fineTuning");
 
@@ -79,6 +83,21 @@ function DatasetEditor({
         : { dataset: [] as DatasetRecord[] };
       setContent(dataset);
       setModel(modelFromFile ?? currentPreset?.defaultModel);
+
+      if (modelFromFile) {
+        const client = new OpenAI({
+          apiKey: currentPreset?.apiKey,
+          baseURL: currentPreset?.baseURL,
+          dangerouslyAllowBrowser: true,
+        });
+
+        try {
+          await client.models.retrieve(modelFromFile);
+        } catch (e) {
+          if (e instanceof OpenAI.APIError && e.status === 404)
+            setShowModelWarning(true);
+        }
+      }
 
       // Preload tokenizer
       const model = modelFromFile ?? currentPreset?.defaultModel;
@@ -131,6 +150,22 @@ function DatasetEditor({
 
       <DialogContent dividers sx={{ padding: 0 }}>
         <Box sx={{ height: "100%" }}>
+          <Snackbar
+            open={showModelWarning}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            sx={{ top: "72px" }}
+          >
+            <Alert
+              severity="warning"
+              onClose={() => setShowModelWarning(false)}
+            >
+              {t("model-not-found-warning", {
+                presetName: currentPreset?.presetName,
+                datasetModel: model,
+              })}
+            </Alert>
+          </Snackbar>
+
           {content?.[selected] === undefined ? (
             <Box
               sx={{
