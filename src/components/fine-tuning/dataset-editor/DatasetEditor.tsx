@@ -92,10 +92,11 @@ function DatasetEditor({
         });
 
         try {
-          await client.models.retrieve(modelFromFile);
-        } catch (e) {
-          if (e instanceof OpenAI.APIError && e.status === 404)
+          const modelList = await client.models.list();
+          if (!modelList.data.find((m) => m.id === modelFromFile))
             setShowModelWarning(true);
+        } catch (e) {
+          console.error("Failed to fetch model list", e);
         }
       }
 

@@ -18,13 +18,15 @@ import {
 } from "@mui/material";
 import OpenAI, { APIError } from "openai";
 import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Preset } from "../../app/presets";
 import { useCurrentPreset } from "../presets/hooks";
 import HFLogo from "./hf-logo.svg";
 import CreateFinetuneJobDialog from "./CreateFinetuneJobDialog";
+
+const TrainingResultChart = lazy(() => import("./TrainingResultChart"));
 
 const NO_PRESET_ERROR = new Error("No preset selected");
 
@@ -38,13 +40,28 @@ function getClientFromPreset(currentPreset: Preset | null) {
   });
 }
 
-function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
+function FinetuneJobDetail({ job }: { job: FineTuningJob }) {
+  const [resultCsv, setResultCsv] = useState<string | null>(null);
+
   const currentPreset = useCurrentPreset();
   const { t } = useTranslation("fineTuning");
 
   const isCancellable = ["validating_files", "queued", "running"].includes(
-    selectedJob.status
+    job.status
   );
+
+  useEffect(() => {
+    if (!job.result_files?.length || !currentPreset) return;
+    const abortController = new AbortController();
+    const client = getClientFromPreset(currentPreset);
+    client.files
+      .content(job.result_files[0], { signal: abortController.signal })
+      .then((res) => res.text())
+      .then(setResultCsv)
+      .catch(() => {});
+
+    return () => abortController.abort();
+  }, [job.result_files, currentPreset]);
 
   return (
     <Stack sx={{ padding: 2 }}>
@@ -55,12 +72,12 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
             color="inherit"
             onClick={() => {
               const confirmed = window.confirm(
-                t("confirm-cancel-finetune-job", { id: selectedJob.id })
+                t("confirm-cancel-finetune-job", { id: job.id })
               );
               if (!confirmed) return;
 
               const client = getClientFromPreset(currentPreset);
-              client.fineTuning.jobs.cancel(selectedJob.id);
+              client.fineTuning.jobs.cancel(job.id);
             }}
           >
             {t("Cancel")}
@@ -79,19 +96,19 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
         }}
       >
         <Typography>{t("Job ID")}</Typography>
-        <Typography>{selectedJob.id}</Typography>
+        <Typography>{job.id}</Typography>
 
         <Typography>{t("Status")}</Typography>
         <Box>
           <Chip
-            label={t(selectedJob.status)}
+            label={t(job.status)}
             size="small"
             color={
-              selectedJob.status === "succeeded"
+              job.status === "succeeded"
                 ? "success"
-                : selectedJob.status === "failed"
+                : job.status === "failed"
                 ? "error"
-                : selectedJob.status === "cancelled"
+                : job.status === "cancelled"
                 ? "default"
                 : "info"
             }
@@ -99,15 +116,15 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
         </Box>
 
         <Typography>{t("Base model")}</Typography>
-        <Typography>{selectedJob.model}</Typography>
+        <Typography>{job.model}</Typography>
 
         <Typography>{t("Fine-tuned model")}</Typography>
         <Typography>
-          {!selectedJob.fine_tuned_model ? (
+          {!job.fine_tuned_model ? (
             "-"
           ) : (
             <>
-              {selectedJob.fine_tuned_model}
+              {job.fine_tuned_model}
               <IconButton
                 size="small"
                 aria-label={t("Push to Hub")}
@@ -121,10 +138,9 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
                     t("Enter the Hugging Face repo ID to push to")
                   );
                   if (!repoId) return;
-                  client.post(
-                    `/models/${selectedJob.fine_tuned_model!}/push_to_hub`,
-                    { body: { hf_token: hfToken, repo_id: repoId } }
-                  );
+                  client.post(`/models/${job.fine_tuned_model!}/push_to_hub`, {
+                    body: { hf_token: hfToken, repo_id: repoId },
+                  });
                 }}
                 sx={{ marginLeft: 1 }}
               >
@@ -141,12 +157,12 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
                 onClick={() => {
                   const confirmed = window.confirm(
                     t("confirm-delete-finetuned-model", {
-                      model: selectedJob.fine_tuned_model,
+                      model: job.fine_tuned_model,
                     })
                   );
                   if (!confirmed) return;
                   const client = getClientFromPreset(currentPreset);
-                  client.models.delete(selectedJob.fine_tuned_model!);
+                  client.models.delete(job.fine_tuned_model!);
                 }}
                 sx={{ marginLeft: 1 }}
               >
@@ -158,22 +174,35 @@ function FinetuneJobDetail({ job: selectedJob }: { job: FineTuningJob }) {
 
         <Typography>{t("Created at")}</Typography>
         <Typography>
-          {new Date(selectedJob.created_at * 1000).toLocaleString()}
+          {new Date(job.created_at * 1000).toLocaleString()}
         </Typography>
 
         <Typography>{t("Finished at")}</Typography>
         <Typography>
-          {selectedJob.finished_at === null
+          {job.finished_at === null
             ? "-"
-            : new Date(selectedJob.finished_at * 1000).toLocaleString()}
+            : new Date(job.finished_at * 1000).toLocaleString()}
         </Typography>
       </Box>
 
-      {selectedJob.error && (
+      {job.error && (
         <>
           <Divider sx={{ marginY: 2 }} />
-          <Typography color="error">{selectedJob.error.message}</Typography>
+          <Typography color="error">{job.error.message}</Typography>
         </>
+      )}
+
+      {resultCsv && (
+        <Suspense>
+          <Divider sx={{ marginY: 2 }} />
+          <Box sx={{ maxWidth: "720px", overflowX: "auto" }}>
+            <TrainingResultChart
+              resultCsv={resultCsv}
+              width="100%"
+              height={400}
+            />
+          </Box>
+        </Suspense>
       )}
     </Stack>
   );
