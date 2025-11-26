@@ -149,7 +149,7 @@ function DatasetEditor({
         </Toolbar>
       </DialogTitle>
 
-      <DialogContent dividers sx={{ padding: 0 }}>
+      <DialogContent dividers sx={{ padding: 0, position: "relative" }}>
         <Box sx={{ height: "100%" }}>
           <Snackbar
             open={showModelWarning}

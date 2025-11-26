@@ -312,6 +312,11 @@ export async function requestChatCompletionsAPI(
 
   if (!result) throw new Error("No response received");
 
+  if (response.controller.signal.aborted) {
+    result.status = "incomplete";
+    return result;
+  }
+
   onStreamEvent(result.id, {
     type: "response.content_part.done",
     item_id: result.output[outputIndex]?.id || "",
