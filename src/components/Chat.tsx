@@ -353,6 +353,8 @@ function Chat() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
+    if (!isMobile) return;
+
     const handleEscapeKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (!beforeUnload) {
@@ -365,7 +367,7 @@ function Chat() {
     return () => {
       window.removeEventListener("keydown", handleEscapeKeyDown);
     };
-  }, [beforeUnload]);
+  }, [beforeUnload, isMobile]);
 
   return (
     <Stack direction="row" sx={{ height: "100%" }}>
@@ -425,11 +427,11 @@ function Chat() {
         message={t("Press again to exit the app")}
         sx={{
           bottom: "160px",
-          left: "50%",
           right: "unset",
           width: "max-content",
           maxWidth: "calc(100% - 16px)",
           transform: "translateX(-50%)",
+          "&": { left: "50%" },
         }}
       />
     </Stack>

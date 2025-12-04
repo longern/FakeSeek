@@ -18,7 +18,14 @@ import {
 } from "@mui/material";
 import OpenAI, { APIError } from "openai";
 import { FineTuningJob } from "openai/resources/fine-tuning/jobs/jobs.mjs";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Preset } from "../../app/presets";
@@ -215,6 +222,7 @@ function FinetunePanel() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const currentPreset = useCurrentPreset();
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
@@ -288,7 +296,19 @@ function FinetunePanel() {
   );
 
   return (
-    <Card elevation={0} sx={{ height: "100%", borderRadius: 0 }}>
+    <Card
+      ref={rootRef}
+      elevation={0}
+      sx={{ height: "100%", borderRadius: 0 }}
+      tabIndex={-1}
+      onKeyDown={(event) => {
+        if (!isMobile) return;
+        if (event.key === "Escape" && selectedJobId !== null) {
+          event.stopPropagation();
+          setSelectedJobId(null);
+        }
+      }}
+    >
       <Stack divider={<Divider />} sx={{ height: "100%" }}>
         <Box sx={{ padding: 2 }}>
           {!isMobile && (
@@ -299,7 +319,10 @@ function FinetunePanel() {
           <Stack direction="row">
             <Button
               variant="outlined"
-              onClick={() => setSelectedJobId(null)}
+              onClick={() => {
+                setSelectedJobId(null);
+                rootRef.current!.focus();
+              }}
               sx={{
                 display: {
                   xs: selectedJobId ? "inline-flex" : "none",
@@ -368,6 +391,9 @@ function FinetunePanel() {
                           onClick={(event) => {
                             event.stopPropagation();
                             setSelectedJobId(job.id);
+                            Promise.resolve().then(() =>
+                              rootRef.current!.focus()
+                            );
                           }}
                         >
                           <ListItemText

@@ -74,6 +74,7 @@ function MobileLayout({
 }) {
   const [showPanel, setShowPanel] = useState(false);
   const nodeRef = useRef(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
   const { t } = useTranslation("fineTuning");
 
@@ -122,15 +123,31 @@ function MobileLayout({
               </Toolbar>
               <Divider />
               <DialogContent sx={{ padding: 2 }}>
-                <TabsComponent onTabClick={() => setShowPanel(true)} />
+                <TabsComponent
+                  onTabClick={() => {
+                    setShowPanel(true);
+                    setTimeout(() => panelRef.current!.focus(), 100);
+                  }}
+                />
               </DialogContent>
             </Stack>
+
             <Stack
+              ref={panelRef}
               sx={{
                 flex: "0 0 50%",
                 minWidth: 0,
                 height: "100%",
                 backgroundColor: "background.default",
+              }}
+              tabIndex={-1}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.stopPropagation();
+                  setShowPanel(false);
+                  event.currentTarget.focus();
+                  event.currentTarget.blur();
+                }
               }}
             >
               <Toolbar disableGutters>
@@ -144,7 +161,11 @@ function MobileLayout({
                 <Typography
                   variant="subtitle1"
                   component="div"
-                  sx={{ flexGrow: 1, textAlign: "center", userSelect: "none" }}
+                  sx={{
+                    flexGrow: 1,
+                    textAlign: "center",
+                    userSelect: "none",
+                  }}
                 >
                   {panelTitle}
                 </Typography>
