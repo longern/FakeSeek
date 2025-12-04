@@ -45,12 +45,14 @@ function TokensViewerPopover({
   onClose,
   anchorEl,
   onTransitionEnd,
+  onKeyDown,
 }: {
   open: boolean;
   onClose: () => void;
   anchorEl: HTMLElement | null;
   children?: React.ReactNode;
   onTransitionEnd?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 }) {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
@@ -93,6 +95,7 @@ function TokensViewerPopover({
       onTransitionEnd={onTransitionEnd}
       anchorEl={anchorEl}
       anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      onKeyDown={onKeyDown}
     >
       {children}
     </Popover>
@@ -218,6 +221,16 @@ function TokensViewer({
         onClose={() => setAnchorEl(null)}
         anchorEl={anchorEl}
         onTransitionEnd={() => !anchorEl && setSelectedTokenIndex(null)}
+        onKeyDown={(e) => {
+          const shortcutElement = e.currentTarget.querySelector<HTMLElement>(
+            '[keyboard-shortcut="' + e.key + '"]'
+          );
+          if (shortcutElement) {
+            e.preventDefault();
+            shortcutElement.focus();
+            shortcutElement.click();
+          }
+        }}
       >
         {selectedTokenIndex !== null && (
           <TokensViewerPopoverContent

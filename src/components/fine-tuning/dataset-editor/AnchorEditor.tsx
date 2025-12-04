@@ -48,6 +48,7 @@ function AnchorEditor({
             {...(anchored
               ? { color: "primary", onClick: () => onChange?.(false) }
               : { onClick: () => onChange?.(true) })}
+            keyboard-shortcut="A"
           >
             <PushPinIcon fontSize="small" />
           </IconButton>
@@ -77,7 +78,17 @@ function AnchorEditor({
             disabled={!anchored}
             onChangeCommitted={(_, value) => onConfidenceChange?.(value)}
             onChange={(_, value) => setUncontrolledConfidence(value)}
+            onKeyDown={(e) => {
+              const keyList = [
+                "ArrowLeft",
+                "ArrowRight",
+                "ArrowUp",
+                "ArrowDown",
+              ];
+              if (keyList.includes(e.key)) e.stopPropagation();
+            }}
             aria-labelledby="confidence-slider"
+            slotProps={{ input: { "keyboard-shortcut": "C" } as any }}
           />
         </Box>
       </Box>

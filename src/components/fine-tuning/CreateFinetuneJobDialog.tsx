@@ -1,8 +1,5 @@
 import {
-  Box,
   Button,
-  CircularProgress,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -214,12 +211,8 @@ function CreateFinetuneJobDialog({
           disabled={!isFormValid || creating}
           onClick={handleCreate}
           variant="contained"
+          loading={creating}
         >
-          <Collapse in={creating} orientation="horizontal">
-            <Box sx={{ marginRight: 1, display: "flex" }}>
-              <CircularProgress size={16} />
-            </Box>
-          </Collapse>
           {t("Create")}
         </Button>
       </DialogActions>

@@ -76,6 +76,15 @@ function TokenEditor({
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+              value && onChange?.(value);
+              setEditing(false);
+            } else if (e.key === "Escape") {
+              setEditing(false);
+            }
+          }}
         />
       ) : (
         <Box>
@@ -97,6 +106,7 @@ function TokenEditor({
             else setValue("");
             setEditing(!editing);
           }}
+          keyboard-shortcut="E"
         >
           {editing ? (
             <SaveIcon fontSize="small" />
@@ -146,6 +156,7 @@ function TokensViewerPopoverContent({
           aria-label={t("Previous token")}
           disabled={onPreviousToken === undefined}
           onClick={onPreviousToken}
+          keyboard-shortcut="ArrowLeft"
         >
           <NavigateBeforeIcon fontSize="small" />
         </IconButton>
@@ -160,6 +171,7 @@ function TokensViewerPopoverContent({
           aria-label={t("Next token")}
           disabled={onNextToken === undefined}
           onClick={onNextToken}
+          keyboard-shortcut="ArrowRight"
         >
           <NavigateNextIcon fontSize="small" />
         </IconButton>

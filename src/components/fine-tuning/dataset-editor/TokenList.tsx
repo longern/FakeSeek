@@ -114,6 +114,8 @@ export function LogprobTable({
   onContinueGeneration?: (tokenId: number) => void;
   onMoreLogprobs?: () => void;
 }) {
+  const [loadingMore, setLoadingMore] = React.useState(false);
+
   return (
     <TableContainer
       component={Paper}
@@ -184,7 +186,11 @@ export function LogprobTable({
                 <IconButton
                   aria-label={"More"}
                   size="small"
-                  onClick={onMoreLogprobs}
+                  onClick={() => {
+                    onMoreLogprobs();
+                    setLoadingMore(true);
+                  }}
+                  loading={loadingMore}
                 >
                   <MoreHorizIcon fontSize="small" />
                 </IconButton>
