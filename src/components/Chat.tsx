@@ -6,6 +6,7 @@ import {
   Container,
   Fade,
   IconButton,
+  Snackbar,
   Stack,
   Toolbar,
   Typography,
@@ -16,7 +17,7 @@ import {
   ResponseInputItem,
   ResponseInputMessageContentList,
 } from "openai/resources/responses/responses.mjs";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
@@ -345,10 +346,26 @@ function Chat() {
     return currentConversation.title;
   });
   const [showSidebar, setShowSidebar] = useState(false);
+  const [beforeUnload, setBeforeUnload] = useState(false);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    const handleEscapeKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (!beforeUnload) {
+        setBeforeUnload(true);
+        setTimeout(() => setBeforeUnload(false), 2000);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscapeKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKeyDown);
+    };
+  }, [beforeUnload]);
 
   return (
     <Stack direction="row" sx={{ height: "100%" }}>
@@ -402,6 +419,19 @@ function Chat() {
           </Box>
         </Box>
       </Stack>
+
+      <Snackbar
+        open={beforeUnload}
+        message={t("Press again to exit the app")}
+        sx={{
+          bottom: "160px",
+          left: "50%",
+          right: "unset",
+          width: "max-content",
+          maxWidth: "calc(100% - 16px)",
+          transform: "translateX(-50%)",
+        }}
+      />
     </Stack>
   );
 }
