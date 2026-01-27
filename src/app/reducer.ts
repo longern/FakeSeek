@@ -30,6 +30,9 @@ function responseReducer(
     switch (event.type) {
       case "response.completed":
         response.status = "completed";
+        response.completed_at =
+          event.response.completed_at ?? Math.floor(Date.now() / 1000);
+        response.usage = event.response.usage;
         break;
 
       case "response.output_item.added":

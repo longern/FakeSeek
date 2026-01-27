@@ -18,7 +18,7 @@ const theme = createTheme({
       styleOverrides: {
         "html, body, #root": { height: "100%" },
         html: { WebkitFontSmoothing: "auto" },
-        body: { overflow: "hidden" },
+        body: { overflow: "hidden", scrollbarColor: "#d4d4d4 transparent" },
         code: {
           fontFamily:
             "ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",

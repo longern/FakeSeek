@@ -196,7 +196,6 @@ function Main({
         sx={{
           flexGrow: 1,
           padding: 2,
-          overflowX: "hidden",
           position: "relative",
         }}
       >
@@ -252,6 +251,7 @@ function Main({
                 top: -40,
                 width: 32,
                 height: 32,
+                backgroundColor: "background.paper",
                 border: "1px solid rgba(0, 0, 0, 0.12)",
               }}
               onClick={() => scrollToBottom()}
@@ -333,18 +333,22 @@ function Main({
   );
 }
 
-function Chat() {
-  const [abortable, setAbortable] = useAbortablePromise();
-  const selectedConversation = useAppSelector(
-    (state) => state.conversations.current
-  );
-  const selectedConversationTitle = useAppSelector((state) => {
+function useSelectedConversationTitle() {
+  return useAppSelector((state) => {
     const current = state.conversations.current;
     if (current === null) return null;
     const currentConversation = state.conversations.conversations[current];
     if (!currentConversation) return null;
     return currentConversation.title;
   });
+}
+
+function Chat() {
+  const [abortable, setAbortable] = useAbortablePromise();
+  const selectedConversation = useAppSelector(
+    (state) => state.conversations.current
+  );
+  const selectedConversationTitle = useSelectedConversationTitle();
   const [showSidebar, setShowSidebar] = useState(false);
   const [beforeUnload, setBeforeUnload] = useState(false);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -412,7 +416,14 @@ function Chat() {
             </IconButton>
           </Toolbar>
         ) : null}
-        <Box component={StickToBottom} sx={{ flexGrow: 1, minHeight: 0 }}>
+        <Box
+          component={StickToBottom}
+          sx={{
+            flexGrow: 1,
+            minHeight: 0,
+            "&>*": { scrollbarGutter: "stable" },
+          }}
+        >
           <Box
             component={StickToBottom.Content}
             sx={{ display: "flex", flexDirection: "column", minHeight: "100%" }}

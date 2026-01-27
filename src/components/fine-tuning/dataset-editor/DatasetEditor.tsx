@@ -111,6 +111,7 @@ function DatasetEditor({
     document.title = datasetName + " - FakeSeek";
     return () => {
       document.title = oldTitle;
+      setShowModelWarning(false);
     };
   }, [open, datasetName]);
 

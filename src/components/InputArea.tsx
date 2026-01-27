@@ -163,7 +163,13 @@ function InputArea({
       onSubmit={handleSend}
       sx={{ width: "100%", padding: 1 }}
     >
-      <Card variant="outlined" elevation={0} sx={{ borderRadius: "24px" }}>
+      <Card
+        variant="outlined"
+        sx={{
+          borderRadius: "24px",
+          boxShadow: "0 4px 10px rgba(0,0,0,.02),0 2px 4px rgba(0,0,0,.04)",
+        }}
+      >
         {images.length > 0 && (
           <>
             <Stack
@@ -217,6 +223,7 @@ function InputArea({
         )}
         <InputBase
           inputRef={inputRef}
+          name="message"
           multiline
           placeholder={t("Send message...")}
           required
@@ -234,9 +241,14 @@ function InputArea({
             }
           }}
           onFocus={() => setShowPanel(false)}
-          sx={{
-            padding: 0,
-            "&>.MuiInputBase-input": { paddingX: 2, paddingTop: 1.5 },
+          slotProps={{
+            input: {
+              sx: {
+                paddingX: 2,
+                paddingTop: 1.5,
+                caretColor: (theme) => theme.palette.primary.main,
+              },
+            },
           }}
         />
         <Stack

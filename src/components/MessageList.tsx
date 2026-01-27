@@ -82,7 +82,7 @@ export function UserMessage({
           key={index}
           sx={{
             maxWidth: "100%",
-            overflowWrap: "break-word",
+            wordBreak: "break-word",
             minWidth: "48px",
             padding: "10px 16px",
             backgroundColor: "#edf3fe",
@@ -382,35 +382,49 @@ export function ReasoningContent({
 
   return (
     <>
-      <Link
-        component="button"
-        underline="none"
+      <Box
         sx={{
+          position: expanded ? "sticky" : "static",
+          top: 0,
+          width: "100%",
+          zIndex: 1,
+          background: (theme) =>
+            `linear-gradient(to top, transparent 0, ${
+              theme.palette.background.paper
+            } ${theme.spacing(1)})`,
           marginTop: 1,
-          paddingY: 0.5,
-          display: "flex",
-          gap: 1,
-          alignItems: "center",
-          fontSize: "0.925rem",
-          color: "text.secondary",
-          transition: "color 0.25s ease-in-out",
-          ":hover": { color: "rgba(0, 0, 0, 0.4)" },
-          ":active": { color: "rgba(0, 0, 0, 0.35)" },
+          paddingBottom: 0.5,
         }}
-        onClick={() => setExpanded((expanded) => !expanded)}
       >
-        {reasoning ? t("Thinking...") : t("Thought")}
-        <Box
-          component="span"
+        <Link
+          component="button"
+          underline="none"
           sx={{
-            display: "inline-flex",
-            transform: expanded ? "rotate(0)" : "rotate(-90deg)",
-            transition: "transform 0.25s ease-in-out",
+            paddingY: 0.5,
+            display: "flex",
+            gap: 1,
+            alignItems: "center",
+            fontSize: "0.925rem",
+            color: "text.secondary",
+            transition: "color 0.25s ease-in-out",
+            ":hover": { color: "rgba(0, 0, 0, 0.4)" },
+            ":active": { color: "rgba(0, 0, 0, 0.35)" },
           }}
+          onClick={() => setExpanded((expanded) => !expanded)}
         >
-          <ExpandMoreIcon fontSize="small" />
-        </Box>
-      </Link>
+          {reasoning ? t("Thinking...") : t("Thought")}
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              transform: expanded ? "rotate(0)" : "rotate(-90deg)",
+              transition: "transform 0.25s ease-in-out",
+            }}
+          >
+            <ExpandMoreIcon fontSize="small" />
+          </Box>
+        </Link>
+      </Box>
 
       <Collapse in={expanded} timeout={150} unmountOnExit>
         <Box

@@ -162,11 +162,16 @@ function DatasetRecordEditor({
       });
 
       const message = completion.choices[0].message;
-      const thinking =
-        "reasoning_content" in message &&
-        typeof message.reasoning_content === "string"
-          ? message.reasoning_content
-          : undefined;
+      const thinking = ["reasoning", "reasoning_content"].reduce<
+        string | undefined
+      >(
+        (acc, key) =>
+          acc ??
+          (key in message && typeof message[key] === "string"
+            ? message[key]
+            : undefined),
+        undefined
+      );
 
       onChange?.((prev) => ({
         ...prev,

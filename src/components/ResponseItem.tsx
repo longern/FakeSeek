@@ -323,7 +323,7 @@ export function ResponseActions({
         sx={{ width: "28px", height: "28px", borderRadius: 1 }}
         onClick={handleCopy}
       >
-        <ContentCopyIcon fontSize="small" />
+        <ContentCopyIcon fontSize="small" sx={{ transform: "scaleX(-1)" }} />
       </IconButton>
       <Button
         aria-label="Retry"
@@ -346,7 +346,7 @@ export function ResponseActions({
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ minWidth: "64px", marginRight: 1, userSelect: "none" }}
+        sx={{ minWidth: "64px", marginX: 1, userSelect: "none" }}
       >
         {formatTimestamp(response.timestamp)}
       </Typography>
@@ -370,13 +370,13 @@ export function ResponseActions({
         <MenuItem
           onClick={() => {
             onRetry({
-              model: "gpt-5",
+              model: "gpt-5.2",
               tools: [TOOL_DEFAULT_MCP, TOOL_PYTHON],
             });
             setRetryMenuAnchor(null);
           }}
         >
-          gpt-5
+          gpt-5.2
         </MenuItem>
         <Divider component="li" />
         <MenuItem
@@ -409,7 +409,7 @@ function ResponseItem({
   const { t } = useTranslation();
 
   return (
-    <Box sx={{ marginRight: 4 }}>
+    <Box sx={{ marginRight: 1 }}>
       {response.error ? (
         <Alert severity="error">{response.error.message}</Alert>
       ) : (

@@ -80,6 +80,12 @@ function AppDrawer({
                 borderRadius: "9999px",
                 backgroundColor: "white",
                 color: "black",
+                boxShadow:
+                  "0 -2px 2px rgba(72, 104, 178, .04), 0 2px 2px rgba(106, 111, 117, .09), 0 1px 2px rgba(72, 104, 178, .08)",
+                ":hover": {
+                  boxShadow:
+                    "0 4px 4px rgba(72, 104, 178, .04), 0 -3px 4px rgba(72, 104, 178, .04), 0 6px 6px rgba(106, 111, 117, .1)",
+                },
               }}
               onClick={() => onConversationChange(null)}
               startIcon={addCommentIcon}
