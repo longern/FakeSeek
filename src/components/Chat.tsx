@@ -195,7 +195,8 @@ function Main({
         maxWidth="md"
         sx={{
           flexGrow: 1,
-          padding: 2,
+          paddingX: 0,
+          paddingY: 2,
           position: "relative",
         }}
       >

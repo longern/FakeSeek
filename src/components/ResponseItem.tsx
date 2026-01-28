@@ -409,7 +409,7 @@ function ResponseItem({
   const { t } = useTranslation();
 
   return (
-    <Box sx={{ marginRight: 1 }}>
+    <Box>
       {response.error ? (
         <Alert severity="error">{response.error.message}</Alert>
       ) : (
@@ -429,9 +429,7 @@ function ResponseItem({
                 />
               ) : null
             ) : message.type === "reasoning" ? (
-              <Box>
-                <ReasoningContent message={message} />
-              </Box>
+              <ReasoningContent message={message} />
             ) : message.type === "mcp_call" ? (
               <McpCallContent message={message} />
             ) : message.type === "function_call" ? (
@@ -482,7 +480,9 @@ function ResponseItem({
       )}
 
       {response.status !== "in_progress" && Actions && (
-        <Actions message={response} />
+        <Box sx={{ paddingX: 2 }}>
+          <Actions message={response} />
+        </Box>
       )}
     </Box>
   );

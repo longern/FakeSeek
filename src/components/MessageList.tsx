@@ -8,6 +8,7 @@ import {
   Alert,
   Box,
   Button,
+  CardActionArea,
   CircularProgress,
   Collapse,
   Dialog,
@@ -23,6 +24,7 @@ import {
   MenuItem,
   Stack,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import OpenAI from "openai";
 import {
@@ -71,15 +73,23 @@ export function UserMessage({
   ) => void;
   slots?: Pick<MessageItemSlots, "messageActions">;
 }) {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
   const Actions = slots?.messageActions;
 
   return (
     <Stack
-      sx={{ marginLeft: 4, alignSelf: "flex-end", alignItems: "flex-end" }}
+      sx={{
+        marginLeft: 4,
+        marginRight: 2,
+        alignSelf: "flex-end",
+        alignItems: "flex-end",
+      }}
     >
       {message.content.map((part, index) => (
         <Box
           key={index}
+          component={isMobile ? CardActionArea : "div"}
           sx={{
             maxWidth: "100%",
             wordBreak: "break-word",
@@ -87,6 +97,7 @@ export function UserMessage({
             padding: "10px 16px",
             backgroundColor: "#edf3fe",
             borderRadius: "22px",
+            fontSize: "unset",
             whiteSpace: "pre-wrap",
           }}
           onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
@@ -344,26 +355,33 @@ export function AssistantMessage({
   message: ResponseOutputMessage;
   onContextMenu?: (e: React.PointerEvent<HTMLDivElement>) => void;
 }) {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
   return (
-    <>
-      <Box
-        sx={{ maxWidth: "100%", overflowWrap: "break-word" }}
-        onContextMenu={onContextMenu}
-      >
-        {message.content.map((part, index) => (
-          <Box key={index}>
-            {part.type === "output_text" ? (
-              <>
-                <Markdown>{part.text}</Markdown>
-                <AnnotationList annotations={part.annotations} />
-              </>
-            ) : part.type === "refusal" ? (
-              <Alert severity="error">{part.refusal}</Alert>
-            ) : null}
-          </Box>
-        ))}
-      </Box>
-    </>
+    <Box
+      component={isMobile ? CardActionArea : "div"}
+      sx={{
+        paddingLeft: 2,
+        paddingRight: 3,
+        maxWidth: "100%",
+        overflowWrap: "break-word",
+        fontSize: "unset",
+      }}
+      onContextMenu={onContextMenu}
+    >
+      {message.content.map((part, index) => (
+        <Box key={index}>
+          {part.type === "output_text" ? (
+            <>
+              <Markdown>{part.text}</Markdown>
+              <AnnotationList annotations={part.annotations} />
+            </>
+          ) : part.type === "refusal" ? (
+            <Alert severity="error">{part.refusal}</Alert>
+          ) : null}
+        </Box>
+      ))}
+    </Box>
   );
 }
 
@@ -381,7 +399,7 @@ export function ReasoningContent({
   if (!reasoning && content.length === 0) return null;
 
   return (
-    <>
+    <Box>
       <Box
         sx={{
           position: expanded ? "sticky" : "static",
@@ -400,6 +418,8 @@ export function ReasoningContent({
           component="button"
           underline="none"
           sx={{
+            marginLeft: 1,
+            paddingX: 1,
             paddingY: 0.5,
             display: "flex",
             gap: 1,
@@ -427,26 +447,28 @@ export function ReasoningContent({
       </Box>
 
       <Collapse in={expanded} timeout={150} unmountOnExit>
-        <Box
-          color="text.secondary"
-          sx={{
-            position: "relative",
-            marginTop: -1,
-            marginBottom: -1,
-            paddingLeft: 2.5,
-            fontSize: "0.875rem",
-          }}
-        >
-          <Divider
-            orientation="vertical"
-            sx={{ position: "absolute", left: "6px" }}
-          />
-          {content.map((part, index) => (
-            <Markdown key={index}>{part.text}</Markdown>
-          ))}
+        <Box sx={{ paddingLeft: 2, paddingRight: 3 }}>
+          <Box
+            color="text.secondary"
+            sx={{
+              position: "relative",
+              marginTop: -1,
+              marginBottom: -1,
+              paddingLeft: 2.5,
+              fontSize: "0.875rem",
+            }}
+          >
+            <Divider
+              orientation="vertical"
+              sx={{ position: "absolute", left: "6px" }}
+            />
+            {content.map((part, index) => (
+              <Markdown key={index}>{part.text}</Markdown>
+            ))}
+          </Box>
         </Box>
       </Collapse>
-    </>
+    </Box>
   );
 }
 
