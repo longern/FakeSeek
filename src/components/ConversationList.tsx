@@ -1,7 +1,9 @@
+import CheckListIcon from "@mui/icons-material/Checklist";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
+  Divider,
   IconButton,
   List,
   ListItem,
@@ -14,7 +16,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Conversation } from "../app/conversations";
@@ -45,6 +47,107 @@ function groupedConversations(conversations: Conversation[]) {
   return groups;
 }
 
+function ConversationItem({
+  conversation,
+  selected,
+  dense,
+  disableSecondaryAction,
+  keepSecondaryActionVisible,
+  onClick,
+  onContextMenu,
+}: {
+  conversation: Conversation;
+  selected: boolean;
+  dense?: boolean;
+  disableSecondaryAction?: boolean;
+  keepSecondaryActionVisible?: boolean;
+  onClick?: () => void;
+  onContextMenu?: ({
+    pos,
+    anchorEl,
+    conversation,
+  }: {
+    pos?: { x: number; y: number };
+    anchorEl: HTMLElement;
+    conversation: Conversation;
+  }) => void;
+}) {
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <ListItem
+      disablePadding
+      secondaryAction={
+        disableSecondaryAction ? null : (
+          <IconButton
+            ref={menuButtonRef}
+            edge="end"
+            size="small"
+            className={
+              keepSecondaryActionVisible ? "ConversationList-anchor" : undefined
+            }
+            onClick={(e) => {
+              onContextMenu?.({
+                anchorEl: e.currentTarget,
+                conversation,
+              });
+            }}
+          >
+            <MoreHorizIcon fontSize="small" />
+          </IconButton>
+        )
+      }
+      sx={{
+        "&>.MuiListItemSecondaryAction-root": {
+          visibility: "hidden",
+          right: "8px",
+        },
+        "&:hover>.MuiListItemSecondaryAction-root": {
+          visibility: "visible",
+        },
+        "&>.Mui-selected+.MuiListItemSecondaryAction-root": {
+          visibility: "visible",
+        },
+        "& .ConversationList-anchor": {
+          visibility: "visible",
+        },
+      }}
+    >
+      <ListItemButton
+        selected={selected}
+        onClick={onClick}
+        onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
+          e.nativeEvent.preventDefault();
+          const pos =
+            e.nativeEvent.pointerType === "mouse"
+              ? { x: e.clientX, y: e.clientY }
+              : undefined;
+          onContextMenu?.({ pos, anchorEl: e.currentTarget, conversation });
+        }}
+        sx={{
+          borderRadius: 2,
+          paddingY: 0,
+          minHeight: dense ? "40px" : "48px",
+          "&.Mui-selected": { backgroundColor: "#dbeafe" },
+        }}
+      >
+        <ListItemText
+          primary={
+            <Typography
+              noWrap
+              sx={(theme) => ({
+                [theme.breakpoints.up("sm")]: { fontSize: "14px" },
+              })}
+            >
+              {conversation.title}
+            </Typography>
+          }
+        />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
 function ConversationGroup({
   group,
   name,
@@ -59,9 +162,11 @@ function ConversationGroup({
   onSelect: (conversation: Conversation) => void;
   menuConversation: Conversation | null;
   onContextMenu: ({
+    pos,
     anchorEl,
     conversation,
   }: {
+    pos?: { x: number; y: number };
     anchorEl: HTMLElement;
     conversation: Conversation;
   }) => void;
@@ -75,87 +180,26 @@ function ConversationGroup({
           background: "#f9fbff",
           color: "#81858c",
           lineHeight: "unset",
-          fontWeight: isMobile ? "normal" : undefined,
+          fontWeight: { xs: "normal", sm: 500 },
           marginTop: 1.5,
-          paddingY: 0.5,
+          marginBottom: "2px",
+          paddingTop: 0.5,
           fontSize: { xs: undefined, sm: "12px" },
         }}
       >
         {name}
       </ListSubheader>
+
       {group.map((conversation) => (
-        <ListItem
-          disablePadding
+        <ConversationItem
           key={conversation.id}
-          secondaryAction={
-            isMobile ? null : (
-              <IconButton
-                edge="end"
-                size="small"
-                className={
-                  menuConversation === conversation
-                    ? "ConversationList-anchor"
-                    : undefined
-                }
-                onClick={(e) => {
-                  onContextMenu({
-                    anchorEl: e.currentTarget,
-                    conversation,
-                  });
-                }}
-              >
-                <MoreHorizIcon fontSize="small" />
-              </IconButton>
-            )
-          }
-          sx={{
-            "&>.MuiListItemSecondaryAction-root": {
-              visibility: "hidden",
-              right: "8px",
-            },
-            "&:hover>.MuiListItemSecondaryAction-root": {
-              visibility: "visible",
-            },
-            "&>.Mui-selected+.MuiListItemSecondaryAction-root": {
-              visibility: "visible",
-            },
-            "& .ConversationList-anchor": {
-              visibility: "visible",
-            },
-          }}
-        >
-          <ListItemButton
-            selected={conversation.id === selectedConversation}
-            onClick={() => onSelect(conversation)}
-            onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
-              const { nativeEvent } = e;
-              if (nativeEvent.pointerType === "mouse") return;
-              nativeEvent.preventDefault();
-              onContextMenu({
-                anchorEl: e.currentTarget,
-                conversation,
-              });
-            }}
-            sx={{
-              borderRadius: 2,
-              paddingY: isMobile ? undefined : 0.5,
-              "&.Mui-selected": { backgroundColor: "#dbeafe" },
-            }}
-          >
-            <ListItemText
-              primary={
-                <Typography
-                  noWrap
-                  sx={(theme) => ({
-                    [theme.breakpoints.up("sm")]: { fontSize: "14px" },
-                  })}
-                >
-                  {conversation.title}
-                </Typography>
-              }
-            />
-          </ListItemButton>
-        </ListItem>
+          conversation={conversation}
+          selected={conversation.id === selectedConversation}
+          dense={!isMobile}
+          keepSecondaryActionVisible={menuConversation?.id === conversation.id}
+          onClick={() => onSelect(conversation)}
+          onContextMenu={onContextMenu}
+        />
       ))}
     </>
   );
@@ -229,7 +273,29 @@ function ConversationList({
         transformOrigin={
           isMobile ? { vertical: "top", horizontal: "right" } : undefined
         }
+        slotProps={{
+          paper: { sx: { borderRadius: "12px" } },
+          list: {
+            disablePadding: true,
+            sx: {
+              minWidth: "160px",
+              "&>.MuiMenuItem-root": { minHeight: "40px" },
+            },
+          },
+        }}
       >
+        <MenuItem
+          onClick={() => {
+            setAnchorEl(null);
+            setMenuConversation(null);
+          }}
+        >
+          <ListItemIcon>
+            <CheckListIcon />
+          </ListItemIcon>
+          <ListItemText primary={t("Batch operation")}></ListItemText>
+        </MenuItem>
+        <Divider component="li" sx={{ marginY: "0 !important" }} />
         <MenuItem
           onClick={() => {
             setAnchorEl(null);
@@ -242,6 +308,7 @@ function ConversationList({
           </ListItemIcon>
           <ListItemText primary={t("Rename")}></ListItemText>
         </MenuItem>
+        <Divider component="li" sx={{ marginY: "0 !important" }} />
         <MenuItem
           onClick={() => {
             setAnchorEl(null);

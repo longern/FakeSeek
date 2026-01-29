@@ -156,11 +156,14 @@ export function UserMessageContextMenu({
       onClose={onClose}
       anchorReference="anchorPosition"
       anchorPosition={anchorPosition}
-      slotProps={{ list: { sx: { minWidth: "160px" } } }}
+      slotProps={{
+        paper: { sx: { borderRadius: "12px" } },
+        list: { disablePadding: true, sx: { minWidth: "160px" } },
+      }}
     >
       <MenuItem onClick={handleCopyClick}>
         <ListItemIcon>
-          <ContentCopyIcon />
+          <ContentCopyIcon fontSize="small" sx={{ transform: "scaleX(-1)" }} />
         </ListItemIcon>
         {t("Copy")}
       </MenuItem>
@@ -359,13 +362,16 @@ export function AssistantMessage({
 
   return (
     <Box
-      component={isMobile ? CardActionArea : "div"}
       sx={{
         paddingLeft: 2,
         paddingRight: 3,
         maxWidth: "100%",
         overflowWrap: "break-word",
         fontSize: "unset",
+        transition: "background-color 0.25s ease-out",
+        ":active": {
+          backgroundColor: isMobile ? "rgba(0, 0, 0, 0.08)" : "inherit",
+        },
       }}
       onContextMenu={onContextMenu}
     >
