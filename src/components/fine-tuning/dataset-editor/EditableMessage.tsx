@@ -1,3 +1,4 @@
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, IconButton, InputBase, Stack, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
@@ -15,12 +16,14 @@ function EditableMessage({
   readonly,
   stickyHeader,
   onChange,
+  onDelete,
 }: {
   role: string;
   content: Content;
   readonly?: boolean;
   stickyHeader?: boolean;
   onChange?: (newContent: Content) => void;
+  onDelete?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(content);
@@ -60,6 +63,19 @@ function EditableMessage({
                 }}
               >
                 <EditIcon fontSize="small" />
+              </IconButton>
+            )}
+            {onDelete && (
+              <IconButton
+                size="small"
+                aria-label={t("Delete message")}
+                onClick={() => {
+                  const confirmed = window.confirm(t("confirm-delete-message"));
+                  if (!confirmed) return;
+                  onDelete();
+                }}
+              >
+                <DeleteIcon fontSize="small" />
               </IconButton>
             )}
           </Stack>

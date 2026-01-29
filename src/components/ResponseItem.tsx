@@ -188,14 +188,21 @@ export function ResponseContextMenu({
             ? { top: anchorPosition.mouseY, left: anchorPosition.mouseX }
             : undefined
         }
-        slotProps={{ list: { sx: { minWidth: "160px" } } }}
+        slotProps={{
+          paper: { sx: { borderRadius: "12px" } },
+          list: { disablePadding: true, sx: { minWidth: "160px" } },
+        }}
       >
         <MenuItem onClick={handleCopy}>
           <ListItemIcon>
-            <ContentCopyIcon />
+            <ContentCopyIcon
+              fontSize="small"
+              sx={{ transform: "scaleX(-1)" }}
+            />
           </ListItemIcon>
           {t("Copy")}
         </MenuItem>
+        <Divider component="li" sx={{ marginY: "0 !important" }} />
         <MenuItem
           onClick={() => {
             onSelectText();
@@ -203,10 +210,11 @@ export function ResponseContextMenu({
           }}
         >
           <ListItemIcon>
-            <SelectAllIcon />
+            <SelectAllIcon fontSize="small" />
           </ListItemIcon>
           {t("Select Text")}
         </MenuItem>
+        <Divider component="li" sx={{ marginY: "0 !important" }} />
         <MenuItem
           onClick={() => {
             onRetryClick();
@@ -214,7 +222,7 @@ export function ResponseContextMenu({
           }}
         >
           <ListItemIcon>
-            <ReplayIcon />
+            <ReplayIcon fontSize="small" />
           </ListItemIcon>
           {t("Retry")}
         </MenuItem>
