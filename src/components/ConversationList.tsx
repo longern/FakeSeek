@@ -279,7 +279,10 @@ function ConversationList({
             disablePadding: true,
             sx: {
               minWidth: "160px",
-              "&>.MuiMenuItem-root": { minHeight: "40px" },
+              "&>.MuiMenuItem-root": { minHeight: { xs: "48px", sm: "40px" } },
+              "& .MuiListItemText-primary": {
+                fontSize: { xs: "1rem", sm: "0.875rem" },
+              },
             },
           },
         }}
@@ -291,7 +294,7 @@ function ConversationList({
           }}
         >
           <ListItemIcon>
-            <CheckListIcon />
+            <CheckListIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary={t("Batch operation")}></ListItemText>
         </MenuItem>
@@ -304,7 +307,7 @@ function ConversationList({
           }}
         >
           <ListItemIcon>
-            <EditOutlinedIcon />
+            <EditOutlinedIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary={t("Rename")}></ListItemText>
         </MenuItem>
@@ -317,7 +320,7 @@ function ConversationList({
           }}
         >
           <ListItemIcon>
-            <DeleteIcon color="error" />
+            <DeleteIcon color="error" fontSize="small" />
           </ListItemIcon>
           <ListItemText
             sx={{ color: "error.main" }}

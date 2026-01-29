@@ -2,14 +2,20 @@ import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import {
   Box,
+  Button,
   Card,
   Dialog,
+  DialogActions,
   DialogContent,
+  FormControl,
+  FormControlLabel,
   IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
+  Radio,
+  RadioGroup,
   Stack,
   Toolbar,
   Typography,
@@ -18,6 +24,60 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { useShowPresetsDialog } from "./presets/contexts";
+import { useState } from "react";
+
+function languageDisplayName(languageCode: string) {
+  const nameGenerator = new Intl.DisplayNames(languageCode, {
+    type: "language",
+  });
+  const displayName = nameGenerator.of(languageCode);
+  return displayName ?? languageCode;
+}
+
+function LanguageSettingsDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      slotProps={{ paper: { sx: { borderRadius: "12px" } } }}
+    >
+      <DialogContent dividers sx={{ paddingX: 2, paddingY: 1 }}>
+        <FormControl>
+          <RadioGroup
+            aria-label={t("Language")}
+            defaultValue={i18n.language}
+            name="language-options"
+            onChange={(_, value) => {
+              i18n.changeLanguage(value);
+            }}
+          >
+            {["zh-CN", "en"].map((lang) => (
+              <FormControlLabel
+                key={lang}
+                value={lang}
+                control={<Radio />}
+                label={languageDisplayName(lang)}
+              />
+            ))}
+          </RadioGroup>
+        </FormControl>
+      </DialogContent>
+      <DialogActions sx={{ padding: 0 }}>
+        <Button size="large" fullWidth onClick={onClose}>
+          {t("Confirm")}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 function SettingsBlock({
   subheader,
@@ -51,6 +111,7 @@ function SettingsDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const [showLanguageDialog, setShowLanguageDialog] = useState(false);
   const showPresetsDialog = useShowPresetsDialog();
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -110,7 +171,7 @@ function SettingsDialog({
 
           <SettingsBlock subheader={t("App")}>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => {}}>
+              <ListItemButton onClick={() => setShowLanguageDialog(true)}>
                 <ListItemText primary={t("Language")} />
                 <NavigateNextIcon color="disabled" />
               </ListItemButton>
@@ -133,6 +194,11 @@ function SettingsDialog({
             </ListItem>
           </SettingsBlock>
         </Stack>
+
+        <LanguageSettingsDialog
+          open={showLanguageDialog}
+          onClose={() => setShowLanguageDialog(false)}
+        />
       </DialogContent>
     </Dialog>
   );
