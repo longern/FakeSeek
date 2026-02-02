@@ -279,10 +279,7 @@ function PresetEditDialog({
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
                     open={Boolean(toolsProviderAnchor)}
                     onClose={() => setToolsProviderAnchor(null)}
-                    slotProps={{
-                      list: { disablePadding: true },
-                      backdrop: { invisible: false },
-                    }}
+                    slotProps={{ backdrop: { invisible: false } }}
                   >
                     {([undefined, "openai-builtin"] as const).map(
                       (toolsProvider) => (
@@ -339,10 +336,7 @@ function PresetEditDialog({
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
                     open={Boolean(qualitySelectorAnchor)}
                     onClose={() => setQualitySelectorAnchor(null)}
-                    slotProps={{
-                      list: { disablePadding: true, sx: { minWidth: "160px" } },
-                      backdrop: { invisible: false },
-                    }}
+                    slotProps={{ backdrop: { invisible: false } }}
                   >
                     {(["low", "medium", "high"] as const).map((quality) => (
                       <ListItem key={quality} disablePadding>

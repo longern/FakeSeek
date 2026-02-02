@@ -14,6 +14,7 @@ import {
   IconButton,
   InputBase,
   ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
   Snackbar,
@@ -188,10 +189,6 @@ export function ResponseContextMenu({
             ? { top: anchorPosition.mouseY, left: anchorPosition.mouseX }
             : undefined
         }
-        slotProps={{
-          paper: { sx: { borderRadius: "12px" } },
-          list: { disablePadding: true, sx: { minWidth: "160px" } },
-        }}
       >
         <MenuItem onClick={handleCopy}>
           <ListItemIcon>
@@ -373,7 +370,6 @@ export function ResponseActions({
         anchorEl={retryMenuAnchor}
         open={Boolean(retryMenuAnchor)}
         onClose={() => setRetryMenuAnchor(null)}
-        slotProps={{ list: { sx: { minWidth: "160px" } } }}
       >
         <MenuItem
           onClick={() => {
@@ -384,16 +380,16 @@ export function ResponseActions({
             setRetryMenuAnchor(null);
           }}
         >
-          gpt-5.2
+          <ListItemText primary="gpt-5.2" />
         </MenuItem>
-        <Divider component="li" />
+        <Divider component="li" sx={{ marginY: "0 !important" }} />
         <MenuItem
           onClick={() => {
             onRetry();
             setRetryMenuAnchor(null);
           }}
         >
-          {t("Retry")}
+          <ListItemText primary={t("Retry")} />
         </MenuItem>
       </Menu>
     </Stack>

@@ -90,11 +90,11 @@ function SearchModeChip({
       />
 
       <Menu
-        anchorOrigin={{ vertical: "top", horizontal: "left" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
         anchorEl={anchorEl}
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
         <MenuItem
           selected={value === "auto"}

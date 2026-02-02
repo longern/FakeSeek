@@ -44,11 +44,7 @@ function LanguageSettingsDialog({
   const { t, i18n } = useTranslation();
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      slotProps={{ paper: { sx: { borderRadius: "12px" } } }}
-    >
+    <Dialog open={open} onClose={onClose}>
       <DialogContent dividers sx={{ paddingX: 2, paddingY: 1 }}>
         <FormControl>
           <RadioGroup
@@ -150,7 +146,9 @@ function SettingsDialog({
       <DialogContent
         sx={{
           padding: 2.5,
-          "& .MuiListItemButton-root": { minHeight: "60px" },
+          "& .MuiListItemButton-root": {
+            minHeight: { xs: "60px", sm: "auto" },
+          },
         }}
       >
         <Stack spacing={2}>

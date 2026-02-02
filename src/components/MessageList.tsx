@@ -156,10 +156,6 @@ export function UserMessageContextMenu({
       onClose={onClose}
       anchorReference="anchorPosition"
       anchorPosition={anchorPosition}
-      slotProps={{
-        paper: { sx: { borderRadius: "12px" } },
-        list: { disablePadding: true, sx: { minWidth: "160px" } },
-      }}
     >
       <MenuItem onClick={handleCopyClick}>
         <ListItemIcon>

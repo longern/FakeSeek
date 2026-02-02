@@ -70,7 +70,9 @@ function PresetsDialog({
           dividers
           sx={{
             padding: 2.5,
-            "& .MuiListItemButton-root": { minHeight: "60px" },
+            "& .MuiListItemButton-root": {
+              minHeight: { xs: "60px", sm: "auto" },
+            },
           }}
         >
           {Object.keys(presets.presets).length === 0 ? (
@@ -95,6 +97,7 @@ function PresetsDialog({
                       <ListItemText primary={preset.presetName} />
                       <IconButton
                         edge="end"
+                        size="small"
                         onClick={() => {
                           setShowPresetEditor(true);
                           setEditingPresetId(presetId);

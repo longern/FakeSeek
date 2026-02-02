@@ -25,6 +25,34 @@ const theme = createTheme({
         },
       },
     },
+    MuiMenu: {
+      styleOverrides: {
+        paper: { borderRadius: "12px" },
+        list: ({ theme }) => ({
+          minWidth: "160px",
+          "&>.MuiMenuItem-root": {
+            minHeight: "48px",
+            [theme.breakpoints.up("sm")]: { minHeight: "40px" },
+          },
+          "& .MuiListItemText-primary": {
+            fontSize: "1rem",
+            [theme.breakpoints.up("sm")]: {
+              fontSize: "0.875rem",
+            },
+          },
+        }),
+      },
+      defaultProps: {
+        slotProps: { list: { disablePadding: true } },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          "&:not(.MuiDialog-paperFullScreen)": { borderRadius: "12px" },
+        },
+      },
+    },
   },
 });
 

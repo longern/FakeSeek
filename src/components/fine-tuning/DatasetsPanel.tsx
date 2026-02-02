@@ -272,7 +272,6 @@ function DatasetsPanel() {
       onClose={() => setAnchorEl(null)}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       transformOrigin={{ vertical: "top", horizontal: "right" }}
-      slotProps={{ list: { sx: { minWidth: "160px" } } }}
     >
       <MenuItem
         onClick={async () => {
@@ -303,7 +302,7 @@ function DatasetsPanel() {
         </ListItemIcon>
         <ListItemText primary={t("Export")} />
       </MenuItem>
-      <Divider />
+      <Divider component="li" sx={{ marginY: "0 !important" }} />
       <MenuItem onClick={handleDeleteClick}>
         <ListItemIcon>
           <DeleteIcon fontSize="small" color="error" />
