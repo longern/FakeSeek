@@ -112,8 +112,21 @@ function AppDrawer({
             if (conversation.id === selectedConversation)
               onConversationChange(null);
           }}
+          onBatchDelete={(conversations) => {
+            const message = `${t("delete-multiple-chats", {
+              count: conversations.length,
+            })}\n${t("are-you-sure")}`;
+            if (!window.confirm(message)) return;
+            conversations.forEach((id) => {
+              dispatch(removeConversation(id));
+            });
+            if (
+              selectedConversation &&
+              conversations.includes(selectedConversation)
+            )
+              onConversationChange(null);
+          }}
         />
-        <Box sx={{ flexGrow: 1 }} />
         <Divider />
         <Box sx={{ padding: 1 }}>
           <List

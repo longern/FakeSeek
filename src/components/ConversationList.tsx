@@ -1,8 +1,10 @@
 import CheckListIcon from "@mui/icons-material/Checklist";
+import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
+  Box,
   Checkbox,
   Divider,
   IconButton,
@@ -14,6 +16,7 @@ import {
   ListSubheader,
   Menu,
   MenuItem,
+  Stack,
   Typography,
   useMediaQuery,
 } from "@mui/material";
@@ -219,12 +222,14 @@ function ConversationList({
   onSelect,
   onRename,
   onDelete,
+  onBatchDelete,
 }: {
   conversations: Record<string, Conversation>;
   selectedConversation: string | null;
   onSelect: (conversation: Conversation) => void;
   onRename: (conversation: Conversation) => void;
   onDelete: (conversation: Conversation) => void;
+  onBatchDelete: (conversationIds: string[]) => void;
 }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [menuConversation, setMenuConversation] = useState<Conversation | null>(
@@ -263,8 +268,11 @@ function ConversationList({
   }, [multiSelectMode, conversations, multiSelectConversations]);
 
   return (
-    <>
-      <List disablePadding sx={{ overflowY: "auto", paddingX: 1 }}>
+    <Box sx={{ position: "relative", flexGrow: 1, minHeight: 0 }}>
+      <List
+        disablePadding
+        sx={{ height: "100%", overflowY: "auto", paddingX: 1 }}
+      >
         {groupedConversations(Object.values(conversations)).map(
           (group, index) =>
             group.length ? (
@@ -306,6 +314,48 @@ function ConversationList({
             ) : null
         )}
       </List>
+
+      {multiSelectMode && (
+        <Stack
+          spacing={1}
+          direction="row"
+          sx={{
+            position: "absolute",
+            zIndex: 1,
+            bottom: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "background.paper",
+            boxShadow: 3,
+            padding: 1,
+            borderRadius: "9999px",
+          }}
+        >
+          <IconButton
+            aria-label="Delete"
+            size="small"
+            color="error"
+            onClick={() => {
+              if (multiSelectConversations.size === 0) return;
+              onBatchDelete(Array.from(multiSelectConversations));
+              setMultiSelectMode(false);
+              setMultiSelectConversations(new Set());
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+          <IconButton
+            aria-label="Cancel"
+            size="small"
+            onClick={() => {
+              setMultiSelectMode(false);
+              setMultiSelectConversations(new Set());
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Stack>
+      )}
 
       <Menu
         anchorEl={anchorEl}
@@ -364,7 +414,7 @@ function ConversationList({
           ></ListItemText>
         </MenuItem>
       </Menu>
-    </>
+    </Box>
   );
 }
 
