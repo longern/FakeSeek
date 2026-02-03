@@ -3,6 +3,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
+  Checkbox,
   Divider,
   IconButton,
   List,
@@ -16,7 +17,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Conversation } from "../app/conversations";
@@ -53,6 +54,7 @@ function ConversationItem({
   dense,
   disableSecondaryAction,
   keepSecondaryActionVisible,
+  primaryAction,
   onClick,
   onContextMenu,
 }: {
@@ -61,6 +63,7 @@ function ConversationItem({
   dense?: boolean;
   disableSecondaryAction?: boolean;
   keepSecondaryActionVisible?: boolean;
+  primaryAction?: React.ReactNode;
   onClick?: () => void;
   onContextMenu?: ({
     pos,
@@ -78,7 +81,7 @@ function ConversationItem({
     <ListItem
       disablePadding
       secondaryAction={
-        disableSecondaryAction ? null : (
+        disableSecondaryAction || primaryAction ? null : (
           <IconButton
             ref={menuButtonRef}
             edge="end"
@@ -87,10 +90,7 @@ function ConversationItem({
               keepSecondaryActionVisible ? "ConversationList-anchor" : undefined
             }
             onClick={(e) => {
-              onContextMenu?.({
-                anchorEl: e.currentTarget,
-                conversation,
-              });
+              onContextMenu?.({ anchorEl: e.currentTarget, conversation });
             }}
           >
             <MoreHorizIcon fontSize="small" />
@@ -131,6 +131,11 @@ function ConversationItem({
           "&.Mui-selected": { backgroundColor: "#dbeafe" },
         }}
       >
+        {primaryAction && (
+          <ListItemIcon sx={{ minWidth: "auto", marginRight: 1 }}>
+            {primaryAction}
+          </ListItemIcon>
+        )}
         <ListItemText
           primary={
             <Typography
@@ -152,14 +157,16 @@ function ConversationGroup({
   group,
   name,
   selectedConversation,
-  onSelect,
+  primaryActions,
+  onClick,
   menuConversation,
   onContextMenu,
 }: {
   group: Conversation[];
   name: string;
   selectedConversation: string | null;
-  onSelect: (conversation: Conversation) => void;
+  primaryActions?: Record<string, React.ReactNode>;
+  onClick: (conversation: Conversation) => void;
   menuConversation: Conversation | null;
   onContextMenu: ({
     pos,
@@ -196,8 +203,9 @@ function ConversationGroup({
           conversation={conversation}
           selected={conversation.id === selectedConversation}
           dense={!isMobile}
+          primaryAction={primaryActions?.[conversation.id]}
           keepSecondaryActionVisible={menuConversation?.id === conversation.id}
-          onClick={() => onSelect(conversation)}
+          onClick={() => onClick(conversation)}
           onContextMenu={onContextMenu}
         />
       ))}
@@ -222,9 +230,37 @@ function ConversationList({
   const [menuConversation, setMenuConversation] = useState<Conversation | null>(
     null
   );
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [multiSelectConversations, setMultiSelectConversations] = useState<
+    Set<string>
+  >(new Set());
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
   const { t } = useTranslation();
+
+  const primaryActions = useMemo(() => {
+    if (!multiSelectMode) return undefined;
+    const actions: Record<string, React.ReactNode> = {};
+    for (const conversation of Object.values(conversations)) {
+      actions[conversation.id] = (
+        <Checkbox
+          edge="start"
+          size="small"
+          checked={multiSelectConversations.has(conversation.id)}
+          onChange={(e) => {
+            const newSet = new Set(multiSelectConversations);
+            if (e.target.checked) {
+              newSet.add(conversation.id);
+            } else {
+              newSet.delete(conversation.id);
+            }
+            setMultiSelectConversations(newSet);
+          }}
+        />
+      );
+    }
+    return actions;
+  }, [multiSelectMode, conversations, multiSelectConversations]);
 
   return (
     <>
@@ -246,11 +282,24 @@ function ConversationList({
                     ? t("In 30 days")
                     : t("Older")
                 }
+                primaryActions={primaryActions}
                 onContextMenu={({ anchorEl, conversation }) => {
                   setAnchorEl(anchorEl);
                   setMenuConversation(conversation);
                 }}
-                onSelect={onSelect}
+                onClick={(conversation) => {
+                  if (multiSelectMode) {
+                    const newSet = new Set(multiSelectConversations);
+                    if (newSet.has(conversation.id)) {
+                      newSet.delete(conversation.id);
+                    } else {
+                      newSet.add(conversation.id);
+                    }
+                    setMultiSelectConversations(newSet);
+                  } else {
+                    onSelect(conversation);
+                  }
+                }}
                 selectedConversation={selectedConversation}
                 menuConversation={menuConversation}
               />
@@ -265,30 +314,17 @@ function ConversationList({
         onTransitionEnd={() => {
           if (!anchorEl) setMenuConversation(null);
         }}
-        anchorOrigin={
-          isMobile
-            ? { vertical: "bottom", horizontal: "right" }
-            : { vertical: "bottom", horizontal: "left" }
-        }
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: isMobile ? "right" : "left",
+        }}
         transformOrigin={
           isMobile ? { vertical: "top", horizontal: "right" } : undefined
         }
-        slotProps={{
-          paper: { sx: { borderRadius: "12px" } },
-          list: {
-            disablePadding: true,
-            sx: {
-              minWidth: "160px",
-              "&>.MuiMenuItem-root": { minHeight: { xs: "48px", sm: "40px" } },
-              "& .MuiListItemText-primary": {
-                fontSize: { xs: "1rem", sm: "0.875rem" },
-              },
-            },
-          },
-        }}
       >
         <MenuItem
           onClick={() => {
+            setMultiSelectMode(true);
             setAnchorEl(null);
             setMenuConversation(null);
           }}
