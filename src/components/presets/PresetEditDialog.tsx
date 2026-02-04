@@ -9,19 +9,15 @@ import {
   Card,
   Dialog,
   DialogContent,
-  FormControl,
   IconButton,
-  InputLabel,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
   Menu,
   MenuItem,
-  Select,
   Slider,
   Stack,
-  TextField,
   Toolbar,
   Tooltip,
   Typography,
@@ -33,6 +29,7 @@ import { useTranslation } from "react-i18next";
 
 import { useAppSelector } from "../../app/hooks";
 import { Preset } from "../../app/presets";
+import StyledTextField from "./StyledTextField";
 
 function PresetEditDialog({
   open,
@@ -58,6 +55,10 @@ function PresetEditDialog({
   const [modelInputValue, setModelInputValue] = useState("");
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+  const [showAPIMode, setShowAPIMode] = useState(false);
+  const [apiModeAnchorEl, setApiModeAnchorEl] = useState<HTMLElement | null>(
+    null
+  );
 
   const loadModelCandidates = useCallback(async () => {
     if (!preset?.apiKey) {
@@ -95,6 +96,16 @@ function PresetEditDialog({
       setModelInputValue(p?.defaultModel ?? "");
     }
   }, [open, editingPresetId, presets.presets]);
+
+  const handleAPIModeChange = useCallback(
+    (newValue: "chat-completions" | "responses" | undefined) => {
+      const newApiMode = newValue === "responses" ? undefined : newValue;
+      setPreset((prev) => (prev ? { ...prev, apiMode: newApiMode } : prev));
+      setShowAPIMode(false);
+      setApiModeAnchorEl(null);
+    },
+    []
+  );
 
   return (
     <Dialog
@@ -135,99 +146,139 @@ function PresetEditDialog({
       <DialogContent
         sx={{
           padding: 2,
-          "& .MuiListItemButton-root": { minHeight: "60px" },
+          "& .MuiListItem-root": { minHeight: { xs: "60px", sm: "auto" } },
+          "& .MuiListItemButton-root": {
+            minHeight: { xs: "60px", sm: "auto" },
+          },
         }}
       >
         {preset && (
           <Stack gap={2}>
-            <Card elevation={0} sx={{ borderRadius: 3, padding: 2.5 }}>
-              <Stack gap={3}>
-                <TextField
-                  label={t("Preset Name")}
-                  variant="outlined"
-                  fullWidth
-                  value={preset.presetName}
-                  onChange={(e) =>
-                    setPreset((prev) =>
-                      prev ? { ...prev, presetName: e.target.value } : prev
-                    )
-                  }
-                />
-                <FormControl fullWidth>
-                  <InputLabel id="api-mode-select-label">
-                    {t("API Mode")}
-                  </InputLabel>
-                  <Select
-                    labelId="api-mode-select-label"
-                    value={preset.apiMode ?? "responses"}
-                    label={t("API Mode")}
-                    onChange={(event) => {
-                      const newApiMode =
-                        event.target.value === "responses"
-                          ? undefined
-                          : event.target.value;
+            <Card elevation={0} sx={{ borderRadius: 3 }}>
+              <List disablePadding>
+                <ListItem>
+                  <StyledTextField
+                    id="preset-name-input"
+                    label={t("Preset Name")}
+                    value={preset.presetName}
+                    onChange={(e) =>
                       setPreset((prev) =>
-                        prev ? { ...prev, apiMode: newApiMode } : prev
-                      );
+                        prev ? { ...prev, presetName: e.target.value } : prev
+                      )
+                    }
+                    sx={{ "& input": { textAlign: "right" } }}
+                  />
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={(event) => {
+                      setApiModeAnchorEl(event.currentTarget);
+                      setShowAPIMode(true);
                     }}
                   >
-                    <MenuItem value="responses">OpenAI Responses API</MenuItem>
-                    <MenuItem value="chat-completions">
-                      OpenAI Chat Completion API
+                    <ListItemText primary={t("API Mode")} />
+                    <Typography variant="body2" color="text.secondary">
+                      {preset.apiMode === undefined
+                        ? "OpenAI Responses API"
+                        : preset.apiMode === "chat-completions"
+                        ? "OpenAI Chat Completion API"
+                        : preset.apiMode === "gemini"
+                        ? "Google Gemini API"
+                        : preset.apiMode}
+                    </Typography>
+                    <UnfoldMoreIcon />
+                  </ListItemButton>
+                  <Menu
+                    open={showAPIMode}
+                    onClose={() => {
+                      setShowAPIMode(false);
+                      setApiModeAnchorEl(null);
+                    }}
+                    anchorEl={apiModeAnchorEl}
+                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                    transformOrigin={{ vertical: "top", horizontal: "right" }}
+                    slotProps={{ backdrop: { invisible: false } }}
+                  >
+                    <MenuItem
+                      selected={preset.apiMode === undefined}
+                      onClick={() => handleAPIModeChange("responses")}
+                    >
+                      <ListItemText>OpenAI Responses API</ListItemText>
                     </MenuItem>
-                    <MenuItem value="gemini">Google Gemini API</MenuItem>
-                  </Select>
-                </FormControl>
-                <TextField
-                  type="password"
-                  label={t("API Key")}
-                  variant="outlined"
-                  fullWidth
-                  value={preset.apiKey ?? ""}
-                  onChange={(e) =>
-                    setPreset((prev) =>
-                      prev ? { ...prev, apiKey: e.target.value } : prev
-                    )
-                  }
-                />
-                <TextField
-                  label={t("Base URL")}
-                  variant="outlined"
-                  fullWidth
-                  value={preset.baseURL ?? ""}
-                  onChange={(e) =>
-                    setPreset((prev) =>
-                      prev ? { ...prev, baseURL: e.target.value } : prev
-                    )
-                  }
-                />
-                <Autocomplete
-                  options={modelCandidates}
-                  value={preset.defaultModel ?? ""}
-                  onChange={(_e, newValue) =>
-                    setPreset((prev) =>
-                      prev
-                        ? { ...prev, defaultModel: newValue ?? undefined }
-                        : prev
-                    )
-                  }
-                  inputValue={modelInputValue}
-                  onInputChange={(_e, newInputValue) =>
-                    setModelInputValue(newInputValue)
-                  }
-                  freeSolo
-                  fullWidth
-                  renderInput={(params) => (
-                    <TextField
-                      label={t("Default model")}
-                      error={Boolean(modelHelperText)}
-                      helperText={modelHelperText}
-                      {...params}
-                    />
-                  )}
-                  onFocus={loadModelCandidates}
-                />
-              </Stack>
+                    <MenuItem
+                      selected={preset.apiMode === "chat-completions"}
+                      onClick={() => handleAPIModeChange("chat-completions")}
+                    >
+                      <ListItemText>OpenAI Chat Completion API</ListItemText>
+                    </MenuItem>
+                    <MenuItem
+                      selected={(preset.apiMode as any) === "gemini"}
+                      onClick={() => handleAPIModeChange("gemini" as any)}
+                    >
+                      <ListItemText>Google Gemini API</ListItemText>
+                    </MenuItem>
+                  </Menu>
+                </ListItem>
+                <ListItem>
+                  <StyledTextField
+                    type="password"
+                    id="preset-api-key-input"
+                    label={t("API Key")}
+                    value={preset.apiKey ?? ""}
+                    sx={{ "& input": { textAlign: "right" } }}
+                    onChange={(e) =>
+                      setPreset((prev) =>
+                        prev ? { ...prev, apiKey: e.target.value } : prev
+                      )
+                    }
+                  />
+                </ListItem>
+                <ListItem>
+                  <StyledTextField
+                    id="preset-base-url-input"
+                    label={t("Base URL")}
+                    value={preset.baseURL ?? ""}
+                    sx={{ "& input": { textAlign: "right" } }}
+                    onChange={(e) =>
+                      setPreset((prev) =>
+                        prev ? { ...prev, baseURL: e.target.value } : prev
+                      )
+                    }
+                  />
+                </ListItem>
+                <ListItem>
+                  <Autocomplete
+                    id="preset-default-model-input"
+                    options={modelCandidates}
+                    value={preset.defaultModel ?? ""}
+                    sx={{ "& input": { textAlign: "right" } }}
+                    onChange={(_e, newValue) =>
+                      setPreset((prev) =>
+                        prev
+                          ? { ...prev, defaultModel: newValue ?? undefined }
+                          : prev
+                      )
+                    }
+                    inputValue={modelInputValue}
+                    onInputChange={(_e, newInputValue) =>
+                      setModelInputValue(newInputValue)
+                    }
+                    freeSolo
+                    fullWidth
+                    renderInput={({ InputProps, inputProps, ...params }) => (
+                      <StyledTextField
+                        label={t("Default model")}
+                        error={Boolean(modelHelperText)}
+                        helperText={modelHelperText}
+                        slotProps={{ input: InputProps, htmlInput: inputProps }}
+                        inputRef={inputProps.ref}
+                        {...params}
+                      />
+                    )}
+                    onFocus={loadModelCandidates}
+                  />
+                </ListItem>
+              </List>
             </Card>
 
             <Card elevation={0} sx={{ borderRadius: 3, padding: 2.5 }}>
