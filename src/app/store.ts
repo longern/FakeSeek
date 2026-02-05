@@ -9,11 +9,13 @@ import conversationsReducer from "./conversations";
 import { dbMiddleware } from "./db-middleware";
 import messagesReducer from "./messages";
 import presetsReducer from "./presets";
+import settingsReducer from "./settings";
 
 const rootReducer = combineReducers({
   conversations: conversationsReducer,
   messages: messagesReducer,
   presets: presetsReducer,
+  settings: settingsReducer,
 });
 
 const store = configureStore({

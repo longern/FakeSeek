@@ -26,7 +26,7 @@ import { useTranslation } from "react-i18next";
 import responseReducer from "@/app/reducer";
 import { getRequestAPI } from "@/app/thunks";
 import { useCurrentPreset } from "@/components/presets/hooks";
-import ResponseItem from "@/components/ResponseItem";
+import ResponseItem from "@/components/messages/ResponseItem";
 import { DatasetRecord } from "../dataset-editor/DatasetRecordEditor";
 import EditableMessage from "../dataset-editor/EditableMessage";
 import { parseDataset } from "../dataset-editor/utils";

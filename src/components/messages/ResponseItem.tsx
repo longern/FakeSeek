@@ -28,7 +28,7 @@ import { ElementType, Fragment, lazy, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
 
-import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "../app/tools-definitions";
+import { TOOL_DEFAULT_MCP, TOOL_PYTHON } from "@/app/tools-definitions";
 import { McpCallContent } from "./McpCallMessage";
 import {
   AssistantMessage,
@@ -36,7 +36,7 @@ import {
   ReasoningContent,
   RunPythonContent,
 } from "./MessageList";
-import { CreateResponseParams } from "../app/api-modes/types";
+import { CreateResponseParams } from "@/app/api-modes/types";
 
 const CodeBox = lazy(() =>
   import("./Markdown").then((mod) => ({ default: mod.CodeBox }))

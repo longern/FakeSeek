@@ -21,10 +21,12 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useAppDispatch, useAppSelector } from "@/app/hooks";
+import { patch as patchSettings } from "@/app/settings";
 import { useShowPresetsDialog } from "./presets/contexts";
-import { useState } from "react";
 
 function languageDisplayName(languageCode: string) {
   const nameGenerator = new Intl.DisplayNames(languageCode, {
@@ -41,6 +43,8 @@ function LanguageSettingsDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const settings = useAppSelector((state) => state.settings);
+  const dispatch = useAppDispatch();
   const { t, i18n } = useTranslation();
 
   return (
@@ -49,10 +53,11 @@ function LanguageSettingsDialog({
         <FormControl>
           <RadioGroup
             aria-label={t("Language")}
-            defaultValue={i18n.language}
+            defaultValue={settings.language ?? i18n.language}
             name="language-options"
             onChange={(_, value) => {
               i18n.changeLanguage(value);
+              dispatch(patchSettings({ settings: { language: value } }));
             }}
           >
             {["zh-CN", "en"].map((lang) => (

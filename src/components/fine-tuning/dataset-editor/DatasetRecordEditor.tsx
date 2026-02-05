@@ -18,7 +18,7 @@ import AssistantMessageCard from "./AssistantMessageCard";
 import EditableMessage from "./EditableMessage";
 import TokensViewer from "./TokensViewer";
 
-const Markdown = lazy(() => import("../../Markdown"));
+const Markdown = lazy(() => import("@/components/messages/Markdown"));
 
 type Content =
   | string

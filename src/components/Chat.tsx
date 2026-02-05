@@ -35,12 +35,12 @@ import {
 import AppDrawer from "./AppDrawer";
 import AddToDatasetDialog from "./fine-tuning/AddToDatasetDialog";
 import InputArea, { Abortable } from "./InputArea";
-import MessageList, { UserMessageContextMenu } from "./MessageList";
+import MessageList, { UserMessageContextMenu } from "./messages/MessageList";
 import {
   ResponseActions,
   ResponseContextMenu,
   SelectTextDrawer,
-} from "./ResponseItem";
+} from "./messages/ResponseItem";
 import { CreateResponseParams } from "../app/api-modes/types";
 
 function useAbortablePromise() {

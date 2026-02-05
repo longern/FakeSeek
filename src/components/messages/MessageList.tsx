@@ -47,8 +47,8 @@ import { useTranslation } from "react-i18next";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 
-import { useAppSelector } from "../app/hooks";
-import { ChatMessage } from "../app/messages";
+import { useAppSelector } from "@/app/hooks";
+import { ChatMessage } from "@/app/messages";
 import ResponseItem from "./ResponseItem";
 
 const markdownPromise = import("./Markdown");
