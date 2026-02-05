@@ -2,6 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export type Settings = {
   language?: string;
+  cloudflareAccountId?: string;
+  cloudflareApiToken?: string;
 };
 
 export const SETTINGS_KEY = "fakeSeek:settings";

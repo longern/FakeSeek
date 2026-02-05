@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 
-import type { DigestWorkflowParams } from "./workflow";
-import { search } from "./search";
+import logsApp from "./logs";
 import mcpApp from "./mcp";
 import openaiApp from "./openai";
+import { search } from "./search";
+import type { DigestWorkflowParams } from "./workflow";
 
 export { ChatToolsMcp } from "./mcp";
 export { DigestWorkflow } from "./workflow";
@@ -72,6 +73,7 @@ apiApp.route("/v1", openaiApp);
 const root = new Hono();
 
 root.route("/api", apiApp);
+root.route("/logs", logsApp);
 root.route("/mcp", mcpApp);
 
 export default root;

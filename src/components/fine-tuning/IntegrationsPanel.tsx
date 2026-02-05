@@ -3,15 +3,77 @@ import {
   Container,
   List,
   ListItem,
+  ListItemButton,
+  ListItemText,
   Paper,
   Typography,
 } from "@mui/material";
 import StyledTextField from "../presets/StyledTextField";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { useAppDispatch, useAppSelector } from "@/app/hooks";
+import { patch as patchSettings } from "@/app/settings";
+
+async function readFromClipboard({
+  accountId,
+  apiKey,
+}: {
+  accountId: string;
+  apiKey: string;
+}) {
+  const clipboardText = await navigator.clipboard.readText();
+  const match = clipboardText.match(
+    /.*\/gateways\/([^/]+)\/.*log_id=([^&\s]+)/
+  );
+  if (!match) throw new Error("Invalid clipboard content");
+  const [, gatewayId, logId] = match;
+
+  const [requestResp, responseResp] = await Promise.all([
+    fetch(
+      `/logs/${logId}/request?accountId=${accountId}&gatewayId=${gatewayId}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    ),
+    fetch(
+      `/logs/${logId}/response?accountId=${accountId}&gatewayId=${gatewayId}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    ),
+  ]);
+
+  if (!requestResp.ok || !responseResp.ok) {
+    throw new Error("Failed to fetch log data from Cloudflare");
+  }
+
+  return {
+    request: await requestResp.json(),
+    response: await responseResp.json(),
+  };
+}
 
 function IntegrationsPanel() {
-  const [cloudflareAccountId, setCloudflareAccountId] = useState("");
-  const [cloudflareApiKey, setCloudflareApiKey] = useState("");
+  const settings = useAppSelector((state) => state.settings);
+  const [cloudflareAccountId, setCloudflareAccountId] = useState(
+    settings.cloudflareAccountId ?? ""
+  );
+  const [cloudflareApiKey, setCloudflareApiKey] = useState(
+    settings.cloudflareApiToken ?? ""
+  );
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(
+      patchSettings({
+        settings: { cloudflareAccountId: cloudflareAccountId || undefined },
+      })
+    );
+  }, [cloudflareAccountId, dispatch]);
+
+  useEffect(() => {
+    dispatch(
+      patchSettings({
+        settings: { cloudflareApiToken: cloudflareApiKey || undefined },
+      })
+    );
+  }, [cloudflareApiKey, dispatch]);
 
   return (
     <Paper elevation={0} sx={{ height: "100%", borderRadius: 0 }}>
@@ -27,15 +89,31 @@ function IntegrationsPanel() {
                 label="Account ID"
                 value={cloudflareAccountId}
                 onChange={(e) => setCloudflareAccountId(e.target.value)}
+                sx={{ "& input": { textAlign: "right" } }}
               />
             </ListItem>
             <ListItem>
               <StyledTextField
+                type="password"
                 id="cloudflare-api-key"
                 label="API Key"
                 value={cloudflareApiKey}
                 onChange={(e) => setCloudflareApiKey(e.target.value)}
+                sx={{ "& input": { textAlign: "right" } }}
               />
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={async () => {
+                  const data = await readFromClipboard({
+                    accountId: cloudflareAccountId,
+                    apiKey: cloudflareApiKey,
+                  });
+                  console.log("Read from clipboard:", data);
+                }}
+              >
+                <ListItemText primary="Read from clipboard" />
+              </ListItemButton>
             </ListItem>
           </List>
         </Card>
