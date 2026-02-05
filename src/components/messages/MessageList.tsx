@@ -516,7 +516,7 @@ function SearchResultsContent({
   message: ResponseInputItem.FunctionCallOutput;
 }) {
   const results = useMemo(() => {
-    return JSON.parse(message.output) as SearchResults["items"];
+    return JSON.parse(message.output as string) as SearchResults["items"];
   }, [message]);
 
   return (
@@ -585,7 +585,7 @@ function GoogleSearchResultsContent({
             "& li": { marginY: 1 },
           }}
         >
-          <Markdown children={message.output} />
+          <Markdown children={message.output as string} />
         </Box>
       </Collapse>
     </>
@@ -613,7 +613,7 @@ function SearchImageResultsContent({
   message: ResponseInputItem.FunctionCallOutput;
 }) {
   const results = useMemo(() => {
-    return JSON.parse(message.output) as SearchImageResults["items"];
+    return JSON.parse(message.output as string) as SearchImageResults["items"];
   }, [message]);
 
   return (
@@ -681,7 +681,7 @@ function RunPythonResultInner({
   toolCall: ResponseFunctionToolCall;
 }) {
   const result = useMemo(() => {
-    return JSON.parse(message.output) as {
+    return JSON.parse(message.output as string) as {
       run: { stdout: string; stderr: string };
     };
   }, [message]);
@@ -737,14 +737,14 @@ export function FunctionCallOutput({
   message: ResponseInputItem.FunctionCallOutput;
   toolCall?: ResponseFunctionToolCall;
 }) {
-  if (!toolCall) return message.output;
+  if (!toolCall) return message.output as string;
 
   if (message.status === "in_progress") {
     return <CircularProgress size={24} />;
   }
 
   if (message.status === "incomplete") {
-    return <Alert severity="error">{message.output}</Alert>;
+    return <Alert severity="error">{message.output as string}</Alert>;
   }
 
   switch (toolCall.name) {

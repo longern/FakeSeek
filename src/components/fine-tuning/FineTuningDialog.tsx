@@ -28,6 +28,7 @@ import { OpenDatasetEditorContext } from "./dataset-editor/utils";
 import DatasetsPanel from "./DatasetsPanel";
 import EvaluationPanel from "./evals/EvaluationPanel";
 import FineTuningJobsPanel from "./FineTuningJobsPanel";
+import IntegrationsPanel from "./IntegrationsPanel";
 
 function DesktopLayout({
   TabsComponent,
@@ -204,6 +205,7 @@ function FineTuningDialog({
     "fine-tuning-jobs": t("Fine-tuning jobs"),
     serving: t("Serving"),
     evaluation: t("Evaluation"),
+    integrations: t("Integrations"),
   };
 
   const [currentTab, setCurrentTab] = useState(
@@ -275,6 +277,8 @@ function FineTuningDialog({
     <FineTuningJobsPanel />
   ) : currentTab === "evaluation" ? (
     <EvaluationPanel />
+  ) : currentTab === "integrations" ? (
+    <IntegrationsPanel />
   ) : null;
 
   return (

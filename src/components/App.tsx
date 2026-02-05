@@ -1,7 +1,9 @@
+import { useAppSelector } from "@/app/hooks";
 import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Chat from "./Chat";
-import { useCallback, useState } from "react";
 import { PresetsDialogContext } from "./presets/contexts";
 import PresetsDialog from "./presets/PresetsDialog";
 
@@ -60,6 +62,13 @@ function App() {
   const [isPresetsDialogOpen, setIsPresetsDialogOpen] = useState(false);
 
   const showPresetsDialog = useCallback(() => setIsPresetsDialogOpen(true), []);
+
+  const settings = useAppSelector((state) => state.settings);
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    i18n.changeLanguage(settings.language);
+  }, [settings.language, i18n]);
 
   return (
     <ThemeProvider theme={theme}>

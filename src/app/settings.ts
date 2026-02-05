@@ -15,7 +15,7 @@ export const settingsSlice = createSlice({
   initialState: storedSettings,
   reducers: {
     patch(state, { payload }: { payload: { settings: Partial<Settings> } }) {
-      state = { ...state, ...payload.settings };
+      Object.assign(state, payload.settings);
     },
   },
 });

@@ -21,7 +21,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
@@ -45,7 +45,15 @@ function LanguageSettingsDialog({
 }) {
   const settings = useAppSelector((state) => state.settings);
   const dispatch = useAppDispatch();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+
+  const [value, setValue] = useState(settings.language ?? "");
+
+  const handleConfirm = useCallback(() => {
+    onClose();
+    if (value === (settings.language ?? "")) return;
+    dispatch(patchSettings({ settings: { language: value || undefined } }));
+  }, [value, settings.language, onClose]);
 
   return (
     <Dialog open={open} onClose={onClose}>
@@ -53,13 +61,16 @@ function LanguageSettingsDialog({
         <FormControl>
           <RadioGroup
             aria-label={t("Language")}
-            defaultValue={settings.language ?? i18n.language}
+            value={value}
             name="language-options"
-            onChange={(_, value) => {
-              i18n.changeLanguage(value);
-              dispatch(patchSettings({ settings: { language: value } }));
-            }}
+            onChange={(_, value) => setValue(value)}
           >
+            <FormControlLabel
+              key={"default"}
+              value={""}
+              control={<Radio />}
+              label={t("System Default")}
+            />
             {["zh-CN", "en"].map((lang) => (
               <FormControlLabel
                 key={lang}
@@ -72,7 +83,7 @@ function LanguageSettingsDialog({
         </FormControl>
       </DialogContent>
       <DialogActions sx={{ padding: 0 }}>
-        <Button size="large" fullWidth onClick={onClose}>
+        <Button size="large" fullWidth onClick={handleConfirm}>
           {t("Confirm")}
         </Button>
       </DialogActions>
