@@ -265,16 +265,40 @@ function PresetEditDialog({
                     }
                     freeSolo
                     fullWidth
-                    renderInput={({ InputProps, inputProps, ...params }) => (
-                      <StyledTextField
-                        label={t("Default model")}
-                        error={Boolean(modelHelperText)}
-                        helperText={modelHelperText}
-                        slotProps={{ input: InputProps, htmlInput: inputProps }}
-                        inputRef={inputProps.ref}
-                        {...params}
-                      />
-                    )}
+                    renderInput={({
+                      InputProps,
+                      inputProps,
+                      InputLabelProps,
+                      ...params
+                    }) => {
+                      const {
+                        onChange,
+                        onFocus,
+                        onBlur,
+                        onMouseDown,
+                        ...inputPropsRest
+                      } = inputProps;
+                      return (
+                        <StyledTextField
+                          label={t("Default model")}
+                          error={Boolean(modelHelperText)}
+                          helperText={modelHelperText}
+                          slotProps={{
+                            input: {
+                              ...InputProps,
+                              onChange,
+                              onFocus,
+                              onBlur,
+                              onMouseDown,
+                            },
+                            inputLabel: InputLabelProps,
+                            htmlInput: inputPropsRest,
+                          }}
+                          inputRef={inputProps.ref}
+                          {...params}
+                        />
+                      );
+                    }}
                     onFocus={loadModelCandidates}
                   />
                 </ListItem>

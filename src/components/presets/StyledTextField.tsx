@@ -16,6 +16,7 @@ function StyledTextField({
   id,
   label,
   value,
+  defaultValue,
   error,
   helperText,
   sx,
@@ -27,6 +28,7 @@ function StyledTextField({
   id?: string;
   label?: React.ReactNode;
   value?: unknown;
+  defaultValue?: unknown;
   error?: boolean;
   helperText?: React.ReactNode;
   sx?: SxProps<Theme>;
@@ -34,6 +36,7 @@ function StyledTextField({
   inputRef?: React.Ref<any>;
   slotProps?: {
     input?: SlotProps<React.ElementType<any>, {}, TextFieldOwnerState>;
+    inputLabel?: SlotProps<React.ElementType<any>, {}, TextFieldOwnerState>;
     htmlInput?: React.HTMLAttributes<HTMLInputElement>;
   };
 }) {
@@ -43,13 +46,18 @@ function StyledTextField({
         gap={1}
         sx={{ flexDirection: "row", alignItems: "center", width: "100%" }}
       >
-        <FormLabel htmlFor={id} sx={{ flexShrink: 0 }}>
+        <FormLabel
+          htmlFor={id}
+          sx={{ flexShrink: 0 }}
+          {...slotProps?.inputLabel}
+        >
           {label}
         </FormLabel>
         <InputBase
           id={id}
           type={type}
           value={value}
+          defaultValue={defaultValue}
           onChange={onChange}
           slotProps={{ input: slotProps?.htmlInput }}
           inputRef={inputRef}

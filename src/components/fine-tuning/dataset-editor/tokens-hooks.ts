@@ -198,6 +198,7 @@ export function useTokensProps(
       setDraft({ prefix: completionPrefixText, text: token });
 
       for await (const chunk of response) {
+        if (chunk.choices.length === 0) continue;
         setDraft(
           (prev) =>
             prev && {
