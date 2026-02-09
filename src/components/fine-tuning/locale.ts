@@ -41,6 +41,8 @@ export default {
       "confirm-delete-finetuned-model":
         "Delete this fine-tuned model?\n{{model}}",
       "confirm-delete-record": "Delete this record?",
+      "fine-tuning-not-supported":
+        "This model provider does not support fine-tuning",
       "model-not-found-warning":
         'The model "{{datasetModel}}" used by the dataset was not found in the current preset "{{presetName}}."',
     },
@@ -85,6 +87,7 @@ export default {
       "confirm-delete-dataset": "删除此数据集？\n{{name}}",
       "confirm-delete-finetuned-model": "删除此微调模型？\n{{model}}",
       "confirm-delete-record": "删除此条数据？",
+      "fine-tuning-not-supported": "此模型提供商不支持微调",
       "model-not-found-warning":
         '数据集使用的模型 "{{datasetModel}}" 在当前预设 "{{presetName}}" 中未找到。',
     },

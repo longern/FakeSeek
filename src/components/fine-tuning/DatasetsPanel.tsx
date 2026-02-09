@@ -256,8 +256,27 @@ function DatasetsPanel() {
               }}
             >
               <ListItemText
-                primary={dataset.name}
-                slotProps={{ primary: { noWrap: true } }}
+                primary={
+                  <Typography
+                    noWrap
+                    sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}
+                  >
+                    {dataset.name}
+                  </Typography>
+                }
+                secondary={
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    noWrap
+                    sx={{ fontSize: "0.75rem" }}
+                  >
+                    {formatBytes(dataset.size) +
+                      " - " +
+                      new Date(dataset.lastModified).toLocaleString()}
+                  </Typography>
+                }
+                sx={{ marginY: 0 }}
               />
             </ListItemButton>
           </ListItem>

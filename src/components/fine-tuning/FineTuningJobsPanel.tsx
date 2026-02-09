@@ -236,9 +236,7 @@ function FinetunePanel() {
     } catch (e) {
       if (e instanceof APIError) {
         if (e.status === 404)
-          setFinetuneJobs(
-            new Error(t("This model provider does not support fine-tuning"))
-          );
+          setFinetuneJobs(new Error(t("fine-tuning-not-supported")));
         else setFinetuneJobs(e);
       } else setFinetuneJobs(e as Error);
     }
