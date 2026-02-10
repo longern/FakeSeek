@@ -41,14 +41,8 @@ function DesktopLayout({
 }) {
   return (
     <Stack direction="row" sx={{ height: "100%" }}>
-      <Stack
-        sx={{
-          width: "260px",
-          flexShrink: 0,
-          backgroundColor: "#f9fbff",
-        }}
-      >
-        <Box sx={{ padding: 1 }}>
+      <Stack sx={{ width: "240px", flexShrink: 0, backgroundColor: "#f9fbff" }}>
+        <Box sx={{ paddingX: 1, marginTop: 1 }}>
           <IconButton aria-label="Close" size="small" onClick={onClose}>
             <NavigateBeforeIcon />
           </IconButton>
@@ -239,8 +233,23 @@ function FineTuningDialog({
                 <ListItem disablePadding>
                   <ListItemButton onClick={showPresetsDialog}>
                     <ListItemText
-                      primary={t("Current preset")}
-                      secondary={currentPreset?.presetName}
+                      primary={
+                        <Typography
+                          variant="body1"
+                          sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}
+                        >
+                          {t("Current preset")}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.75rem" }}
+                        >
+                          {currentPreset?.presetName}
+                        </Typography>
+                      }
                     />
                     <NavigateNextIcon />
                   </ListItemButton>
@@ -259,7 +268,16 @@ function FineTuningDialog({
                       }}
                       selected={isMobile ? false : currentTab === slug}
                     >
-                      <ListItemText primary={verbose} />
+                      <ListItemText
+                        primary={
+                          <Typography
+                            variant="body1"
+                            sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}
+                          >
+                            {verbose}
+                          </Typography>
+                        }
+                      />
                       {isMobile && <NavigateNextIcon />}
                     </ListItemButton>
                   </ListItem>

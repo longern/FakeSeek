@@ -17,6 +17,7 @@ function StyledTextField({
   label,
   value,
   defaultValue,
+  placeholder,
   error,
   helperText,
   sx,
@@ -29,6 +30,7 @@ function StyledTextField({
   label?: React.ReactNode;
   value?: unknown;
   defaultValue?: unknown;
+  placeholder?: string;
   error?: boolean;
   helperText?: React.ReactNode;
   sx?: SxProps<Theme>;
@@ -58,6 +60,7 @@ function StyledTextField({
           type={type}
           value={value}
           defaultValue={defaultValue}
+          placeholder={placeholder}
           onChange={onChange}
           slotProps={{ input: slotProps?.htmlInput }}
           inputRef={inputRef}
