@@ -57,7 +57,7 @@ function PresetEditDialog({
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const [showAPIMode, setShowAPIMode] = useState(false);
   const [apiModeAnchorEl, setApiModeAnchorEl] = useState<HTMLElement | null>(
-    null
+    null,
   );
 
   const loadModelCandidates = useCallback(async () => {
@@ -104,7 +104,7 @@ function PresetEditDialog({
       setShowAPIMode(false);
       setApiModeAnchorEl(null);
     },
-    []
+    [],
   );
 
   return (
@@ -163,7 +163,7 @@ function PresetEditDialog({
                     value={preset.presetName}
                     onChange={(e) =>
                       setPreset((prev) =>
-                        prev ? { ...prev, presetName: e.target.value } : prev
+                        prev ? { ...prev, presetName: e.target.value } : prev,
                       )
                     }
                     sx={{ "& input": { textAlign: "right" } }}
@@ -181,10 +181,10 @@ function PresetEditDialog({
                       {preset.apiMode === undefined
                         ? "OpenAI Responses API"
                         : preset.apiMode === "chat-completions"
-                        ? "OpenAI Chat Completion API"
-                        : preset.apiMode === "gemini"
-                        ? "Google Gemini API"
-                        : preset.apiMode}
+                          ? "OpenAI Chat Completion API"
+                          : preset.apiMode === "gemini"
+                            ? "Google Gemini API"
+                            : preset.apiMode}
                     </Typography>
                     <UnfoldMoreIcon />
                   </ListItemButton>
@@ -228,7 +228,7 @@ function PresetEditDialog({
                     sx={{ "& input": { textAlign: "right" } }}
                     onChange={(e) =>
                       setPreset((prev) =>
-                        prev ? { ...prev, apiKey: e.target.value } : prev
+                        prev ? { ...prev, apiKey: e.target.value } : prev,
                       )
                     }
                   />
@@ -241,7 +241,7 @@ function PresetEditDialog({
                     sx={{ "& input": { textAlign: "right" } }}
                     onChange={(e) =>
                       setPreset((prev) =>
-                        prev ? { ...prev, baseURL: e.target.value } : prev
+                        prev ? { ...prev, baseURL: e.target.value } : prev,
                       )
                     }
                   />
@@ -256,7 +256,7 @@ function PresetEditDialog({
                       setPreset((prev) =>
                         prev
                           ? { ...prev, defaultModel: newValue ?? undefined }
-                          : prev
+                          : prev,
                       )
                     }
                     inputValue={modelInputValue}
@@ -370,7 +370,7 @@ function PresetEditDialog({
                           >
                             <ListItemText
                               primary={t(
-                                `tools-provider.${toolsProvider ?? "default"}`
+                                `tools-provider.${toolsProvider ?? "default"}`,
                               )}
                               sx={{ marginRight: 2 }}
                             />
@@ -384,7 +384,7 @@ function PresetEditDialog({
                             )}
                           </ListItemButton>
                         </ListItem>
-                      )
+                      ),
                     )}
                   </Menu>
                 </ListItem>
@@ -437,6 +437,42 @@ function PresetEditDialog({
                       </ListItem>
                     ))}
                   </Menu>
+                </ListItem>
+              </List>
+            </Card>
+
+            <Card elevation={0} sx={{ borderRadius: 3 }}>
+              <List disablePadding>
+                <ListItem>
+                  <StyledTextField
+                    type="password"
+                    id="preset-fine-tuning-api-key-input"
+                    label={t("Fine-tuning API Key")}
+                    value={preset.fineTuningApiKey ?? ""}
+                    sx={{ "& input": { textAlign: "right" } }}
+                    onChange={(e) =>
+                      setPreset((prev) =>
+                        prev
+                          ? { ...prev, fineTuningApiKey: e.target.value }
+                          : prev,
+                      )
+                    }
+                  />
+                </ListItem>
+                <ListItem>
+                  <StyledTextField
+                    id="preset-fine-tuning-base-url-input"
+                    label={t("Fine-tuning Base URL")}
+                    value={preset.fineTuningBaseURL ?? ""}
+                    sx={{ "& input": { textAlign: "right" } }}
+                    onChange={(e) =>
+                      setPreset((prev) =>
+                        prev
+                          ? { ...prev, fineTuningBaseURL: e.target.value }
+                          : prev,
+                      )
+                    }
+                  />
                 </ListItem>
               </List>
             </Card>

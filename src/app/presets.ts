@@ -9,12 +9,14 @@ export type Preset = {
   temperature?: number;
   toolsProvider?: "openai-builtin";
   imageQuality?: "low" | "medium" | "high";
+  fineTuningApiKey?: string;
+  fineTuningBaseURL?: string;
 };
 
 export const MODEL_PROVIDER_PRESET_KEY = "fakeSeek:modelProviderPresets";
 
 const storedPresets = JSON.parse(
-  window.localStorage.getItem(MODEL_PROVIDER_PRESET_KEY) || "{}"
+  window.localStorage.getItem(MODEL_PROVIDER_PRESET_KEY) || "{}",
 ) as { presets: Record<string, Preset>; current: string | null };
 
 storedPresets.presets = storedPresets.presets || {};
@@ -26,7 +28,7 @@ export const presetsSlice = createSlice({
   reducers: {
     patch(
       state,
-      { payload }: { payload: { presetId: string; preset: Partial<Preset> } }
+      { payload }: { payload: { presetId: string; preset: Partial<Preset> } },
     ) {
       state.presets[payload.presetId] = {
         ...(state.presets[payload.presetId] ?? {}),

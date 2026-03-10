@@ -29,8 +29,8 @@ function getClientFromPreset(currentPreset: Preset | null) {
   if (currentPreset === null) throw NO_PRESET_ERROR;
 
   return new OpenAI({
-    apiKey: currentPreset.apiKey,
-    baseURL: currentPreset.baseURL,
+    apiKey: currentPreset.fineTuningApiKey || currentPreset.apiKey,
+    baseURL: currentPreset.fineTuningBaseURL || currentPreset.baseURL,
     dangerouslyAllowBrowser: true,
   });
 }
@@ -98,7 +98,7 @@ function CreateFinetuneJobDialog({
         integrations:
           enabledIntegrations.length === 0
             ? undefined
-            : enabledIntegrations.map((name) => ({ type: name } as any)),
+            : enabledIntegrations.map((name) => ({ type: name }) as any),
       });
       onClose();
     } catch (e) {
@@ -113,7 +113,7 @@ function CreateFinetuneJobDialog({
     const client = getClientFromPreset(currentPreset);
     client.models.list().then((modelsPage) => setBaseModels(modelsPage.data));
     listDatasets().then((datasetFiles) =>
-      setExistingDatasets(datasetFiles.map((file) => file.name))
+      setExistingDatasets(datasetFiles.map((file) => file.name)),
     );
     setDataset("");
     setCreating(false);
@@ -195,7 +195,7 @@ function CreateFinetuneJobDialog({
                   setEnabledIntegrations((prev) =>
                     checked
                       ? [...prev, "tensorboard"]
-                      : prev.filter((item) => item !== "tensorboard")
+                      : prev.filter((item) => item !== "tensorboard"),
                   );
                 }}
               />

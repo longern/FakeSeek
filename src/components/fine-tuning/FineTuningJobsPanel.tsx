@@ -41,8 +41,8 @@ function getClientFromPreset(currentPreset: Preset | null) {
   if (currentPreset === null) throw NO_PRESET_ERROR;
 
   return new OpenAI({
-    apiKey: currentPreset.apiKey,
-    baseURL: currentPreset.baseURL,
+    apiKey: currentPreset.fineTuningApiKey || currentPreset.apiKey,
+    baseURL: currentPreset.fineTuningBaseURL || currentPreset.baseURL,
     dangerouslyAllowBrowser: true,
   });
 }
@@ -54,7 +54,7 @@ function FinetuneJobDetail({ job }: { job: FineTuningJob }) {
   const { t } = useTranslation("fineTuning");
 
   const isCancellable = ["validating_files", "queued", "running"].includes(
-    job.status
+    job.status,
   );
 
   useEffect(() => {
@@ -79,7 +79,7 @@ function FinetuneJobDetail({ job }: { job: FineTuningJob }) {
             color="inherit"
             onClick={() => {
               const confirmed = window.confirm(
-                t("confirm-cancel-finetune-job", { id: job.id })
+                t("confirm-cancel-finetune-job", { id: job.id }),
               );
               if (!confirmed) return;
 
@@ -114,10 +114,10 @@ function FinetuneJobDetail({ job }: { job: FineTuningJob }) {
               job.status === "succeeded"
                 ? "success"
                 : job.status === "failed"
-                ? "error"
-                : job.status === "cancelled"
-                ? "default"
-                : "info"
+                  ? "error"
+                  : job.status === "cancelled"
+                    ? "default"
+                    : "info"
             }
           />
         </Box>
@@ -138,11 +138,11 @@ function FinetuneJobDetail({ job }: { job: FineTuningJob }) {
                 onClick={() => {
                   const client = getClientFromPreset(currentPreset);
                   const hfToken = window.prompt(
-                    t("Enter your Hugging Face token")
+                    t("Enter your Hugging Face token"),
                   );
                   if (!hfToken) return;
                   const repoId = window.prompt(
-                    t("Enter the Hugging Face repo ID to push to")
+                    t("Enter the Hugging Face repo ID to push to"),
                   );
                   if (!repoId) return;
                   client.post(`/models/${job.fine_tuned_model!}/push_to_hub`, {
@@ -165,7 +165,7 @@ function FinetuneJobDetail({ job }: { job: FineTuningJob }) {
                   const confirmed = window.confirm(
                     t("confirm-delete-finetuned-model", {
                       model: job.fine_tuned_model,
-                    })
+                    }),
                   );
                   if (!confirmed) return;
                   const client = getClientFromPreset(currentPreset);
@@ -253,7 +253,7 @@ function FinetunePanel() {
         return null;
       }
     },
-    [currentPreset]
+    [currentPreset],
   );
 
   useEffect(() => {
@@ -390,14 +390,14 @@ function FinetunePanel() {
                             event.stopPropagation();
                             setSelectedJobId(job.id);
                             Promise.resolve().then(() =>
-                              rootRef.current!.focus()
+                              rootRef.current!.focus(),
                             );
                           }}
                         >
                           <ListItemText
                             primary={job.fine_tuned_model || job.id}
                             secondary={new Date(
-                              job.created_at * 1000
+                              job.created_at * 1000,
                             ).toLocaleString()}
                             slotProps={{
                               primary: { noWrap: true },
