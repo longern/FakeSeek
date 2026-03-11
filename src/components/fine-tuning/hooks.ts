@@ -33,7 +33,7 @@ export async function getTokenizer(model: string) {
 
 export function encodeSingleToken(
   tokenizer: PreTrainedTokenizer,
-  token: string
+  token: string,
 ) {
   const encoded = tokenizer.encode(token);
   if (encoded.length !== 1)
@@ -51,21 +51,21 @@ export async function completionApplyTemplate({
   completion: DatasetRecord["completion"];
 }) {
   const tokenizer = await getTokenizer(model);
-  const promptIds = tokenizer.apply_chat_template(
+  const promptText = tokenizer.apply_chat_template(
     model ? convertFromHarmony(model, prompt) : prompt,
     {
       add_generation_prompt: true,
       tokenize: false,
       return_tensor: false,
-    }
+    },
   ) as string;
-  const promptCompletionIds = tokenizer.apply_chat_template(
+  const promptCompletionText = tokenizer.apply_chat_template(
     model
       ? convertFromHarmony(model, prompt.concat(completion as any))
       : prompt,
-    { tokenize: false, return_tensor: false }
+    { tokenize: false, return_tensor: false },
   ) as string;
-  const completionText = promptCompletionIds.slice(promptIds.length);
+  const completionText = promptCompletionText.slice(promptText.length);
   return completionText;
 }
 
@@ -97,7 +97,7 @@ export function useGenerate() {
       messages: Array<
         DatasetRecord["prompt"][number] | DatasetRecord["completion"]
       >,
-      options?: { signal?: AbortSignal }
+      options?: { signal?: AbortSignal },
     ) => {
       if (currentPreset === null) throw new Error("No preset selected");
       const client = new OpenAI({
@@ -113,11 +113,11 @@ export function useGenerate() {
           logprobs: true,
           top_logprobs: 5,
         },
-        { signal: options?.signal }
+        { signal: options?.signal },
       );
       return completion;
     },
-    [currentPreset]
+    [currentPreset],
   );
 
   return generate;
@@ -137,14 +137,14 @@ export const forward = async (
     tokenizerModel?: string;
     model: string;
     topLogprobs?: number;
-  }
+  },
 ) => {
   tokenizerModel = tokenizerModel ?? model;
   const tokenizer = await getTokenizer(tokenizerModel);
 
   const text = tokenizer.apply_chat_template(
     convertFromHarmony(tokenizerModel, [...prompt, ...completion]),
-    { tokenize: false }
+    { tokenize: false },
   ) as string;
 
   const extraBody: Record<string, any> = { prompt_logprobs: topLogprobs };
@@ -169,11 +169,11 @@ export const forward = async (
 
   const promptIds = tokenizer.apply_chat_template(
     convertFromHarmony(tokenizerModel, prompt),
-    { add_generation_prompt: true, return_tensor: false }
+    { add_generation_prompt: true, return_tensor: false },
   ) as number[];
   const promptCompletionIds = tokenizer.apply_chat_template(
     convertFromHarmony(tokenizerModel, [...prompt, ...completion]),
-    { return_tensor: false }
+    { return_tensor: false },
   ) as number[];
   const completionIds = promptCompletionIds.slice(promptIds.length);
   promptLogprobs.splice(0, promptIds.length);
@@ -216,11 +216,11 @@ export function useMoreLogprobs() {
 
       const promptIds = tokenizer.apply_chat_template(
         convertFromHarmony(tokenizerModel, prompt),
-        { add_generation_prompt: true, return_tensor: false }
+        { add_generation_prompt: true, return_tensor: false },
       ) as number[];
       const promptCompletionIds = tokenizer.apply_chat_template(
         convertFromHarmony(tokenizerModel, [...prompt, ...completion]),
-        { return_tensor: false }
+        { return_tensor: false },
       ) as number[];
       const completionIds = promptCompletionIds.slice(promptIds.length);
       const completionPrefixIds = completionIds.slice(0, tokenIndex);
@@ -248,7 +248,7 @@ export function useMoreLogprobs() {
 
       return logprobs;
     },
-    [currentPreset]
+    [currentPreset],
   );
 
   return moreLogprobs;

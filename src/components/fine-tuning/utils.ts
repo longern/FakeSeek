@@ -57,7 +57,7 @@ export function decodeToken(token: string) {
     const b = u2b[ch];
     if (b === undefined) {
       throw new Error(
-        `Unknown fallback char at index ${i} (code ${token.charCodeAt(i)})`
+        `Unknown fallback char at index ${i} (code ${token.charCodeAt(i)})`,
       );
     }
     rawBytes[i] = b;
@@ -94,7 +94,7 @@ export function parseCompletion(text: string): {
     }
     const endIdx = text.indexOf(
       "<|end|>",
-      analysisStartIdx + ANALYSIS_PREFIX.length
+      analysisStartIdx + ANALYSIS_PREFIX.length,
     );
     if (endIdx === -1) {
       return {
@@ -106,7 +106,7 @@ export function parseCompletion(text: string): {
 
     const analysis = text.slice(
       analysisStartIdx + ANALYSIS_PREFIX.length,
-      endIdx
+      endIdx,
     );
 
     const FINAL_PREFIX = "<|channel|>final<|message|>";
@@ -116,46 +116,39 @@ export function parseCompletion(text: string): {
     }
     const returnIdx = text.indexOf(
       "<|return|>",
-      finalStartIdx + FINAL_PREFIX.length
+      finalStartIdx + FINAL_PREFIX.length,
     );
     const final = text.slice(
       finalStartIdx + FINAL_PREFIX.length,
-      returnIdx === -1 ? undefined : returnIdx
+      returnIdx === -1 ? undefined : returnIdx,
     );
 
     return { role: "assistant", content: final, thinking: analysis };
-  } else if (text.startsWith("<think>")) {
+  } else if (text.includes("</think>")) {
     // DeepSeek R1 format
     const THINK_PREFIX = "<think>";
     const THINK_SUFFIX = "</think>";
-    const thinkStartIdx = text.indexOf(THINK_PREFIX);
-    if (thinkStartIdx !== 0) {
-      return { role: "assistant", content: text };
-    }
-    const thinkEndIdx = text.indexOf(
-      THINK_SUFFIX,
-      thinkStartIdx + THINK_PREFIX.length
-    );
+    const thinkPrefixIdx = text.indexOf(THINK_PREFIX);
+    const thinkStartIdx =
+      thinkPrefixIdx === -1 ? 0 : thinkPrefixIdx + THINK_PREFIX.length;
+    const thinkEndIdx = text.indexOf(THINK_SUFFIX, thinkStartIdx);
     if (thinkEndIdx === -1) {
       return {
         role: "assistant",
         content: "",
-        thinking: text.slice(thinkStartIdx + THINK_PREFIX.length),
+        thinking: text.slice(thinkStartIdx),
       };
     }
 
-    const thinking = text.slice(
-      thinkStartIdx + THINK_PREFIX.length,
-      thinkEndIdx
-    );
+    const thinking = text.slice(thinkStartIdx, thinkEndIdx);
 
     const endIdx = text.indexOf(
       "<|im_end|>",
-      thinkEndIdx + THINK_SUFFIX.length
+      thinkEndIdx + THINK_SUFFIX.length,
     );
     const content = text.slice(
       thinkEndIdx + THINK_SUFFIX.length,
-      endIdx === -1 ? undefined : endIdx
+      endIdx === -1 ? undefined : endIdx,
     );
     return { role: "assistant", content: content, thinking: thinking };
   } else {
@@ -164,7 +157,7 @@ export function parseCompletion(text: string): {
 }
 
 export function convertFromHarmony(model: string, messages: any) {
-  if (model.startsWith("qwen/")) {
+  if (model.toLowerCase().startsWith("qwen/")) {
     if (!Array.isArray(messages)) return messages;
     return messages.map((msg) => ({
       role: msg.role,
@@ -177,7 +170,7 @@ export function convertFromHarmony(model: string, messages: any) {
 }
 
 export function convertToHarmony(model: string, messages: any) {
-  if (model.startsWith("qwen/")) {
+  if (model.toLowerCase().startsWith("qwen/")) {
     if (!Array.isArray(messages)) return messages;
     return messages.map((msg) => ({
       role: msg.role,

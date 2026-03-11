@@ -1,4 +1,5 @@
 import {
+  Autocomplete,
   Button,
   Dialog,
   DialogActions,
@@ -71,6 +72,7 @@ function CreateFinetuneJobDialog({
   const [dataset, setDataset] = useState("");
   const [suffix, setSuffix] = useState("");
   const [baseModels, setBaseModels] = useState<Array<Model>>([]);
+  const [modelInputValue, setModelInputValue] = useState("");
   const [existingDatasets, setExistingDatasets] = useState<string[]>([]);
   const [enabledIntegrations, setEnabledIntegrations] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
@@ -136,17 +138,20 @@ function CreateFinetuneJobDialog({
             >
               {t("Base model")}
             </Typography>
-            <Select
-              labelId="base-model-select-label"
+            <Autocomplete
+              id="base-model-select-label"
               size="small"
+              options={baseModels.map((model) => model.id)}
               value={baseModel}
-              required
-              onChange={(event) => setBaseModel(event.target.value)}
-            >
-              {baseModels.map((model) => (
-                <MenuItem key={model.id} value={model.id} children={model.id} />
-              ))}
-            </Select>
+              onChange={(_e, newValue) => setBaseModel(newValue ?? "")}
+              inputValue={modelInputValue}
+              onInputChange={(_e, newInputValue) =>
+                setModelInputValue(newInputValue)
+              }
+              freeSolo
+              fullWidth
+              renderInput={(params) => <OutlinedInput {...params} />}
+            />
           </FormControl>
           <FormControl fullWidth>
             <Typography

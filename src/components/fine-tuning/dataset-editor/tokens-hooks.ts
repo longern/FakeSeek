@@ -22,7 +22,7 @@ import { TokenLogprobs } from "./TokenList";
 export function toggleAnchor(
   anchors: DatasetRecord["anchors"] | undefined,
   anchor: { token_index: number; token_id: number },
-  value: boolean
+  value: boolean,
 ) {
   anchors ??= [];
   if (value)
@@ -33,7 +33,7 @@ export function toggleAnchor(
     ];
   else {
     const newAnchors = anchors.filter(
-      (anc) => anc.token_index !== anchor.token_index
+      (anc) => anc.token_index !== anchor.token_index,
     );
     return newAnchors.length === 0 ? undefined : newAnchors;
   }
@@ -42,13 +42,13 @@ export function toggleAnchor(
 export function useTokensProps(
   model: string,
   record: DatasetRecord,
-  onError: (err: Error) => void
+  onError: (err: Error) => void,
 ) {
   const [tokens, setTokens] = useState<Array<string> | null>(null);
   const [tokenIds, setTokenIds] = useState<Array<number> | null>(null);
 
   const [logprobs, setLogprobs] = useState<Array<TokenLogprobs> | undefined>(
-    undefined
+    undefined,
   );
 
   const [draft, setDraft] = useState<
@@ -80,7 +80,7 @@ export function useTokensProps(
       }) => void,
       setAnchors: React.Dispatch<
         React.SetStateAction<DatasetRecord["anchors"] | undefined>
-      >
+      >,
     ) => {
       if (!draft) return;
 
@@ -95,14 +95,14 @@ export function useTokensProps(
               token_index: continueToken.tokenIndex,
               token_id: continueToken.tokenId,
             },
-            topTokenId !== continueToken.tokenId
+            topTokenId !== continueToken.tokenId,
           );
         });
       }
 
       setCompletion(parseCompletion(draft.prefix + draft.text));
       clearDraft();
-    }
+    },
   );
 
   const clearDraft = useCallback(() => {
@@ -116,7 +116,7 @@ export function useTokensProps(
       const newTokenId = tokenizer.encode(token)[0];
       continueGeneration(tokenIndex, newTokenId);
     },
-    [tokens, tokenIds, model, onError]
+    [tokens, tokenIds, model, onError],
   );
 
   const loadMoreLogprobs = useCallback(
@@ -153,7 +153,7 @@ export function useTokensProps(
         return newLogprobs;
       });
     },
-    [client, model, record.prompt, record.completion, moreLogprobs]
+    [client, model, record.prompt, record.completion, moreLogprobs],
   );
 
   const continueGeneration = useCallback(
@@ -168,14 +168,14 @@ export function useTokensProps(
 
       const promptIds = tokenizer.apply_chat_template(
         convertFromHarmony(tokenizerModel, record.prompt),
-        { add_generation_prompt: true, return_tensor: false }
+        { add_generation_prompt: true, return_tensor: false },
       ) as number[];
       const promptCompletionIds = tokenizer.apply_chat_template(
         convertFromHarmony(tokenizerModel, [
           ...record.prompt,
           ...record.completion,
         ]),
-        { return_tensor: false }
+        { return_tensor: false },
       ) as number[];
       const completionIds = promptCompletionIds.slice(promptIds.length);
       const completionPrefixIds = completionIds.slice(0, tokenIndex);
@@ -198,17 +198,23 @@ export function useTokensProps(
       setDraft({ prefix: completionPrefixText, text: token });
 
       for await (const chunk of response) {
-        if (chunk.choices.length === 0) continue;
+        if (chunk.choices.length === 0 || !chunk.choices[0].text) continue;
         setDraft(
           (prev) =>
             prev && {
               ...prev,
               text: prev.text + chunk.choices[0].text,
-            }
+            },
         );
       }
     },
-    [client, model, record.prompt, record.completion, currentPreset.temperature]
+    [
+      client,
+      model,
+      record.prompt,
+      record.completion,
+      currentPreset.temperature,
+    ],
   );
 
   useEffect(() => {
@@ -253,13 +259,13 @@ export function useTokensProps(
 }
 
 export function useRecordSetters(
-  onChange?: (record: (prev: DatasetRecord) => DatasetRecord) => void
+  onChange?: (record: (prev: DatasetRecord) => DatasetRecord) => void,
 ) {
   const setCompletion = useCallback(
     (completion: DatasetRecord["completion"][number]) => {
       onChange?.((prev) => ({ ...prev, completion: [completion] }));
     },
-    [onChange]
+    [onChange],
   );
 
   const setAnchors: React.Dispatch<
@@ -271,7 +277,7 @@ export function useRecordSetters(
         anchors: typeof value === "function" ? value(prev.anchors) : value,
       }));
     },
-    [onChange]
+    [onChange],
   );
 
   return { setCompletion, setAnchors };
