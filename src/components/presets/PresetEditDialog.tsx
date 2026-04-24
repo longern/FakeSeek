@@ -252,13 +252,14 @@ function PresetEditDialog({
                     options={modelCandidates}
                     value={preset.defaultModel ?? ""}
                     sx={{ "& input": { textAlign: "right" } }}
-                    onChange={(_e, newValue) =>
+                    onBlur={(_e) => {
+                      const newValue = modelInputValue.trim() || undefined;
                       setPreset((prev) =>
-                        prev
-                          ? { ...prev, defaultModel: newValue ?? undefined }
+                        prev && preset.defaultModel !== newValue
+                          ? { ...prev, defaultModel: newValue }
                           : prev,
-                      )
-                    }
+                      );
+                    }}
                     inputValue={modelInputValue}
                     onInputChange={(_e, newInputValue) =>
                       setModelInputValue(newInputValue)

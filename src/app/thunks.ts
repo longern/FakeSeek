@@ -208,6 +208,13 @@ export const requestAssistant = createAppAsyncThunk(
     const preset = presets.presets?.[presets.current!];
     if (!preset) throw new Error("No preset selected");
     const messageDispatch = messageDispatchWrapper(dispatch);
+
+    const model = options?.model ?? preset.defaultModel;
+    if (model?.startsWith("gpt-image-")) {
+      thunkAPI.dispatch(requestGenerateImage(messages, thunkAPI));
+      return;
+    }
+
     try {
       const currentMessages = messages;
 
@@ -223,7 +230,7 @@ export const requestAssistant = createAppAsyncThunk(
             signal,
             onStreamEvent: messageDispatch,
             ...options,
-            model: options?.model ?? preset.defaultModel,
+            model,
             temperature: options?.temperature ?? preset.temperature,
           },
         );
@@ -378,6 +385,17 @@ export const requestSearchImage = createAppAsyncThunk(
   },
 );
 
+function dataUrlToFile(dataUrl: string) {
+  const mimeType = dataUrl.match(/^data:(.*);base64,/)![1];
+  const byteString = atob(dataUrl.split(",")[1]);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new File([ab], "image.png", { type: mimeType });
+}
+
 export const requestGenerateImage = createAppAsyncThunk(
   "app/requestGenerateImage",
   async (messages: ChatMessage[], thunkAPI) => {
@@ -393,21 +411,68 @@ export const requestGenerateImage = createAppAsyncThunk(
           new URL("/api/v1", window.location.href).toString(),
         dangerouslyAllowBrowser: true,
       });
-      const response = await client.responses.create(
-        {
-          model: "gpt-5.4-mini",
-          input: messages.flatMap(normMessage),
-          tools: [
-            {
-              type: "image_generation",
-              moderation: "low",
-              quality: preset.imageQuality,
-            },
-          ],
-          tool_choice: "required",
-        },
-        { signal },
+
+      if (messages.length === 0) return;
+
+      const lastMessage = messages[
+        messages.length - 1
+      ] as ResponseInputItem.Message;
+
+      const hasImageInput = lastMessage.content.some(
+        (part) => part.type === "input_image",
       );
+
+      const textContent = lastMessage.content
+        .filter((part) => part.type === "input_text")
+        .map((part) => part.text)
+        .join("\n");
+
+      const imageResponse = await (hasImageInput
+        ? client.images.edit(
+            {
+              model: preset.defaultModel,
+              prompt: textContent,
+              image: lastMessage.content
+                .filter((part) => part.type === "input_image")
+                .map((part) => dataUrlToFile(part.image_url!)),
+            },
+            { signal },
+          )
+        : client.images.generate(
+            {
+              model: preset.defaultModel,
+              prompt: textContent,
+              moderation: "low",
+            },
+            { signal },
+          ));
+
+      const response = {
+        object: "response",
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        created_at: Math.floor(Date.now() / 1000),
+        error: null,
+        output: [
+          {
+            type: "image_generation_call",
+            id: crypto.randomUUID(),
+            result: imageResponse.data![0].b64_json!,
+            status: "completed",
+          },
+        ],
+        output_text: "",
+        model: preset.defaultModel,
+        instructions: null,
+        metadata: null,
+        incomplete_details: null,
+        parallel_tool_calls: false,
+        tool_choice: "auto",
+        tools: [],
+        temperature: null,
+        top_p: null,
+        status: "completed",
+      } as Response & { timestamp: number };
 
       dispatch(addResponse({ ...response, timestamp: Date.now() }));
     } catch (error) {
