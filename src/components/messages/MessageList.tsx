@@ -489,17 +489,31 @@ export function GenerateImageContent({
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
     return URL.createObjectURL(new Blob([byteNumbers], { type: "image/png" }));
-  }, [message]);
+  }, [message.result]);
 
   const alt = (message as any).revised_prompt ?? `Generated Image`;
 
   return (
     <Box sx={{ paddingLeft: 2, paddingRight: 3 }}>
-      <PhotoProvider bannerVisible={false}>
-        <PhotoView src={image}>
-          <img src={image} alt={alt} title={alt} />
-        </PhotoView>
-      </PhotoProvider>
+      {message.status === "in_progress" || message.status === "generating" ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "192px",
+            height: "192px",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      ) : message.status === "completed" ? (
+        <PhotoProvider bannerVisible={false}>
+          <PhotoView src={image}>
+            <img src={image} alt={alt} title={alt} />
+          </PhotoView>
+        </PhotoProvider>
+      ) : null}
     </Box>
   );
 }
@@ -852,7 +866,7 @@ function MessageList({
 }) {
   return (
     <Stack
-      gap={1}
+      gap={1.5}
       sx={{
         "& img": {
           display: "block",

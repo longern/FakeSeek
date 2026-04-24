@@ -39,7 +39,7 @@ import {
 import { CreateResponseParams } from "@/app/api-modes/types";
 
 const CodeBox = lazy(() =>
-  import("./Markdown").then((mod) => ({ default: mod.CodeBox }))
+  import("./Markdown").then((mod) => ({ default: mod.CodeBox })),
 );
 
 function formatTimestamp(timestamp: number) {
@@ -121,8 +121,8 @@ export function SelectTextDrawer({
                   message.type !== "message"
                     ? []
                     : message.content.map((part) =>
-                        part.type === "output_text" ? part.text : part.refusal
-                      )
+                        part.type === "output_text" ? part.text : part.refusal,
+                      ),
                 )
                 .join("\n")}
               slotProps={{ input: { readOnly: true } }}
@@ -170,8 +170,8 @@ export function ResponseContextMenu({
         message.type !== "message"
           ? []
           : message.content.map((part) =>
-              part.type === "output_text" ? part.text : part.refusal
-            )
+              part.type === "output_text" ? part.text : part.refusal,
+            ),
       )
       .join("\n");
     navigator.clipboard.writeText(content).then(() => setCopied(true));
@@ -276,8 +276,8 @@ export function ResponseContextMenu({
                 message.type !== "message"
                   ? []
                   : message.content.map((part) =>
-                      part.type === "output_text" ? part.text : part.refusal
-                    )
+                      part.type === "output_text" ? part.text : part.refusal,
+                    ),
               )
               .join("\n")}
             slotProps={{ input: { readOnly: true } }}
@@ -299,7 +299,7 @@ export function ResponseActions({
   onDislike: () => void;
 }) {
   const [retryMenuAnchor, setRetryMenuAnchor] = useState<null | HTMLElement>(
-    null
+    null,
   );
 
   const handleCopy = useCallback(() => {
@@ -308,8 +308,8 @@ export function ResponseActions({
         message.type !== "message"
           ? []
           : message.content.map((part) =>
-              part.type === "output_text" ? part.text : part.refusal
-            )
+              part.type === "output_text" ? part.text : part.refusal,
+            ),
       )
       .join("\n");
     navigator.clipboard.writeText(content);
@@ -415,7 +415,11 @@ function ResponseItem({
   return (
     <Box>
       {response.error ? (
-        <Alert severity="error">{response.error.message}</Alert>
+        <Box sx={{ paddingX: 2 }}>
+          <Alert severity="error" sx={{ overflowWrap: "break-word" }}>
+            {response.error.message}
+          </Alert>
+        </Box>
       ) : (
         response.output.map((message, index) => (
           <Fragment key={`${index}-${message.id}`}>
