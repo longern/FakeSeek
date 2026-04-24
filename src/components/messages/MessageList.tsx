@@ -54,7 +54,7 @@ import ResponseItem from "./ResponseItem";
 const markdownPromise = import("./Markdown");
 const Markdown = lazy(() => markdownPromise);
 const CodeBox = lazy(() =>
-  markdownPromise.then((mod) => ({ default: mod.CodeBox }))
+  markdownPromise.then((mod) => ({ default: mod.CodeBox })),
 );
 
 export function UserMessage({
@@ -69,7 +69,7 @@ export function UserMessage({
   };
   onContextMenu?: (
     e: React.PointerEvent<HTMLDivElement>,
-    { selectedPart }: { selectedPart?: number }
+    { selectedPart }: { selectedPart?: number },
   ) => void;
   slots?: Pick<MessageItemSlots, "messageActions">;
 }) {
@@ -85,12 +85,14 @@ export function UserMessage({
         alignSelf: "flex-end",
         alignItems: "flex-end",
       }}
+      spacing={0.5}
     >
       {message.content.map((part, index) => (
         <Box
           key={index}
           component={isMobile ? CardActionArea : "div"}
           sx={{
+            width: "auto",
             maxWidth: "100%",
             wordBreak: "break-word",
             minWidth: "48px",
@@ -99,6 +101,7 @@ export function UserMessage({
             borderRadius: "22px",
             fontSize: "unset",
             whiteSpace: "pre-wrap",
+            "& img": { maxHeight: "120px" },
           }}
           onContextMenu={(e: React.PointerEvent<HTMLDivElement>) => {
             if (part.type !== "input_text") return;
@@ -176,7 +179,7 @@ function ImageAnnotation({
   const preset = useAppSelector((state) =>
     state.presets.current === null
       ? null
-      : state.presets.presets?.[state.presets.current]
+      : state.presets.presets?.[state.presets.current],
   );
 
   useEffect(() => {
@@ -240,10 +243,10 @@ function FileAnnotationList({
     return ["png", "jpg", "jpeg", "gif"].includes(ext);
   };
   const imageAnnotations = annotations.filter(
-    imageFilter
+    imageFilter,
   ) as (ResponseOutputText.FileCitation & { filename: string })[];
   const nonImageAnnotations = annotations.filter(
-    (annotation) => !imageFilter(annotation)
+    (annotation) => !imageFilter(annotation),
   );
 
   return (
@@ -329,10 +332,10 @@ function AnnotationList({
   const fileAnnotations = annotations.filter(
     (annotation) =>
       annotation.type === "file_citation" ||
-      (annotation.type as any) === "container_file_citation"
+      (annotation.type as any) === "container_file_citation",
   ) as ResponseOutputText.FileCitation[];
   const urlAnnotations = annotations.filter(
-    (annotation) => annotation.type === "url_citation"
+    (annotation) => annotation.type === "url_citation",
   );
 
   return (
@@ -491,11 +494,13 @@ export function GenerateImageContent({
   const alt = (message as any).revised_prompt ?? `Generated Image`;
 
   return (
-    <PhotoProvider bannerVisible={false}>
-      <PhotoView src={image}>
-        <img src={image} alt={alt} title={alt} />
-      </PhotoView>
-    </PhotoProvider>
+    <Box sx={{ paddingLeft: 2, paddingRight: 3 }}>
+      <PhotoProvider bannerVisible={false}>
+        <PhotoView src={image}>
+          <img src={image} alt={alt} title={alt} />
+        </PhotoView>
+      </PhotoProvider>
+    </Box>
   );
 }
 
@@ -761,7 +766,7 @@ export function FunctionCallOutput({
 
 function findToolCall(
   messages: ChatMessage[],
-  message: ResponseInputItem.FunctionCallOutput
+  message: ResponseInputItem.FunctionCallOutput,
 ): ResponseFunctionToolCall | undefined {
   for (const response of messages) {
     if (response.object !== "response") continue;
@@ -796,13 +801,13 @@ export function MessageItem({
   toolCall?: ResponseFunctionToolCall;
   onContextMenu?: (
     e: React.PointerEvent<HTMLDivElement>,
-    payload: { message: ChatMessage; selectedPart?: number }
+    payload: { message: ChatMessage; selectedPart?: number },
   ) => void;
   slots?: MessageItemSlots;
 }) {
   const itemContextMenu = (
     e: React.PointerEvent<HTMLDivElement>,
-    payload?: { selectedPart?: number }
+    payload?: { selectedPart?: number },
   ) => {
     onContextMenu?.(e, { message, ...(payload ?? {}) });
   };
@@ -841,7 +846,7 @@ function MessageList({
     payload: {
       message: ChatMessage;
       selectedPart?: number;
-    }
+    },
   ) => void;
   slots?: MessageItemSlots;
 }) {

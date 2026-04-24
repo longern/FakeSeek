@@ -74,12 +74,12 @@ function RawCompletionViewer({
   open: boolean;
   completion: DatasetRecord["completion"][number];
   formatCompletion: (
-    completion: DatasetRecord["completion"][number]
+    completion: DatasetRecord["completion"][number],
   ) => Promise<string>;
   onChange: (completion: DatasetRecord["completion"][number]) => void;
 }) {
   const [editingCompletion, setEditingCompletion] = useState<string | null>(
-    null
+    null,
   );
 
   const handleSave = useCallback(async () => {
@@ -120,22 +120,6 @@ function RawCompletionViewer({
   );
 }
 
-function DatasetRecordEditorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <Stack sx={{ height: "100%" }} divider={<Divider />}>
-      <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-        <Container sx={{ padding: 2 }}>
-          <Stack spacing={2}>{children}</Stack>
-        </Container>
-      </Box>
-    </Stack>
-  );
-}
-
 function DatasetRecordEditor({
   record,
   model,
@@ -164,14 +148,13 @@ function DatasetRecordEditor({
       const message = completion.choices[0].message;
       const thinking = ["reasoning", "reasoning_content"].reduce<
         string | undefined
-      >(
-        (acc, key) =>
-          acc ??
-          (key in message && typeof message[key] === "string"
-            ? message[key]
-            : undefined),
-        undefined
-      );
+      >((acc, key) => {
+        if (acc !== undefined) return acc;
+        if (!(key in message)) return undefined;
+        const value = (message as any)[key];
+        if (typeof value === "string") return value;
+        return undefined;
+      }, undefined);
 
       onChange?.((prev) => ({
         ...prev,
@@ -190,94 +173,139 @@ function DatasetRecordEditor({
         completion: [completion],
       });
     },
-    [model, record.completion, record.prompt]
+    [model, record.completion, record.prompt],
   );
 
   if (record === null) return null;
 
   return (
-    <DatasetRecordEditorLayout>
-      {record.prompt?.map((msg, index) => (
-        <Card
-          key={index}
-          variant="outlined"
-          sx={{ borderRadius: 3, overflow: "visible" }}
-        >
-          <EditableMessage
-            role={msg.role}
-            content={msg.content}
-            stickyHeader
-            onChange={(newValue) => {
-              onChange?.((prev) => ({
-                ...prev,
-                prompt: prev.prompt.map((m, i) =>
-                  i === index ? { ...m, content: newValue } : m
-                ),
-              }));
-            }}
-          />
-        </Card>
-      ))}
-
-      {!record.completion ? (
-        <Divider>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={
-              generationAbortController
-                ? () => generationAbortController.abort()
-                : handleGenerate
-            }
-          >
-            {generationAbortController ? (
-              <>
-                <CircularProgress size={16} sx={{ marginRight: 1 }} />
-                {t("Stop")}
-              </>
-            ) : (
-              t("Generate")
-            )}
-          </Button>
-        </Divider>
-      ) : (
-        <AssistantMessageCard
-          viewers={{
-            markdown: () => (
-              <MarkdownViewer completion={record.completion[0]} />
-            ),
-            raw: ({ open }) => (
-              <RawCompletionViewer
-                open={open}
-                completion={record.completion[0]}
-                formatCompletion={formatCompletion}
-                onChange={(newValue) =>
-                  onChange?.((prev) => ({ ...prev, completion: [newValue] }))
-                }
+    <Container sx={{ paddingX: 2 }}>
+      <Stack spacing={2} sx={{ paddingY: 2 }}>
+        {record.prompt?.map((msg, index) =>
+          msg.role !== "assistant" ? (
+            <Card
+              key={index}
+              variant="outlined"
+              sx={{ borderRadius: 3, overflow: "visible" }}
+            >
+              <EditableMessage
+                role={msg.role}
+                content={msg.content}
+                stickyHeader
+                onChange={(newValue) => {
+                  onChange?.((prev) => ({
+                    ...prev,
+                    prompt: prev.prompt.map((m, i) =>
+                      i === index ? { ...m, content: newValue } : m,
+                    ),
+                  }));
+                }}
+                onDelete={() => {
+                  onChange?.((prev) => ({
+                    ...prev,
+                    prompt: prev.prompt.filter((_, i) => i !== index),
+                  }));
+                }}
               />
-            ),
-            tokens: ({ setActions }) =>
-              model && (
-                <TokensViewer
-                  record={record}
-                  model={model}
-                  onChange={onChange}
-                  setActions={setActions}
+            </Card>
+          ) : (
+            <AssistantMessageCard
+              viewers={{
+                markdown: () => <MarkdownViewer completion={msg as any} />,
+              }}
+              viewersDisabled={["tokens"]}
+              role={msg.role}
+              onDelete={() =>
+                onChange?.((prev) => ({
+                  ...prev,
+                  prompt: prev.prompt.filter((_, i) => i !== index),
+                }))
+              }
+            />
+          ),
+        )}
+
+        {record.completion && (
+          <AssistantMessageCard
+            viewers={{
+              markdown: () => (
+                <MarkdownViewer completion={record.completion[0]} />
+              ),
+              raw: ({ open }) => (
+                <RawCompletionViewer
+                  open={open}
+                  completion={record.completion[0]}
+                  formatCompletion={formatCompletion}
+                  onChange={(newValue) =>
+                    onChange?.((prev) => ({ ...prev, completion: [newValue] }))
+                  }
                 />
               ),
-          }}
-          viewersDisabled={!model ? ["tokens"] : undefined}
-          role={record.completion?.[0].role}
-          onDelete={() =>
-            onChange?.((prev) => ({
-              ...prev,
-              completion: undefined as any,
-              anchors: undefined,
-            }))
-          }
-        />
-      )}
-    </DatasetRecordEditorLayout>
+              tokens: ({ setActions }) =>
+                model && (
+                  <TokensViewer
+                    record={record}
+                    model={model}
+                    onChange={onChange}
+                    setActions={setActions}
+                  />
+                ),
+            }}
+            viewersDisabled={!model ? ["tokens"] : undefined}
+            role={record.completion?.[0].role}
+            onDelete={() =>
+              onChange?.((prev) => ({
+                ...prev,
+                completion: undefined as any,
+                anchors: undefined,
+              }))
+            }
+          />
+        )}
+
+        <Divider>
+          {record.completion ? (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() =>
+                onChange?.((prev) => ({
+                  ...prev,
+                  prompt: [
+                    ...prev.prompt,
+                    ...(prev.completion as any[]),
+                    { role: "user", content: "" },
+                  ],
+                  completion: undefined as any,
+                  anchors: undefined,
+                }))
+              }
+            >
+              {t("Add")}
+            </Button>
+          ) : (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={
+                generationAbortController
+                  ? () => generationAbortController.abort()
+                  : handleGenerate
+              }
+            >
+              {generationAbortController ? (
+                <>
+                  <CircularProgress size={16} sx={{ marginRight: 1 }} />
+                  {t("Stop")}
+                </>
+              ) : (
+                t("Generate")
+              )}
+            </Button>
+          )}
+        </Divider>
+      </Stack>
+    </Container>
   );
 }
 

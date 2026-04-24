@@ -37,7 +37,7 @@ export function messageDispatchWrapper(dispatch: AppDispatch) {
     event:
       | ResponseStreamEvent
       | FunctionCallOutputCompletedEvent
-      | FunctionCallOutputIncompleteEvent
+      | FunctionCallOutputIncompleteEvent,
   ) => {
     switch (event.type) {
       case "response.created":
@@ -71,8 +71,8 @@ function formatSearchResults(items: SearchResults) {
       (item) =>
         `- [${item.title}](${item.link})\n\n  ${item.snippet.replace(
           /<[^>]+>/g,
-          ""
-        )}`
+          "",
+        )}`,
     )
     .join("\n");
 }
@@ -109,7 +109,7 @@ async function callFunction({
       const query = JSON.parse(args).query;
       const searchRes = await fetch(
         `/api/search?${new URLSearchParams({ q: query })}`,
-        { signal }
+        { signal },
       );
       if (!searchRes.ok) {
         const errorText = await searchRes.text();
@@ -163,7 +163,7 @@ export const requestFunctionCall = createAppAsyncThunk(
       signal,
     });
     dispatch(addMessage(outputMessage));
-  }
+  },
 );
 
 export function normMessage(message: ChatMessage): ResponseInputItem[] {
@@ -201,7 +201,7 @@ export const requestAssistant = createAppAsyncThunk(
       messages: ChatMessage[];
       options?: CreateResponseParams;
     },
-    thunkAPI
+    thunkAPI,
   ) => {
     const { dispatch, getState, signal } = thunkAPI;
     const presets = getState().presets;
@@ -225,7 +225,7 @@ export const requestAssistant = createAppAsyncThunk(
             ...options,
             model: options?.model ?? preset.defaultModel,
             temperature: options?.temperature ?? preset.temperature,
-          }
+          },
         );
 
         currentMessages.push({ ...response, timestamp: Date.now() });
@@ -258,10 +258,10 @@ export const requestAssistant = createAppAsyncThunk(
             message: (error as Error).message,
           },
           output: [],
-        } as unknown as Response & { timestamp: number })
+        } as unknown as Response & { timestamp: number }),
       );
     }
-  }
+  },
 );
 
 export const requestSearch = createAppAsyncThunk(
@@ -291,13 +291,13 @@ export const requestSearch = createAppAsyncThunk(
         created_at: Math.floor(Date.now() / 1000),
         error: null,
         output: [toolCallMessage],
-      } as Response & { timestamp: number })
+      } as Response & { timestamp: number }),
     );
 
     try {
       const response = await fetch(
         `/api/search?${new URLSearchParams({ q: query })}`,
-        { signal }
+        { signal },
       );
       const body = await response.json();
       const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
@@ -318,7 +318,7 @@ export const requestSearch = createAppAsyncThunk(
       };
       dispatch(addMessage(toolCallErrorMessage));
     }
-  }
+  },
 );
 
 export const requestSearchImage = createAppAsyncThunk(
@@ -349,12 +349,12 @@ export const requestSearchImage = createAppAsyncThunk(
         created_at: Math.floor(Date.now() / 1000),
         error: null,
         output: [toolCallMessage],
-      } as Response & { timestamp: number })
+      } as Response & { timestamp: number }),
     );
 
     try {
       const response = await fetch(
-        `/api/search?${new URLSearchParams({ q: query, searchType: "image" })}`
+        `/api/search?${new URLSearchParams({ q: query, searchType: "image" })}`,
       );
       const body = await response.json();
       const toolCallOutputMessage: ResponseInputItem.FunctionCallOutput = {
@@ -375,7 +375,7 @@ export const requestSearchImage = createAppAsyncThunk(
       };
       dispatch(addMessage(toolCallErrorMessage));
     }
-  }
+  },
 );
 
 export const requestGenerateImage = createAppAsyncThunk(
@@ -395,7 +395,7 @@ export const requestGenerateImage = createAppAsyncThunk(
       });
       const response = await client.responses.create(
         {
-          model: "gpt-5-nano",
+          model: "gpt-5.4-mini",
           input: messages.flatMap(normMessage),
           tools: [
             {
@@ -406,7 +406,7 @@ export const requestGenerateImage = createAppAsyncThunk(
           ],
           tool_choice: "required",
         },
-        { signal }
+        { signal },
       );
 
       dispatch(addResponse({ ...response, timestamp: Date.now() }));
@@ -421,10 +421,10 @@ export const requestGenerateImage = createAppAsyncThunk(
             message: (error as Error).message,
           },
           output: [],
-        } as unknown as Response & { timestamp: number })
+        } as unknown as Response & { timestamp: number }),
       );
     }
-  }
+  },
 );
 
 export const requestCreateResearch = createAppAsyncThunk(
@@ -444,7 +444,7 @@ export const requestCreateResearch = createAppAsyncThunk(
         type: "web_search_call",
         id,
         status: "in_progress",
-      } as ResponseFunctionWebSearch)
+      } as ResponseFunctionWebSearch),
     );
-  }
+  },
 );

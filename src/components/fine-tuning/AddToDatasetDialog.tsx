@@ -79,7 +79,7 @@ function toDatasetRecord({
         return records;
 
       case "function_call_output":
-        return [{ role: "tool", content: msg.output }];
+        return [{ role: "tool", content: msg.output as string }];
     }
   };
 
