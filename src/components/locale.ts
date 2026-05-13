@@ -2,6 +2,7 @@ export default {
   en: {
     translation: {
       Account: "Account",
+      About: "About",
       "API Key": "API Key",
       "API Mode": "API Mode",
       App: "App",
@@ -12,6 +13,7 @@ export default {
       "Browse webpage": "Browse webpage",
       Camera: "Camera",
       Cancel: "Cancel",
+      "Check for updates": "Check for updates",
       Confirm: "Confirm",
       Connections: "Connections",
       Create: "Create",
@@ -82,6 +84,7 @@ export default {
   "zh-CN": {
     translation: {
       Account: "账户",
+      About: "关于",
       "API Key": "API 密钥",
       "API Mode": "API 模式",
       App: "应用",
@@ -92,6 +95,7 @@ export default {
       "Browse webpage": "浏览网页",
       Camera: "相机",
       Cancel: "取消",
+      "Check for updates": "检查更新",
       Create: "创建",
       Confirm: "确认",
       Connections: "连接",

@@ -483,12 +483,20 @@ export function GenerateImageContent({
   message: ResponseInputItem.ImageGenerationCall;
 }) {
   const image = useMemo(() => {
-    const byteCharacters = atob(message.result!);
-    const byteNumbers = new Uint8Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    if (!message.result) return null;
+    try {
+      const byteCharacters = atob(message.result);
+      const byteNumbers = new Uint8Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      return URL.createObjectURL(
+        new Blob([byteNumbers], { type: "image/png" }),
+      );
+    } catch (e) {
+      console.error("Error occurred while processing image data:", e);
+      return null;
     }
-    return URL.createObjectURL(new Blob([byteNumbers], { type: "image/png" }));
   }, [message.result]);
 
   const alt = (message as any).revised_prompt ?? `Generated Image`;
@@ -507,7 +515,7 @@ export function GenerateImageContent({
         >
           <CircularProgress />
         </Box>
-      ) : message.status === "completed" ? (
+      ) : message.status === "completed" && image ? (
         <PhotoProvider bannerVisible={false}>
           <PhotoView src={image}>
             <img src={image} alt={alt} title={alt} />

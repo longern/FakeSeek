@@ -116,6 +116,22 @@ function SettingsBlock({
   );
 }
 
+async function clearStaticResourceCache() {
+  if ("serviceWorker" in navigator) {
+    const registration = await navigator.serviceWorker.getRegistration();
+    await registration?.update();
+  }
+
+  if ("caches" in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter((cacheName) => cacheName.startsWith("fakeseek-static-"))
+        .map((cacheName) => caches.delete(cacheName)),
+    );
+  }
+}
+
 function SettingsDialog({
   open,
   onClose,
@@ -127,6 +143,10 @@ function SettingsDialog({
   const showPresetsDialog = useShowPresetsDialog();
   const { t } = useTranslation();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+  const handleCheckUpdates = useCallback(async () => {
+    await clearStaticResourceCache();
+    window.location.reload();
+  }, []);
 
   return (
     <Dialog
@@ -204,6 +224,14 @@ function SettingsDialog({
               >
                 <ListItemText primary={t("HuggingFace remote host")} />
                 <NavigateNextIcon color="disabled" />
+              </ListItemButton>
+            </ListItem>
+          </SettingsBlock>
+
+          <SettingsBlock subheader={t("About")}>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleCheckUpdates}>
+                <ListItemText primary={t("Check for updates")} />
               </ListItemButton>
             </ListItem>
           </SettingsBlock>

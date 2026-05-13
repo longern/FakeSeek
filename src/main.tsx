@@ -5,7 +5,10 @@ import { Provider } from "react-redux";
 import App from "./components/App.tsx";
 import "./components/i18n.ts";
 import "./components/pwa-back-button.ts";
+import { registerServiceWorker } from "./app/service-worker.ts";
 import store from "./app/store.ts";
+
+registerServiceWorker();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

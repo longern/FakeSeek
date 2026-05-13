@@ -22,7 +22,7 @@ function responseReducer(
   event:
     | ResponseStreamEvent
     | FunctionCallOutputCompletedEvent
-    | FunctionCallOutputIncompleteEvent
+    | FunctionCallOutputIncompleteEvent,
 ) {
   if (event.type === "response.created") return event.response;
 
@@ -43,7 +43,7 @@ function responseReducer(
         // Hardcord for vLLM
         const outputIndex = Math.min(
           event.output_index,
-          response.output.length - 1
+          response.output.length - 1,
         );
 
         const item = structuredClone(event.item);
@@ -51,6 +51,8 @@ function responseReducer(
         if (!item.id && response.output[outputIndex]?.id)
           item.id = response.output[outputIndex].id;
         if (item.type === "reasoning") item.status ??= "completed";
+        if (item.type === "image_generation_call" && item.result !== null)
+          item.status = "completed";
 
         response.output[outputIndex] = item;
         break;
@@ -77,13 +79,13 @@ function responseReducer(
       case "response.content_part.done": {
         const outputIndex = Math.min(
           event.output_index,
-          response.output.length - 1
+          response.output.length - 1,
         );
         const doneMessage = response.output[outputIndex];
         if (doneMessage.type !== "message") return;
         const contentIndex = Math.min(
           event.content_index,
-          doneMessage.content.length - 1
+          doneMessage.content.length - 1,
         );
         doneMessage.content[contentIndex] = event.part as any;
         break;
@@ -95,7 +97,7 @@ function responseReducer(
           return;
         const contentIndex = Math.min(
           event.content_index,
-          outMessage.content.length - 1
+          outMessage.content.length - 1,
         );
         const outPart = outMessage.content[contentIndex];
         if (outPart.type !== "output_text") return;
@@ -109,7 +111,7 @@ function responseReducer(
           return;
         const contentIndex = Math.min(
           event.content_index,
-          reasoningMessage.content.length - 1
+          reasoningMessage.content.length - 1,
         );
         const reasoningPart = reasoningMessage.content[contentIndex];
         reasoningPart.text += event.delta;
