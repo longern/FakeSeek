@@ -70,6 +70,7 @@ export default {
       "delete-preset-confirm": "Delete this preset?",
       "tools-provider.default": "Default",
       "tools-provider.openai-builtin": "OpenAI Built-in",
+      "quality.auto": "Auto",
       "quality.low": "Low",
       "quality.medium": "Medium",
       "quality.high": "High",
@@ -149,6 +150,7 @@ export default {
 
       "delete-chat": "删除此对话？",
       "delete-preset-confirm": "删除此预设？",
+      "quality.auto": "自动",
       "quality.low": "低",
       "quality.medium": "中",
       "quality.high": "高",

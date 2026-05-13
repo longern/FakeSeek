@@ -39,7 +39,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return new Uint8Array(
     atob(base64String.replace(/-/g, "+").replace(/_/g, "/"))
       .split("")
-      .map((c) => c.charCodeAt(0))
+      .map((c) => c.charCodeAt(0)),
   );
 }
 
@@ -74,22 +74,22 @@ function InputArea({
   onGenerateImage: (prompt: ResponseInputMessageContentList) => void;
   onChat: (
     message: ResponseInputMessageContentList,
-    options?: CreateResponseParams
+    options?: CreateResponseParams,
   ) => void;
 }) {
+  const preset = useAppSelector((state) =>
+    state.presets.current === null
+      ? null
+      : state.presets.presets[state.presets.current],
+  );
   const [searchMode, setSearchMode] = useState<
     "auto" | "webpage" | "image" | "deep-research" | undefined
-  >(undefined);
+  >(preset?.toolsProvider === "openai-builtin" ? "auto" : undefined);
   const [enableGenerateImage, setEnableGenerateImage] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [message, setMessage] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const preset = useAppSelector((state) =>
-    state.presets.current === null
-      ? null
-      : state.presets.presets[state.presets.current]
-  );
 
   const { t } = useTranslation();
 
@@ -134,8 +134,12 @@ function InputArea({
               searchMode === "auto"
                 ? preset?.toolsProvider === "openai-builtin"
                   ? [
-                      { type: "web_search_preview" },
+                      { type: "web_search" },
                       { type: "code_interpreter", container: { type: "auto" } },
+                      {
+                        type: "image_generation",
+                        quality: preset.imageQuality,
+                      },
                     ]
                   : [TOOL_DEFAULT_MCP, TOOL_PYTHON]
                 : undefined,
@@ -154,7 +158,7 @@ function InputArea({
       onSearch,
       onSearchImage,
       onGenerateImage,
-    ]
+    ],
   );
 
   return (
@@ -382,7 +386,7 @@ function InputArea({
                     if (!e.target.files) return;
                     const files = Array.from(e.target.files);
                     const imageURLs = files.map((file) =>
-                      URL.createObjectURL(file)
+                      URL.createObjectURL(file),
                     );
                     setImages((images) => [...images, ...imageURLs]);
                     setShowPanel(false);
@@ -421,7 +425,7 @@ function InputArea({
                     if (!e.target.files) return;
                     const files = Array.from(e.target.files);
                     const imageURLs = files.map((file) =>
-                      URL.createObjectURL(file)
+                      URL.createObjectURL(file),
                     );
                     setImages((images) => [...images, ...imageURLs]);
                     setShowPanel(false);

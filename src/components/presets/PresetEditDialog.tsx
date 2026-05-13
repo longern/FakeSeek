@@ -366,6 +366,11 @@ function PresetEditDialog({
                           <ListItemButton
                             selected={preset.toolsProvider === toolsProvider}
                             onClick={() => {
+                              setPreset((prev) =>
+                                prev
+                                  ? { ...prev, toolsProvider: toolsProvider }
+                                  : prev,
+                              );
                               setToolsProviderAnchor(null);
                             }}
                           >
@@ -402,7 +407,7 @@ function PresetEditDialog({
                   >
                     <ListItemText primary={t("Image Quality")} />
                     <Typography variant="body2" color="text.secondary">
-                      {t(`quality.${preset.imageQuality}`)}
+                      {t(`quality.${preset.imageQuality ?? "auto"}`)}
                     </Typography>
                     <UnfoldMoreIcon />
                   </ListItemButton>
@@ -414,29 +419,41 @@ function PresetEditDialog({
                     onClose={() => setQualitySelectorAnchor(null)}
                     slotProps={{ backdrop: { invisible: false } }}
                   >
-                    {(["low", "medium", "high"] as const).map((quality) => (
-                      <ListItem key={quality} disablePadding>
-                        <ListItemButton
-                          selected={preset.imageQuality === quality}
-                          onClick={() => {
-                            setQualitySelectorAnchor(null);
-                          }}
-                        >
-                          <ListItemText
-                            primary={t(`quality.${quality}`)}
-                            sx={{ marginRight: 2 }}
-                          />
-                          {preset.imageQuality === quality ? (
-                            <CheckIcon
-                              color="primary"
-                              sx={{ width: 24, height: 24 }}
+                    {(["auto", "low", "medium", "high"] as const).map(
+                      (quality) => (
+                        <ListItem key={quality} disablePadding>
+                          <ListItemButton
+                            selected={
+                              (preset.imageQuality ?? "auto") === quality
+                            }
+                            onClick={() => {
+                              setPreset(
+                                (prev) =>
+                                  prev && {
+                                    ...prev,
+                                    imageQuality:
+                                      quality === "auto" ? undefined : quality,
+                                  },
+                              );
+                              setQualitySelectorAnchor(null);
+                            }}
+                          >
+                            <ListItemText
+                              primary={t(`quality.${quality}`)}
+                              sx={{ marginRight: 2 }}
                             />
-                          ) : (
-                            <Box sx={{ width: 24, height: 24 }} />
-                          )}
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                            {(preset.imageQuality ?? "auto") === quality ? (
+                              <CheckIcon
+                                color="primary"
+                                sx={{ width: 24, height: 24 }}
+                              />
+                            ) : (
+                              <Box sx={{ width: 24, height: 24 }} />
+                            )}
+                          </ListItemButton>
+                        </ListItem>
+                      ),
+                    )}
                   </Menu>
                 </ListItem>
               </List>

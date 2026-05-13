@@ -413,7 +413,7 @@ function ResponseItem({
   const { t } = useTranslation();
 
   return (
-    <Box>
+    <Box data-component="ResponseItem">
       {response.error ? (
         <Box sx={{ paddingX: 2 }}>
           <Alert severity="error" sx={{ overflowWrap: "break-word" }}>
@@ -460,7 +460,7 @@ function ResponseItem({
             ) : message.type === "image_generation_call" ? (
               <GenerateImageContent message={message} />
             ) : message.type === "web_search_call" ? (
-              <Box sx={{ marginY: 1 }}>
+              <Box sx={{ marginY: 1, paddingX: 2 }}>
                 <Typography
                   variant="body2"
                   sx={{ color: "text.secondary", userSelect: "none" }}
@@ -480,7 +480,9 @@ function ResponseItem({
               </Box>
             ) : message.type === "code_interpreter_call" ? (
               message.code === null ? null : (
-                <CodeBox language="python">{message.code}</CodeBox>
+                <Box sx={{ paddingLeft: 2, paddingRight: 3 }}>
+                  <CodeBox language="python">{message.code}</CodeBox>
+                </Box>
               )
             ) : null}
           </Fragment>
