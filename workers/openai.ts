@@ -1,19 +1,53 @@
 import { Hono } from "hono";
 import OpenAI from "openai";
-import type { ChatCompletionChunk } from "openai/resources/index.mjs";
+import type {
+  ChatCompletionChunk,
+  ChatCompletionMessageParam,
+} from "openai/resources/index.mjs";
 import type { ResponseStreamEvent } from "openai/resources/responses/responses.mjs";
 import type { Stream } from "openai/streaming.mjs";
 
 const app = new Hono<{
   Bindings: {
     OPENROUTER_API_KEY: string;
+    OPENROUTER_BASE_URL?: string;
+    OPENROUTER_MODEL?: string;
   };
 }>();
 
+const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+const DEFAULT_OPENROUTER_MODEL = "openrouter/free";
+
+type ProxyResponseOutputItem = {
+  type: string;
+  id: string;
+  status?: string;
+  role?: string;
+  summary?: Array<{ type: string; text: string }>;
+  content?: Array<{ type: string; text: string; annotations?: unknown[] }>;
+};
+
+type ResponsesProxyRequest = {
+  input?: unknown;
+  model?: string;
+  instructions?: string;
+  max_output_tokens?: number;
+};
+
+type ResponsesCompatibleChatMessage = ChatCompletionMessageParam & {
+  type?: string;
+  content?: unknown;
+};
+
+type ResponseContentPart = {
+  type?: string;
+  text?: string;
+};
+
 app.post("/chat/completions", async (c) => {
-  const baseURL = "https://openrouter.ai/api/v1";
+  const baseURL = c.env.OPENROUTER_BASE_URL ?? DEFAULT_OPENROUTER_BASE_URL;
   const body = await c.req.json();
-  body.model = "deepseek/deepseek-r1-0528:free";
+  body.model = body.model || c.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
   return fetch(baseURL + "/chat/completions", {
     method: "POST",
     headers: {
@@ -26,14 +60,14 @@ app.post("/chat/completions", async (c) => {
 
 async function transformCompletion(
   completion: Stream<ChatCompletionChunk>,
-  writable: WritableStream<any>
+  writable: WritableStream<Uint8Array>,
 ) {
-  let writer = writable.getWriter();
-  let encoder = new TextEncoder();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
 
   async function writeEvent(
     eventType: ResponseStreamEvent["type"],
-    data: Record<string, any>
+    data: Record<string, unknown>,
   ) {
     const dataBody = JSON.stringify({ type: eventType, ...data });
     const message = `event: ${eventType}\ndata: ${dataBody}\n\n`;
@@ -46,8 +80,8 @@ async function transformCompletion(
     id: `resp_${id}`,
     created_at: Math.floor(Date.now() / 1000),
     status: "in_progress",
-    output: [] as any[],
-    usage: null as Record<string, any> | null,
+    output: [] as ProxyResponseOutputItem[],
+    usage: null as ChatCompletionChunk["usage"] | null,
   };
 
   await writeEvent("response.created", { response });
@@ -77,7 +111,7 @@ async function transformCompletion(
           type: "reasoning",
           id: messageId,
           status: "in_progress",
-          summary: [],
+          summary: [] as Array<{ type: string; text: string }>,
         };
         response.output.push(reasoningMessage);
         await writeEvent("response.output_item.added", {
@@ -123,7 +157,11 @@ async function transformCompletion(
           id: `msg_${crypto.randomUUID()}`,
           status: "in_progress",
           role: "assistant",
-          content: [] as any[],
+          content: [] as Array<{
+            type: string;
+            text: string;
+            annotations: unknown[];
+          }>,
         };
         response.output.push(newMessage);
         const outputIndex = response.output.length - 1;
@@ -167,36 +205,41 @@ async function transformCompletion(
 }
 
 app.post("/responses", async (c) => {
-  const baseURL = "https://openrouter.ai/api/v1";
-  const body = await c.req.json();
+  const baseURL = c.env.OPENROUTER_BASE_URL ?? DEFAULT_OPENROUTER_BASE_URL;
+  const body = (await c.req.json()) as ResponsesProxyRequest;
 
   const client = new OpenAI({
     apiKey: c.env.OPENROUTER_API_KEY,
     baseURL,
   });
 
-  const input: any = body.input;
-  const model: string = "deepseek/deepseek-r1-0528:free";
-  const messages = Array.isArray(input)
+  const input = body.input;
+  const model: string =
+    body.model || c.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
+  const messages: ChatCompletionMessageParam[] = Array.isArray(input)
     ? input
     : [{ role: "user", content: [{ type: "text", text: input }] }];
 
-  if (body.instuctions) {
+  if (body.instructions) {
     messages.unshift({
       role: "system",
-      content: body.instuctions,
+      content: body.instructions,
     });
   }
 
   for (let i = 0; i < messages.length; i++) {
-    if (messages[i].type !== "message") {
+    const message = messages[i] as ResponsesCompatibleChatMessage;
+
+    if ("type" in message && message.type !== "message") {
       messages.splice(i, 1);
       i--;
       continue;
     }
 
-    if (Array.isArray(messages[i].content)) {
-      const content = messages[i].content;
+    delete message.type;
+
+    if (Array.isArray(message.content)) {
+      const content = message.content as ResponseContentPart[];
       for (let j = 0; j < content.length; j++) {
         if (
           content[j].type === "input_text" ||
@@ -207,9 +250,11 @@ app.post("/responses", async (c) => {
       }
     }
 
-    if (model.indexOf("qwq") !== -1) {
-      messages[i].content = messages[i].content
-        .flatMap((part: any) => (part.type === "text" ? [part.text] : []))
+    if (model.indexOf("qwq") !== -1 && Array.isArray(message.content)) {
+      message.content = message.content
+        .flatMap((part: ResponseContentPart) =>
+          part.type === "text" && part.text ? [part.text] : [],
+        )
         .join("\n");
     }
   }
@@ -222,7 +267,7 @@ app.post("/responses", async (c) => {
     stream_options: { include_usage: true },
   });
 
-  let { readable, writable } = new TransformStream();
+  const { readable, writable } = new TransformStream();
 
   c.executionCtx.waitUntil(transformCompletion(completion, writable));
 

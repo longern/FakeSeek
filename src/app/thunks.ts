@@ -17,6 +17,7 @@ import {
   ChatMessage,
   reduceEvent,
 } from "./messages";
+import type { Preset } from "./presets";
 import {
   FunctionCallOutputCompletedEvent,
   FunctionCallOutputIncompleteEvent,
@@ -30,6 +31,8 @@ export function getRequestAPI(apiMode: "responses" | "chat-completions") {
   };
   return adapters[apiMode];
 }
+
+const HOSTED_PROXY_API_KEY_PLACEHOLDER = "fakeseek-hosted-proxy";
 
 export function messageDispatchWrapper(dispatch: AppDispatch) {
   const messageDispatch = (
@@ -87,7 +90,7 @@ async function callFunction({
   signal: AbortSignal;
 }) {
   switch (name) {
-    case "run_python":
+    case "run_python": {
       const pythonCode = JSON.parse(args).code;
       const res = await fetch("https://emkc.org/api/v2/piston/execute", {
         method: "POST",
@@ -104,8 +107,9 @@ async function callFunction({
         throw new Error(errorText);
       }
       return res.text();
+    }
 
-    case "google_search":
+    case "google_search": {
       const query = JSON.parse(args).query;
       const searchRes = await fetch(
         `/api/search?${new URLSearchParams({ q: query })}`,
@@ -117,6 +121,7 @@ async function callFunction({
       }
       const searchBody: SearchResults = await searchRes.json();
       return formatSearchResults(searchBody);
+    }
 
     default:
       throw new Error(`Unknown function name: ${name}`);
@@ -171,7 +176,10 @@ export function normMessage(message: ChatMessage): ResponseInputItem[] {
     message.object === "message" ||
     message.object === "function_call_output"
   ) {
-    const { id, timestamp, object, ...rest } = message;
+    const rest = { ...message };
+    delete rest.id;
+    delete rest.timestamp;
+    delete rest.object;
     return [rest as ResponseInputItem];
   }
   return message.output.map((item) => {
@@ -186,7 +194,8 @@ export function normMessage(message: ChatMessage): ResponseInputItem[] {
       });
       return { content: newContent, ...rest };
     }
-    const { status, ...rest } = item;
+    const rest = { ...item };
+    delete rest.status;
     return rest;
   });
 }
@@ -205,11 +214,14 @@ export const requestAssistant = createAppAsyncThunk(
   ) => {
     const { dispatch, getState, signal } = thunkAPI;
     const presets = getState().presets;
-    const preset = presets.presets?.[presets.current!];
-    if (!preset) throw new Error("No preset selected");
+    const preset = presets.current ? presets.presets?.[presets.current] : null;
+    const assistantPreset: Partial<Preset> = preset ?? {
+      apiKey: HOSTED_PROXY_API_KEY_PLACEHOLDER,
+      defaultModel: "",
+    };
     const messageDispatch = messageDispatchWrapper(dispatch);
 
-    const model = options?.model ?? preset.defaultModel;
+    const model = options?.model ?? assistantPreset.defaultModel;
     if (model?.match(/\bgpt\b.*\bimage\b/i)) {
       await thunkAPI
         .dispatch(requestGenerateImage(messages, { signal }))
@@ -222,18 +234,20 @@ export const requestAssistant = createAppAsyncThunk(
 
       const MAX_TOOL_CALLS = 5;
       for (let i = 0; i < MAX_TOOL_CALLS; i++) {
-        const requestAPI = getRequestAPI(preset.apiMode ?? "responses");
+        const requestAPI = getRequestAPI(
+          assistantPreset.apiMode ?? "responses",
+        );
 
         const response = await requestAPI(
           currentMessages.flatMap(normMessage),
           {
-            apiKey: preset.apiKey,
-            baseURL: preset.baseURL,
+            apiKey: assistantPreset.apiKey,
+            baseURL: assistantPreset.baseURL,
             signal,
             onStreamEvent: messageDispatch,
             ...options,
             model,
-            temperature: options?.temperature ?? preset.temperature,
+            temperature: options?.temperature ?? assistantPreset.temperature,
           },
         );
 
@@ -242,7 +256,7 @@ export const requestAssistant = createAppAsyncThunk(
         let hasNewFunctionCall = false;
         for (const item of response.output) {
           switch (item.type) {
-            case "function_call":
+            case "function_call": {
               const functionCallMessage = await handleFunctionCall({
                 message: item,
                 signal,
@@ -251,6 +265,7 @@ export const requestAssistant = createAppAsyncThunk(
               currentMessages.push(newMessage.payload);
               hasNewFunctionCall = true;
               break;
+            }
           }
         }
 

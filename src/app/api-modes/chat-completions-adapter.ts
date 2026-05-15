@@ -19,7 +19,7 @@ function normMessages(
 ): Array<ChatCompletionMessageParam> {
   return messages.flatMap((msg) => {
     switch (msg.type) {
-      case "message":
+      case "message": {
         const role = msg.role as "user" | "assistant";
         const content =
           typeof msg.content === "string"
@@ -32,6 +32,7 @@ function normMessages(
                 )
                 .join("");
         return [{ role, content }];
+      }
       default:
         return [];
     }
@@ -78,7 +79,7 @@ export async function requestChatCompletionsAPI(
   const response = await client.chat.completions.create(
     {
       model,
-      messages: normMessages(messages),
+      messages: normedMessages,
       stream: true,
       tools,
       temperature: options?.temperature,
