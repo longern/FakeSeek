@@ -6,12 +6,15 @@ import {
   Container,
   Fade,
   IconButton,
+  MenuItem,
   Snackbar,
   Stack,
+  TextField,
   Toolbar,
   Typography,
   useMediaQuery,
 } from "@mui/material";
+import OpenAI from "openai";
 import {
   Response,
   ResponseInputItem,
@@ -42,6 +45,89 @@ import {
   SelectTextDrawer,
 } from "./messages/ResponseItem";
 import { CreateResponseParams } from "../app/api-modes/types";
+import { useCurrentPreset } from "./presets/hooks";
+
+function NewChatModelSelector({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (model: string) => void;
+}) {
+  const preset = useCurrentPreset();
+  const [modelCandidates, setModelCandidates] = useState<string[]>([]);
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    setModelCandidates([]);
+  }, [preset?.apiKey, preset?.baseURL]);
+
+  const loadModelCandidates = useCallback(async () => {
+    if (!preset?.apiKey) {
+      setModelCandidates([]);
+      return;
+    }
+
+    const client = new OpenAI({
+      apiKey: preset.apiKey,
+      baseURL: preset.baseURL,
+      dangerouslyAllowBrowser: true,
+    });
+
+    try {
+      const models = await client.models.list();
+      setModelCandidates(models.data.map((model) => model.id));
+    } catch (e) {
+      console.error("Failed to load models", e);
+      setModelCandidates([]);
+    }
+  }, [preset?.apiKey, preset?.baseURL]);
+
+  const modelOptions = useMemo(() => {
+    const options = [preset?.defaultModel, ...modelCandidates].filter(
+      (model): model is string => Boolean(model),
+    );
+    return Array.from(new Set(options));
+  }, [modelCandidates, preset?.defaultModel]);
+
+  return (
+    <TextField
+      select
+      size="small"
+      label={t("Model")}
+      value={value}
+      onFocus={loadModelCandidates}
+      onChange={(event) => {
+        onChange(event.target.value);
+      }}
+      slotProps={{
+        select: {
+          onOpen: loadModelCandidates,
+        },
+      }}
+      sx={{
+        width: { xs: "min(82vw, 320px)", sm: 320 },
+        marginTop: 2,
+        "& .MuiOutlinedInput-root": {
+          borderRadius: 99,
+          backgroundColor: "background.paper",
+        },
+      }}
+    >
+      {modelOptions.length ? (
+        modelOptions.map((model) => (
+          <MenuItem key={model} value={model}>
+            {model}
+          </MenuItem>
+        ))
+      ) : (
+        <MenuItem value="" disabled>
+          {t("No data")}
+        </MenuItem>
+      )}
+    </TextField>
+  );
+}
 
 function useAbortablePromise() {
   const [abortable, setAbortable] = useState<Abortable | undefined>(undefined);
@@ -54,14 +140,14 @@ function useAbortablePromise() {
         setAbortable(undefined);
       });
     },
-    []
+    [],
   );
 
   return [abortable, setAbortablePromise] as const;
 }
 
 function toUserMessage(
-  message: string | ResponseInputMessageContentList
+  message: string | ResponseInputMessageContentList,
 ): ResponseInputItem.Message {
   const content: ResponseInputMessageContentList =
     typeof message === "string"
@@ -77,11 +163,16 @@ function Main({
   abortable?: Abortable;
   setAbortable: (promise: Abortable & Promise<unknown>) => void;
 }) {
+  const preset = useCurrentPreset();
+  const [selectedModel, setSelectedModel] = useState(
+    preset?.defaultModel ?? "",
+  );
   const [coachingMessages, setCoachingMessages] = useState<
     ChatMessage[] | null
   >(null);
   const [badResponse, setBadResponse] = useState<ChatMessage | null>(null);
   const messages = useAppSelector((state) => state.messages.messages);
+  const messageValues = useMemo(() => Object.values(messages), [messages]);
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
@@ -99,54 +190,59 @@ function Main({
 
   const { t } = useTranslation();
 
-  const handleRetry = (
-    message: ChatMessage,
-    options?: CreateResponseParams
-  ) => {
-    const array = Object.values(messages);
-    const index = array.indexOf(message);
+  useEffect(() => {
+    setSelectedModel(preset?.defaultModel ?? "");
+  }, [preset?.defaultModel]);
 
-    let sliceIndex;
-    for (sliceIndex = index; sliceIndex >= 1; sliceIndex--) {
-      const message = array[sliceIndex - 1];
-      if (message.object === "message" && message.role === "user") break;
-    }
-    if (sliceIndex < 1) return;
+  const handleRetry = useCallback(
+    (message: ChatMessage, options?: CreateResponseParams) => {
+      const array = messageValues;
+      const index = array.indexOf(message);
 
-    const priorMessages = array.slice(0, sliceIndex);
-    for (let i = sliceIndex; i < array.length; i++) {
-      dispatch(removeMessage(array[i].id!));
-    }
-    setAbortable(
-      dispatch(requestAssistant({ messages: priorMessages, options }))
-    );
-  };
+      let sliceIndex;
+      for (sliceIndex = index; sliceIndex >= 1; sliceIndex--) {
+        const message = array[sliceIndex - 1];
+        if (message.object === "message" && message.role === "user") break;
+      }
+      if (sliceIndex < 1) return;
+
+      const priorMessages = array.slice(0, sliceIndex);
+      for (let i = sliceIndex; i < array.length; i++) {
+        dispatch(removeMessage(array[i].id!));
+      }
+      setAbortable(
+        dispatch(requestAssistant({ messages: priorMessages, options })),
+      );
+    },
+    [dispatch, messageValues, setAbortable],
+  );
 
   const inputArea = (
     <InputArea
       abortable={abortable}
+      model={selectedModel || undefined}
       onSearch={async (query) => {
         const userMessage = toUserMessage(query);
         const { payload: newMessage } = await dispatch(
-          addMessageThunk(userMessage)
+          addMessageThunk(userMessage),
         ).unwrap();
-        const newMessages = [...Object.values(messages), newMessage];
+        const newMessages = [...messageValues, newMessage];
         setAbortable(dispatch(requestSearch(newMessages)));
       }}
       onSearchImage={async (query) => {
         const userMessage = toUserMessage(query);
         const { payload: newMessage } = await dispatch(
-          addMessageThunk(userMessage)
+          addMessageThunk(userMessage),
         ).unwrap();
-        const newMessages = [...Object.values(messages), newMessage];
+        const newMessages = [...messageValues, newMessage];
         setAbortable(dispatch(requestSearchImage(newMessages)));
       }}
       onChat={async (message, options) => {
         const newMessage = toUserMessage(message);
         const result = await dispatch(addMessageThunk(newMessage)).unwrap();
-        const newMessages = [...Object.values(messages), result.payload];
+        const newMessages = [...messageValues, result.payload];
         setAbortable(
-          dispatch(requestAssistant({ messages: newMessages, options }))
+          dispatch(requestAssistant({ messages: newMessages, options })),
         );
       }}
       onResearch={async (task) => {
@@ -157,9 +253,9 @@ function Main({
       onGenerateImage={async (prompt) => {
         const userMessage = toUserMessage(prompt);
         const { payload: newMessage } = await dispatch(
-          addMessageThunk(userMessage)
+          addMessageThunk(userMessage),
         ).unwrap();
-        const newMessages = [...Object.values(messages), newMessage];
+        const newMessages = [...messageValues, newMessage];
         setAbortable(dispatch(requestGenerateImage(newMessages)));
       }}
     />
@@ -167,25 +263,24 @@ function Main({
 
   const ResponseActionsBind = useMemo(
     () =>
-      ({ message }: { message: Response & { timestamp: number } }) =>
-        (
-          <ResponseActions
-            response={message}
-            onRetry={(options) => handleRetry(message, options)}
-            onDislike={() => {
-              const msgIndex = Object.entries(messages).findIndex(
-                ([_, msg]) => msg === message
-              );
-              const msgValues = Object.values(structuredClone(messages)).slice(
-                0,
-                msgIndex
-              );
-              setCoachingMessages(msgValues);
-              setBadResponse(message);
-            }}
-          />
-        ),
-    [messages]
+      ({ message }: { message: Response & { timestamp: number } }) => (
+        <ResponseActions
+          response={message}
+          onRetry={(options) => handleRetry(message, options)}
+          onDislike={() => {
+            const msgIndex = Object.values(messages).findIndex(
+              (msg) => msg === message,
+            );
+            const msgValues = Object.values(structuredClone(messages)).slice(
+              0,
+              msgIndex,
+            );
+            setCoachingMessages(msgValues);
+            setBadResponse(message);
+          }}
+        />
+      ),
+    [handleRetry, messages],
   );
 
   return (
@@ -200,7 +295,7 @@ function Main({
           position: "relative",
         }}
       >
-        {!Object.values(messages).length ? (
+        {!messageValues.length ? (
           <Box
             sx={{
               position: "absolute",
@@ -217,10 +312,14 @@ function Main({
             <Typography variant="h5" sx={{ userSelect: "none" }}>
               {t("What can I help with?")}
             </Typography>
+            <NewChatModelSelector
+              value={selectedModel}
+              onChange={setSelectedModel}
+            />
           </Box>
         ) : (
           <MessageList
-            messages={Object.values(messages)}
+            messages={messageValues}
             onContextMenu={(e, payload) => {
               e.preventDefault();
               e.stopPropagation();
@@ -347,7 +446,7 @@ function useSelectedConversationTitle() {
 function Chat() {
   const [abortable, setAbortable] = useAbortablePromise();
   const selectedConversation = useAppSelector(
-    (state) => state.conversations.current
+    (state) => state.conversations.current,
   );
   const selectedConversationTitle = useSelectedConversationTitle();
   const [showSidebar, setShowSidebar] = useState(false);

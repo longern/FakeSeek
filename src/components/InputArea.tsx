@@ -61,6 +61,7 @@ function readImages(images: string[]) {
 
 function InputArea({
   abortable,
+  model,
   onResearch,
   onSearch,
   onSearchImage,
@@ -68,6 +69,7 @@ function InputArea({
   onChat,
 }: {
   abortable?: Abortable;
+  model?: string;
   onResearch: (task: string) => void;
   onSearch: (query: string) => void;
   onSearchImage: (query: string) => void;
@@ -124,7 +126,9 @@ function InputArea({
               detail: "low" as const,
               image_url: base64,
             }));
-            onChat([...imageData, { type: "input_text", text: message }]);
+            onChat([...imageData, { type: "input_text", text: message }], {
+              model,
+            });
           });
           setImages([]);
           return;
@@ -143,7 +147,7 @@ function InputArea({
                     ]
                   : [TOOL_DEFAULT_MCP, TOOL_PYTHON]
                 : undefined,
-            model: searchMode === "auto" ? "gpt-5-mini" : undefined,
+            model: model || (searchMode === "auto" ? "gpt-5-mini" : undefined),
           });
         }
       }
@@ -153,11 +157,14 @@ function InputArea({
       enableGenerateImage,
       message,
       images,
+      model,
       onChat,
       onResearch,
       onSearch,
       onSearchImage,
       onGenerateImage,
+      preset?.toolsProvider,
+      preset?.imageQuality,
     ],
   );
 
