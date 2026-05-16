@@ -228,7 +228,7 @@ export const Markdown = memo(({ children }: { children: string }) => {
                   whiteSpace: "normal",
                   overflowWrap: "break-word",
                   minWidth: "8rem",
-                  maxWidth: "28rem",
+                  maxWidth: "min(28rem, 45vw)",
                 },
               }}
             />
