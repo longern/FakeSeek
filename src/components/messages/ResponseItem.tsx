@@ -515,16 +515,30 @@ function ResponseItem({
               <Box sx={{ marginY: 1, paddingX: 2 }}>
                 <Typography
                   variant="body2"
-                  sx={{ color: "text.secondary", userSelect: "none" }}
+                  sx={{
+                    color: "text.secondary",
+                    userSelect: "none",
+                    minWidth: 0,
+                  }}
                 >
                   <Stack
                     component="span"
                     direction="row"
                     gap={0.5}
-                    sx={{ alignItems: "center" }}
+                    sx={{ alignItems: "center", minWidth: 0 }}
                   >
-                    <SearchIcon />
-                    {formatWebSearchCall(message, t)}
+                    <SearchIcon fontSize="small" sx={{ flexShrink: 0 }} />
+                    <Box
+                      component="span"
+                      sx={{
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatWebSearchCall(message, t)}
+                    </Box>
                   </Stack>
                 </Typography>
               </Box>
