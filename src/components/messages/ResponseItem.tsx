@@ -23,7 +23,10 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Response } from "openai/resources/responses/responses.mjs";
+import {
+  Response,
+  ResponseFunctionWebSearch,
+} from "openai/resources/responses/responses.mjs";
 import { ElementType, Fragment, lazy, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-photo-view/dist/react-photo-view.css";
@@ -59,6 +62,55 @@ function formatTimestamp(timestamp: number) {
   } else {
     return `${month}/${day} ${hours}:${minutes}`;
   }
+}
+
+function getHostname(url?: string | null) {
+  if (!url) return undefined;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function formatWebSearchCall(
+  message: ResponseFunctionWebSearch,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  const isCompleted = message.status === "completed";
+  const action = message.action;
+
+  if (!action) {
+    return isCompleted ? t("Search completed") : t("Searching...");
+  }
+
+  if (action.type === "search") {
+    const query = action.queries?.join(", ") || action.query;
+    if (!query) return isCompleted ? t("Search completed") : t("Searching...");
+    return isCompleted
+      ? t("Search completed for {{query}}", { query })
+      : t("Searching for {{query}}", { query });
+  }
+
+  if (action.type === "open_page") {
+    const page = getHostname(action.url);
+    if (!page) return isCompleted ? t("Search completed") : t("Searching...");
+    return isCompleted
+      ? t("Opened {{page}}", { page })
+      : t("Opening {{page}}", { page });
+  }
+
+  if (action.type === "find_in_page") {
+    const page = getHostname(action.url);
+    const target = page
+      ? t("{{pattern}} on {{page}}", { pattern: action.pattern, page })
+      : action.pattern;
+    return isCompleted
+      ? t("Searched page for {{target}}", { target })
+      : t("Searching page for {{target}}", { target });
+  }
+
+  return isCompleted ? t("Search completed") : t("Searching...");
 }
 
 export function SelectTextDrawer({
@@ -472,9 +524,7 @@ function ResponseItem({
                     sx={{ alignItems: "center" }}
                   >
                     <SearchIcon />
-                    {message.status === "completed"
-                      ? t("Search completed")
-                      : t("Searching...")}
+                    {formatWebSearchCall(message, t)}
                   </Stack>
                 </Typography>
               </Box>
