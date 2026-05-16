@@ -202,6 +202,32 @@ export const Markdown = memo(({ children }: { children: string }) => {
             </Box>
           );
         },
+        table: ({ node, ref, ...props }: any) => (
+          <Box
+            sx={{
+              maxWidth: "100%",
+              overflowX: "auto",
+              marginY: "0.8em",
+            }}
+          >
+            <Box
+              component="table"
+              {...props}
+              sx={{
+                width: "max-content",
+                minWidth: "100%",
+                borderCollapse: "collapse",
+                "& th, & td": {
+                  border: "1px solid",
+                  borderColor: "divider",
+                  paddingX: 1,
+                  paddingY: 0.5,
+                  textAlign: "left",
+                },
+              }}
+            />
+          </Box>
+        ),
       }}
     >
       {preprocessLaTeX(children)}
