@@ -214,6 +214,7 @@ export const Markdown = memo(({ children }: { children: string }) => {
               component="table"
               {...props}
               sx={{
+                width: "max-content",
                 minWidth: "100%",
                 borderCollapse: "collapse",
                 tableLayout: "auto",
@@ -225,8 +226,9 @@ export const Markdown = memo(({ children }: { children: string }) => {
                   textAlign: "left",
                   verticalAlign: "top",
                   whiteSpace: "normal",
-                  overflowWrap: "anywhere",
-                  maxWidth: "32rem",
+                  overflowWrap: "break-word",
+                  minWidth: "8rem",
+                  maxWidth: "28rem",
                 },
               }}
             />
